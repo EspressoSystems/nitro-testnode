@@ -170,7 +170,7 @@ if $dev_build_blockscout; then
   fi
 fi
 
-NODES="sequencer"
+NODES="sequencer l2node"
 INITIAL_SEQ_NODES="sequencer"
 
 if [ $redundantsequencers -gt 0 ]; then

@@ -148,6 +148,18 @@ services:
     volumes:
       - "consensus:/consensus"
       - "config:/config"
+  l2node:
+    pid: host # allow debugging
+    image: nitro-node-dev-testnode
+    ports:
+      - "127.0.0.1:18547:8547"
+      - "127.0.0.1:18548:8548"
+    volumes:
+      - "config:/config"
+    command: --conf.file /config/l2node_config.json --http.api net,web3,eth,txpool,debug
+    depends_on:
+      - geth
+      - redis
 
   sequencer:
     pid: host # allow debugging

@@ -247,6 +247,7 @@ function writeConfigs(argv: any) {
 
 
     const baseConfJSON = JSON.stringify(baseConfig)
+    fs.writeFileSync(path.join(consts.configpath, "l2node_config.json"), baseConfJSON)
 
     let validatorConfig = JSON.parse(baseConfJSON)
     validatorConfig["parent-chain"].wallet.account = namedAccount("validator").address
