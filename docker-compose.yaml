@@ -158,10 +158,12 @@ services:
       - "127.0.0.1:9642:9642"
     volumes:
       - "seqdata:/home/user/.arbitrum/local/nitro"
+      - "l1keystore:/home/user/l1keystore"
       - "config:/config"
     command: --conf.file /config/sequencer_config.json --node.feed.output.enable --node.feed.output.port 9642  --http.api net,web3,eth,txpool,debug --node.seq-coordinator.my-url  ws://sequencer:8548 --graphql.enable --graphql.vhosts * --graphql.corsdomain *
     depends_on:
       - geth
+      - validation_node
       - redis
 
   sequencer_b:

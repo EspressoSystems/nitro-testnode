@@ -32,7 +32,7 @@ DEPOSIT_CONTRACT_ADDRESS: 0x4242424242424242424242424242424242424242
 }
 
 function writeGethGenesisConfig(argv: any) {
-   const gethConfig =  `
+    const gethConfig = `
     {
         "config": {
             "ChainName": "l1_chain",
@@ -152,10 +152,10 @@ function writeGethGenesisConfig(argv: any) {
 
 function writeConfigs(argv: any) {
     const valJwtSecret = path.join(consts.configpath, "val_jwt.hex")
-	const chainInfoFile = path.join(consts.configpath, "l2_chain_info.json")
+    const chainInfoFile = path.join(consts.configpath, "l2_chain_info.json")
     const baseConfig = {
         "parent-chain": {
-            "connection" : {
+            "connection": {
                 "url": argv.l1url,
             },
             "wallet": {
@@ -174,6 +174,8 @@ function writeConfigs(argv: any) {
                 "espresso": false,
                 "hotshot-url": "",
                 "espresso-namespace": 100,
+                "max-block-speed": "250ms",
+                "max-tx-data-size": 85000,
             },
         },
         "node": {
@@ -208,18 +210,18 @@ function writeConfigs(argv: any) {
                 "max-delay": "30s",
                 "data-poster": {
                     "redis-signer": {
-                      "signing-key": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+                        "signing-key": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
                     },
                     "wait-for-l1-finality": false
                 }
             },
             "block-validator": {
-				"validation-server" : {
-					"url": argv.validationNodeUrl,
-					"jwtsecret": valJwtSecret,
-				},
-                                "espresso": false,
-                                "hotshot-address": "",
+                "validation-server": {
+                    "url": argv.validationNodeUrl,
+                    "jwtsecret": valJwtSecret,
+                },
+                "espresso": false,
+                "hotshot-address": "",
             },
             "feed": {
                 "input": {
@@ -267,16 +269,32 @@ function writeConfigs(argv: any) {
     let unsafeStakerConfig = JSON.parse(validconfJSON)
     unsafeStakerConfig.node.staker.dangerous["without-block-validator"] = true
     fs.writeFileSync(path.join(consts.configpath, "unsafe_staker_config.json"), JSON.stringify(unsafeStakerConfig))
+    const val_jwt = `0xe3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`
+    fs.writeFileSync(path.join(consts.configpath, "val_jwt.hex"), val_jwt)
 
     let sequencerConfig = JSON.parse(baseConfJSON)
     sequencerConfig.execution.sequencer.enable = true
     sequencerConfig.node.sequencer = true
     sequencerConfig.node["delayed-sequencer"].enable = true
+    sequencerConfig.node["delayed-sequencer"]["finalize-distance"] = 6
+    sequencerConfig.node["delayed-sequencer"]["use-merge-finality"] = false
     if (argv.espresso) {
         sequencerConfig.node.espresso = true
+        sequencerConfig.node["batch-poster"].enable = true
+        sequencerConfig.execution["forwarding-target"] = "null"
         sequencerConfig.execution.sequencer.espresso = true
         sequencerConfig.execution.sequencer["hotshot-url"] = argv.espressoUrl
+        sequencerConfig["parent-chain"].wallet.account = namedAccount("sequencer").address
         sequencerConfig.node.feed.output.enable = true
+        sequencerConfig.node.staker.enable = true
+        sequencerConfig.node.staker["use-smart-contract-wallet"] = true
+        sequencerConfig.execution["forwarding-target"] = "null"
+        sequencerConfig.node["block-validator"]["espresso"] = true
+        // If we don't quote the address it is interpreted as a Number.
+        // The quotes however stick around and make it an invalid address.
+        // Remove the double quote from the hotshot address.
+        // There has to be a better way.
+        sequencerConfig.node["block-validator"]["hotshot-address"] = argv["hotshot-address"].replace(/^"(.+(?="$))"$/, '$1')
     } else {
         sequencerConfig.node["seq-coordinator"].enable = true
     }
@@ -294,7 +312,7 @@ function writeConfigs(argv: any) {
     fs.writeFileSync(path.join(consts.configpath, "poster_config.json"), JSON.stringify(posterConfig))
 
     let l3Config = JSON.parse(baseConfJSON)
-    l3Config["parent-chain"].connection.url = argv.l2url 
+    l3Config["parent-chain"].connection.url = argv.l2url
     l3Config["parent-chain"].wallet.account = namedAccount("l3sequencer").address
     l3Config.chain.id = 333333
     const l3ChainInfoFile = path.join(consts.configpath, "l3_chain_info.json")
@@ -332,33 +350,33 @@ function writeConfigs(argv: any) {
 
 function writeL2ChainConfig(argv: any) {
     const l2ChainConfig = {
-		"chainId": 412346,
-		"homesteadBlock": 0,
-		"daoForkSupport": true,
-		"eip150Block": 0,
-		"eip150Hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-		"eip155Block": 0,
-                "espresso": argv.espresso,
-		"eip158Block": 0,
-		"byzantiumBlock": 0,
-		"constantinopleBlock": 0,
-		"petersburgBlock": 0,
-		"istanbulBlock": 0,
-		"muirGlacierBlock": 0,
-		"berlinBlock": 0,
-		"londonBlock": 0,
-		"clique": {
-			"period": 0,
-			"epoch": 0
-		},
-		"arbitrum": {
-			"EnableArbOS": true,
-			"AllowDebugPrecompiles": true,
-			"DataAvailabilityCommittee": false,
-			"InitialArbOSVersion": 11,
-			"InitialChainOwner": argv.l2owner,
-			"GenesisBlockNum": 0
-		}
+        "chainId": 412346,
+        "homesteadBlock": 0,
+        "daoForkSupport": true,
+        "eip150Block": 0,
+        "eip150Hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "eip155Block": 0,
+        "espresso": argv.espresso,
+        "eip158Block": 0,
+        "byzantiumBlock": 0,
+        "constantinopleBlock": 0,
+        "petersburgBlock": 0,
+        "istanbulBlock": 0,
+        "muirGlacierBlock": 0,
+        "berlinBlock": 0,
+        "londonBlock": 0,
+        "clique": {
+            "period": 0,
+            "epoch": 0
+        },
+        "arbitrum": {
+            "EnableArbOS": true,
+            "AllowDebugPrecompiles": true,
+            "DataAvailabilityCommittee": false,
+            "InitialArbOSVersion": 10,
+            "InitialChainOwner": argv.l2owner,
+            "GenesisBlockNum": 0
+        }
     }
     const l2ChainConfigJSON = JSON.stringify(l2ChainConfig)
     fs.writeFileSync(path.join(consts.configpath, "l2_chain_config.json"), l2ChainConfigJSON)
@@ -366,32 +384,32 @@ function writeL2ChainConfig(argv: any) {
 
 function writeL3ChainConfig(argv: any) {
     const l3ChainConfig = {
-		"chainId": 333333,
-		"homesteadBlock": 0,
-		"daoForkSupport": true,
-		"eip150Block": 0,
-		"eip150Hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-		"eip155Block": 0,
-		"eip158Block": 0,
-		"byzantiumBlock": 0,
-		"constantinopleBlock": 0,
-		"petersburgBlock": 0,
-		"istanbulBlock": 0,
-		"muirGlacierBlock": 0,
-		"berlinBlock": 0,
-		"londonBlock": 0,
-		"clique": {
-			"period": 0,
-			"epoch": 0
-		},
-		"arbitrum": {
-			"EnableArbOS": true,
-			"AllowDebugPrecompiles": true,
-			"DataAvailabilityCommittee": false,
-			"InitialArbOSVersion": 11,
-			"InitialChainOwner": "0x0000000000000000000000000000000000000000",
-			"GenesisBlockNum": 0
-		}
+        "chainId": 333333,
+        "homesteadBlock": 0,
+        "daoForkSupport": true,
+        "eip150Block": 0,
+        "eip150Hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "eip155Block": 0,
+        "eip158Block": 0,
+        "byzantiumBlock": 0,
+        "constantinopleBlock": 0,
+        "petersburgBlock": 0,
+        "istanbulBlock": 0,
+        "muirGlacierBlock": 0,
+        "berlinBlock": 0,
+        "londonBlock": 0,
+        "clique": {
+            "period": 0,
+            "epoch": 0
+        },
+        "arbitrum": {
+            "EnableArbOS": true,
+            "AllowDebugPrecompiles": true,
+            "DataAvailabilityCommittee": false,
+            "InitialArbOSVersion": 11,
+            "InitialChainOwner": "0x0000000000000000000000000000000000000000",
+            "GenesisBlockNum": 0
+        }
     }
     const l3ChainConfigJSON = JSON.stringify(l3ChainConfig)
     fs.writeFileSync(path.join(consts.configpath, "l3_chain_config.json"), l3ChainConfigJSON)
