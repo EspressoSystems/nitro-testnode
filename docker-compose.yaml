@@ -337,7 +337,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
 
   orchestrator:
-    image: ghcr.io/espressosystems/espresso-sequencer/orchestrator:main
+    image: ghcr.io/espressosystems/espresso-sequencer/orchestrator:release-gibraltar
     ports:
       - "$ESPRESSO_ORCHESTRATOR_PORT:$ESPRESSO_ORCHESTRATOR_PORT"
     environment:
@@ -352,7 +352,7 @@ services:
       - RUST_LOG_FORMAT
 
   da-server:
-    image: ghcr.io/espressosystems/espresso-sequencer/web-server:main
+    image: ghcr.io/espressosystems/espresso-sequencer/web-server:release-gibraltar
     ports:
       - "$ESPRESSO_DA_SERVER_PORT:$ESPRESSO_WEB_SERVER_PORT"
     environment:
@@ -364,7 +364,7 @@ services:
         condition: service_healthy
 
   consensus-server:
-    image: ghcr.io/espressosystems/espresso-sequencer/web-server:main
+    image: ghcr.io/espressosystems/espresso-sequencer/web-server:release-gibraltar
     ports:
       - "$ESPRESSO_CONSENSUS_SERVER_PORT:$ESPRESSO_WEB_SERVER_PORT"
     environment:
@@ -376,7 +376,7 @@ services:
         condition: service_healthy
 
   espresso-sequencer0:
-    image: ghcr.io/espressosystems/espresso-sequencer/sequencer:main
+    image: ghcr.io/espressosystems/espresso-sequencer/sequencer:release-gibraltar
     ports:
       - "$ESPRESSO_SEQUENCER_API_PORT:$ESPRESSO_SEQUENCER_API_PORT"
     # Run the API server (with options taken from the environment) and the optional submission API
@@ -402,7 +402,7 @@ services:
         condition: service_started
 
   espresso-sequencer1:
-    image: ghcr.io/espressosystems/espresso-sequencer/sequencer:main
+    image: ghcr.io/espressosystems/espresso-sequencer/sequencer:release-gibraltar
     ports:
       - "$ESPRESSO_SEQUENCER1_API_PORT:$ESPRESSO_SEQUENCER_API_PORT"
     # Run the API server (with options taken from the environment)
@@ -427,7 +427,7 @@ services:
         condition: service_started
 
   commitment-task:
-    image: ghcr.io/espressosystems/espresso-sequencer/commitment-task:main
+    image: ghcr.io/espressosystems/espresso-sequencer/commitment-task:release-gibraltar
     ports:
       - "$ESPRESSO_COMMITMENT_TASK_PORT:$ESPRESSO_COMMITMENT_TASK_PORT"
     command: commitment-task --deploy
