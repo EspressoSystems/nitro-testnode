@@ -311,12 +311,6 @@ if $force_init; then
     echo == Writing l2 chain config
     docker-compose run scripts write-l2-chain-config --espresso $espresso
 
-    echo == Deploying L2
-    sequenceraddress=`docker-compose run scripts print-address --account sequencer | tail -n 1 | tr -d '\r\n'`
-
-    docker-compose run --entrypoint /usr/local/bin/deploy poster --l1conn ws://geth:8546 --l1keystore /home/user/l1keystore --sequencerAddress $sequenceraddress --ownerAddress $sequenceraddress --l1DeployAccount $sequenceraddress --l1deployment /config/deployment.json --authorizevalidators 10 --wasmrootpath /home/user/target/machines --l1chainid=$l1chainid --l2chainconfig /config/l2_chain_config.json --l2chainname arb-dev-test --l2chaininfo /config/deployed_chain_info.json
-    docker-compose run --entrypoint sh poster -c "jq [.[]] /config/deployed_chain_info.json > /config/l2_chain_info.json"
-
     if $espresso; then
         echo == Deploying Espresso Contract
         echo "" > espresso.env
@@ -324,6 +318,13 @@ if $force_init; then
         hotShotAddr=`curl http://localhost:60000/api/hotshot_contract`
         echo "ESPRESSO_SEQUENCER_HOTSHOT_ADDRESS=$hotShotAddr" > espresso.env
     fi
+
+    echo == Deploying L2
+    sequenceraddress=`docker-compose run scripts print-address --account sequencer | tail -n 1 | tr -d '\r\n'`
+
+    docker-compose run --entrypoint /usr/local/bin/deploy poster --l1conn ws://geth:8546 --l1keystore /home/user/l1keystore --sequencerAddress $sequenceraddress --ownerAddress $sequenceraddress --l1DeployAccount $sequenceraddress --l1deployment /config/deployment.json --authorizevalidators 10 --wasmrootpath /home/user/target/machines --l1chainid=$l1chainid --l2chainconfig /config/l2_chain_config.json --l2chainname arb-dev-test --l2chaininfo /config/deployed_chain_info.json --hotshot $hotshotAddr
+    docker-compose run --entrypoint sh poster -c "jq [.[]] /config/deployed_chain_info.json > /config/l2_chain_info.json"
+
     echo == Writing configs
     docker-compose run scripts write-config --espresso $espresso --hotshot-address $hotShotAddr
 
