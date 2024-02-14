@@ -276,6 +276,7 @@ function writeConfigs(argv: any) {
         sequencerConfig.node.espresso = true
         sequencerConfig.execution.sequencer.espresso = true
         sequencerConfig.execution.sequencer["hotshot-url"] = argv.espressoUrl
+        sequencerConfig.execution.sequencer["espresso-namespace"] = argv.espressoNamespace
         sequencerConfig.node.feed.output.enable = true
     } else {
         sequencerConfig.node["seq-coordinator"].enable = true
