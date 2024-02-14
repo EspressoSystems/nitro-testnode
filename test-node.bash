@@ -325,10 +325,10 @@ if $force_init; then
     devaddress=$(docker-compose run scripts print-address --account key_0x${devprivkey} | tail -n 1 | tr -d '\r\n')
 
     echo == Funding addresses
-    cast send -r $L1_URL_FROM_HOST --mnemonic .mnemonic --value 10000000ether $funneladdress
-    cast send -r $L1_URL_FROM_HOST --mnemonic .mnemonic --value 1000ether $validatoraddress
-    cast send -r $L1_URL_FROM_HOST --mnemonic .mnemonic --value 1000ether $sequenceraddress
-    cast send -r $L1_URL_FROM_HOST --mnemonic .mnemonic --value 1000ether $devaddress
+    cast send -r $L1_URL_FROM_HOST --mnemonic "$TEST_MNEMONIC" --value 10000000ether $funneladdress
+    cast send -r $L1_URL_FROM_HOST --mnemonic "$TEST_MNEMONIC" --value 1000ether $validatoraddress
+    cast send -r $L1_URL_FROM_HOST --mnemonic "$TEST_MNEMONIC" --value 1000ether $sequenceraddress
+    cast send -r $L1_URL_FROM_HOST --mnemonic "$TEST_MNEMONIC" --value 1000ether $devaddress
     
     if $espresso_deploy; then
         echo == Deploying Espresso Contract
