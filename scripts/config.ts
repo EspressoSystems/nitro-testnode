@@ -333,7 +333,7 @@ function writeConfigs(argv: any) {
 
 function writeL2ChainConfig(argv: any) {
     const l2ChainConfig = {
-		"chainId": 412346,
+		"chainId": argv.l2ChainID,
 		"homesteadBlock": 0,
 		"daoForkSupport": true,
 		"eip150Block": 0,

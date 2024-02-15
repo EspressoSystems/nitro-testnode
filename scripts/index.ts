@@ -32,6 +32,7 @@ async function main() {
       espresso: { boolean: true, decription: 'use Espresso Sequencer for sequencing and DA', default: false },
       espressoUrl: { string: true, description: 'Espresso Sequencer url', default: 'http://espresso-sequencer0:50000' },
       espressoNamespace: { number: true, description: 'Espresso namespace', default: 100 },
+      l2ChainId: { number: true, description: 'L2 Chain ID', default: 412346 },
       hotshotAddress: { sring: true, description: 'address of the HotShot contract', default: '' }
     })
     .command(bridgeFundsCommand)

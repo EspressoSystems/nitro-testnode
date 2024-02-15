@@ -307,7 +307,7 @@ if $force_init; then
     docker-compose run --entrypoint sh poster -c "jq [.[]] /config/deployed_chain_info.json > /config/l2_chain_info.json"
 
     echo == Writing configs
-    docker-compose run scripts write-config --l1url $L1_URL_HTTP --espresso true --espresso-url $ESPRESSO_SEQUENCER_URL --espresso-namespace $ESPRESSO_NAMESPACE --hotshot-address $hotShotAddr
+    docker-compose run scripts write-config --l1url $L1_URL_HTTP --espresso true --espresso-url $ESPRESSO_SEQUENCER_URL --espresso-namespace $ESPRESSO_NAMESPACE --hotshot-address $hotShotAddr --l2-chain-id $L2_CHAIN_ID
 
     echo == Initializing redis
     docker-compose run scripts redis-init --redundancy $redundantsequencers
