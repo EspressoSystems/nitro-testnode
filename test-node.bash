@@ -3,11 +3,8 @@
 set -e
 
 NITRO_NODE_VERSION=offchainlabs/nitro-node:v2.1.1-e9d8842-dev
-ESPRESSO_VERSION=ghcr.io/espressosystems/nitro-espresso-integration/nitro-node-dev:release-gibraltar
+ESPRESSO_VERSION=ghcr.io/espressosystems/nitro-espresso-integration/nitro-node-dev:integration
 BLOCKSCOUT_VERSION=offchainlabs/blockscout:v1.0.0-c8db5b1
-
-# Load env vars in .env
-set -a; source .env; set +a
 
 mydir=`dirname $0`
 cd "$mydir"
@@ -42,15 +39,14 @@ tokenbridge=true
 l3node=false
 consensusclient=false
 redundantsequencers=0
-hotShotAddr=$ESPRESSO_SEQUENCER_HOTSHOT_ADDRESS
+hotShotAddr=0x217788c286797d56cd59af5e493f3699c39cbbe8
 dev_build_nitro=false
 dev_build_blockscout=false
 espresso=false
-espresso_deploy=false
 latest_espresso_image=false
 batchposters=1
 devprivkey=b6b15c8cb491557369f3c7d2c287b053eb229daa9c22138887752191c9520659
-l1chainid=${L1_CHAIN_ID:-900}
+l1chainid=1337
 while [[ $# -gt 0 ]]; do
     case $1 in
         --init)
@@ -85,10 +81,6 @@ while [[ $# -gt 0 ]]; do
             ;;
         --espresso)
             espresso=true
-            shift
-            ;;
-        --espresso-deploy)
-            espresso_deploy=true
             shift
             ;;
         --latest-espresso-image)
@@ -220,8 +212,9 @@ fi
 if $blockscout; then
     NODES="$NODES blockscout"
 fi
-if $espresso_deploy; then
+if $espresso; then
     NODES="$NODES orchestrator da-server consensus-server espresso-sequencer0 espresso-sequencer1 commitment-task"
+
 fi
 if $force_build; then
   echo == Building..
@@ -314,23 +307,22 @@ if $force_init; then
       docker-compose up -d prysm_beacon_chain
       docker-compose up -d prysm_validator
     else
-      echo not starting geth
-      # docker-compose up -d geth
+      docker-compose up -d geth
     fi
 
-    echo == Deploying L2
-    funneladdress=$(docker-compose run scripts print-address --account funnel | tail -n 1 | tr -d '\r\n')
-    sequenceraddress=$(docker-compose run scripts print-address --account sequencer | tail -n 1 | tr -d '\r\n')
-    validatoraddress=$(docker-compose run scripts print-address --account validator | tail -n 1 | tr -d '\r\n')
-    devaddress=$(docker-compose run scripts print-address --account key_0x${devprivkey} | tail -n 1 | tr -d '\r\n')
+    echo == Funding validator and sequencer
+    docker-compose run scripts send-l1 --ethamount 1000 --to validator --wait
+    docker-compose run scripts send-l1 --ethamount 1000 --to sequencer --wait
+    docker-compose run scripts send-l1 --ethamount 1000 --to espresso-sequencer --wait
 
-    echo == Funding addresses
-    cast send -r $L1_URL_FROM_HOST --mnemonic "$TEST_MNEMONIC" --value 10000000ether $funneladdress
-    cast send -r $L1_URL_FROM_HOST --mnemonic "$TEST_MNEMONIC" --value 1000ether $validatoraddress
-    cast send -r $L1_URL_FROM_HOST --mnemonic "$TEST_MNEMONIC" --value 1000ether $sequenceraddress
-    cast send -r $L1_URL_FROM_HOST --mnemonic "$TEST_MNEMONIC" --value 1000ether $devaddress
-    
-    if $espresso_deploy; then
+    echo == create l1 traffic
+    docker-compose run scripts send-l1 --ethamount 1000 --to user_l1user --wait
+    docker-compose run scripts send-l1 --ethamount 0.0001 --from user_l1user --to user_l1user_b --wait --delay 500 --times 1000000 > /dev/null &
+
+    echo == Writing l2 chain config
+    docker-compose run scripts write-l2-chain-config --espresso $espresso
+
+    if $espresso; then
         echo == Deploying Espresso Contract
         echo "" > espresso.env
         docker-compose up -d commitment-task espresso-sequencer0 espresso-sequencer1 --wait
@@ -338,22 +330,22 @@ if $force_init; then
         echo "ESPRESSO_SEQUENCER_HOTSHOT_ADDRESS=$hotShotAddr" > espresso.env
     fi
 
-    echo == Writing l2 chain config
-    docker-compose run scripts write-l2-chain-config --espresso $espresso 
+    echo == Deploying L2
+    sequenceraddress=`docker-compose run scripts print-address --account sequencer | tail -n 1 | tr -d '\r\n'`
 
-    docker-compose run --entrypoint /usr/local/bin/deploy poster --l1conn ws://demo-l1-network:8546 --l1keystore /home/user/l1keystore --sequencerAddress $sequenceraddress --ownerAddress $sequenceraddress --l1DeployAccount $sequenceraddress --l1deployment /config/deployment.json --authorizevalidators 10 --wasmrootpath /home/user/target/machines --l1chainid=$l1chainid --l2chainconfig /config/l2_chain_config.json --l2chainname arb-dev-test --l2chaininfo /config/deployed_chain_info.json
+    docker-compose run --entrypoint /usr/local/bin/deploy poster --l1conn ws://geth:8546 --l1keystore /home/user/l1keystore --sequencerAddress $sequenceraddress --ownerAddress $sequenceraddress --l1DeployAccount $sequenceraddress --l1deployment /config/deployment.json --authorizevalidators 10 --wasmrootpath /home/user/target/machines --l1chainid=$l1chainid --l2chainconfig /config/l2_chain_config.json --l2chainname arb-dev-test --l2chaininfo /config/deployed_chain_info.json --hotshot $hotShotAddr
     docker-compose run --entrypoint sh poster -c "jq [.[]] /config/deployed_chain_info.json > /config/l2_chain_info.json"
 
     echo == Writing configs
-    docker-compose run scripts write-config --l1url $L1_URL_HTTP --espresso $espresso --espresso-url $ESPRESSO_SEQUENCER_URL --espresso-namespace $ESPRESSO_NAMESPACE --hotshot-address $hotShotAddr
+    docker-compose run scripts write-config --espresso $espresso --hotshot-address $hotShotAddr
 
     echo == Initializing redis
     docker-compose run scripts redis-init --redundancy $redundantsequencers
 
-    echo == Funding l2 funnel 
+    echo == Funding l2 funnel and dev key
     docker-compose up -d $INITIAL_SEQ_NODES
-    docker-compose run scripts bridge-funds --l1url $L1_URL_WS --ethamount 100000 --wait
-    docker-compose run scripts bridge-funds --l1url $L1_URL_WS --ethamount 1000 --wait --from "key_0x$devprivkey"
+    docker-compose run scripts bridge-funds --ethamount 100000 --wait
+    docker-compose run scripts bridge-funds --ethamount 1000 --wait --from "key_0x$devprivkey"
 
     if $tokenbridge; then
         echo == Deploying token bridge
