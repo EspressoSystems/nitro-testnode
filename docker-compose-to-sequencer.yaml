@@ -181,6 +181,8 @@ services:
       - "config:/config"
     depends_on:
       - redis
+    environment:
+      - L1_MNEMONIC_ROLLUP_OPERATOR
 
   relay:
     pid: host
