@@ -301,7 +301,7 @@ if $force_init; then
     echo == Deploying L2
 
     echo == Writing l2 chain config
-    docker-compose run scripts write-l2-chain-config --espresso true
+    docker-compose run scripts write-l2-chain-config --espresso true --l2-chain-id $L2_CHAIN_ID
 
     docker-compose run --entrypoint /usr/local/bin/deploy poster --l1conn ws://demo-l1-network:8546 --l1keystore /home/user/l1keystore --sequencerAddress $sequenceraddress --ownerAddress $sequenceraddress --l1DeployAccount $sequenceraddress --l1deployment /config/deployment.json --authorizevalidators 10 --wasmrootpath /home/user/target/machines --l1chainid=$l1chainid --l2chainconfig /config/l2_chain_config.json --l2chainname arb-dev-test --l2chaininfo /config/deployed_chain_info.json
     docker-compose run --entrypoint sh poster -c "jq [.[]] /config/deployed_chain_info.json > /config/l2_chain_info.json"
