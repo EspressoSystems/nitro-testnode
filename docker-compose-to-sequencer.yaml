@@ -95,9 +95,6 @@ services:
   poster:
     pid: host # allow debugging
     image: nitro-node-dev-testnode
-    ports:
-      - "127.0.0.1:8147:8547"
-      - "127.0.0.1:8148:8548"
     volumes:
       - "poster-data:/home/user/.arbitrum/local/nitro"
       - "l1keystore:/home/user/l1keystore"
