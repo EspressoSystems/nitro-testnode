@@ -293,10 +293,10 @@ if $force_init; then
 
     echo == Funding addresses
 
-    cast send -r $L1_URL_FOR_FUNDING --mnemonic "$TEST_MNEMONIC" --value 1000000ether $funneladdress
-    cast send -r $L1_URL_FOR_FUNDING --mnemonic "$TEST_MNEMONIC" --value 1000ether $validatoraddress
-    cast send -r $L1_URL_FOR_FUNDING --mnemonic "$TEST_MNEMONIC" --value 1000ether $sequenceraddress
-    cast send -r $L1_URL_FOR_FUNDING --mnemonic "$TEST_MNEMONIC" --value 1000ether $devaddress
+    cast send -r $L1_URL_FOR_FUNDING --mnemonic-index $MNEMONIC_INDEX --mnemonic "$TEST_MNEMONIC" --value 1000000ether $funneladdress
+    cast send -r $L1_URL_FOR_FUNDING --mnemonic-index $MNEMONIC_INDEX --mnemonic "$TEST_MNEMONIC" --value 1000ether $validatoraddress
+    cast send -r $L1_URL_FOR_FUNDING --mnemonic-index $MNEMONIC_INDEX --mnemonic "$TEST_MNEMONIC" --value 1000ether $sequenceraddress
+    cast send -r $L1_URL_FOR_FUNDING --mnemonic-index $MNEMONIC_INDEX --mnemonic "$TEST_MNEMONIC" --value 1000ether $devaddress
 
     echo == Deploying L2
 
