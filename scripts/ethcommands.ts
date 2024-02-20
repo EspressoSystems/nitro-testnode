@@ -43,10 +43,12 @@ async function bridgeFunds(argv: any, parentChainUrl: string, chainUrl: string, 
     const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
     while (true) {
       const balance = await account.getBalance()
+      const expected = ethers.utils.parseEther(argv.ethamount);
+      console.log(`Account ${account.address} on ${chainUrl}: balance ${balance.toString()}, waiting for ${expected}`)
       if (balance >= ethers.utils.parseEther(argv.ethamount)) {
         return
       }
-      await sleep(100)
+      await sleep(1000)
     }
   }
 }
