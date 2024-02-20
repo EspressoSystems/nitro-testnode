@@ -314,8 +314,11 @@ if $force_init; then
 
     echo == Funding l2 funnel 
     docker-compose up -d $INITIAL_SEQ_NODES
-    docker-compose run scripts bridge-funds --l1url $L1_URL_WS --l2url ws://localhost:$L2_PORT_WS --ethamount 100000 --wait
-    docker-compose run scripts bridge-funds --l1url $L1_URL_WS --l2url ws://localhost:$L2_PORT_WS --ethamount 1000 --wait --from "key_0x$devprivkey"
+    # If multiple compose projects are running on the same host, the default L2
+    # URL ws://sequencer:8548 is ambiguous. Therefore we use an L2 URL with the
+    # full name of the docker container.
+    docker-compose run scripts bridge-funds --l1url $L1_URL_WS --l2url ws://${COMPOSE_PROJECT_NAME}-sequencer-1:8548 --ethamount 100000 --wait
+    docker-compose run scripts bridge-funds --l1url $L1_URL_WS --l2url ws://${COMPOSE_PROJECT_NAME}-sequencer-1:8548 --ethamount 1000 --wait --from "key_0x$devprivkey"
 
     if $tokenbridge; then
         echo == Deploying token bridge
