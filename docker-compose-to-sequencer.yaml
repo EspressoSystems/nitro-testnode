@@ -2,7 +2,6 @@ version: "3.9"
 networks:
   default:
     name: espresso-sequencer
-    external: true
 
 services:
   blockscout:
