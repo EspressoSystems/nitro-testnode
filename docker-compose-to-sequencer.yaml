@@ -58,7 +58,7 @@ services:
     volumes:
       - "seqdata:/home/user/.arbitrum/local/nitro"
       - "config:/config"
-    command: --conf.file /config/sequencer_config.json --node.feed.output.enable --node.feed.output.port 9642  --http.api net,web3,eth,txpool,debug --node.seq-coordinator.my-url  ws://sequencer:8548 --graphql.enable --graphql.vhosts * --graphql.corsdomain *
+    command: --conf.file /config/sequencer_config.json --node.feed.output.enable --node.feed.output.port 9642  --http.api net,web3,eth,txpool,debug --node.seq-coordinator.my-url  ws://sequencer:8548 --graphql.enable --graphql.vhosts * --graphql.corsdomain * --execution.caching.archive
     depends_on:
       - redis
 
@@ -140,7 +140,7 @@ services:
       - "validator-data:/home/user/.arbitrum/local/nitro"
       - "l1keystore:/home/user/l1keystore"
       - "config:/config"
-    command: --conf.file /config/validator_config.json --http.port 8547 --http.api net,web3,arb,debug,net,eth --ws.port 8548
+    command: --conf.file /config/validator_config.json --http.port 8547 --http.api net,web3,arb,debug,net,eth --ws.port 8548 --execution.caching.archive
     depends_on:
       - sequencer
       - validation_node
