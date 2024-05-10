@@ -363,7 +363,7 @@ if $force_init; then
     if $espresso; then
         echo == Deploying Espresso Contract
         docker compose up -d commitment-task deploy-contracts espresso-sequencer0 espresso-sequencer1 permissionless-builder --wait
-        addr=`curl http://localhost:60000/api/hotshot_contract`
+        addr=`curl http://localhost:45000/api/hotshot_contract`
         echo $addr
     fi
 

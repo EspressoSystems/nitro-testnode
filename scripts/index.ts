@@ -33,7 +33,7 @@ async function main() {
     .options(stressOptions)
     .options({
       espresso: { boolean: true, decription: 'use Espresso Sequencer for sequencing and DA', default: false },
-      espressoUrl: { string: true, description: 'Espresso Sequencer url', default: 'http://espresso-sequencer0:50000' },
+      espressoUrl: { string: true, description: 'Espresso Sequencer url', default: 'http://espresso-sequencer0:44000' },
       hotshotAddress: { string: true, description: 'address of the HotShot contract', default: '' },
       lightClientAddress: { string: true, description: 'address of the light client contract', default: ''},
     })
