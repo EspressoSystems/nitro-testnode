@@ -7,10 +7,14 @@ import {
   printAddressCommand,
   namedAccountHelpString,
   writeAccountsCommand,
+  printPrivateKeyCommand,
 } from "./accounts";
 import {
   bridgeFundsCommand,
+  bridgeNativeTokenToL3Command,
   bridgeToL3Command,
+  createERC20Command,
+  transferERC20Command,
   sendL1Command,
   sendL2Command,
   sendL3Command,
@@ -28,8 +32,16 @@ async function main() {
       l2owner: { string: true, default: "0x3f1Eae7D46d88F08fc2F8ed27FCb2AB183EB2d0E" },
     })
     .options(stressOptions)
+    .options({
+      espresso: { boolean: true, decription: 'use Espresso Sequencer for sequencing and DA', default: false },
+      espressoUrl: { string: true, description: 'Espresso Sequencer url', default: 'http://espresso-dev-node:41000' },
+      lightClientAddress: { string: true, description: 'address of the light client contract', default: ''},
+    })
     .command(bridgeFundsCommand)
     .command(bridgeToL3Command)
+    .command(bridgeNativeTokenToL3Command)
+    .command(createERC20Command)
+    .command(transferERC20Command)
     .command(sendL1Command)
     .command(sendL2Command)
     .command(sendL3Command)
@@ -41,6 +53,7 @@ async function main() {
     .command(writePrysmCommand)
     .command(writeAccountsCommand)
     .command(printAddressCommand)
+    .command(printPrivateKeyCommand)
     .command(redisReadCommand)
     .command(redisInitCommand)
     .strict()
