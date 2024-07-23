@@ -45,9 +45,11 @@ l3node=false
 consensusclient=false
 redundantsequencers=0
 lightClientAddr=0xb6eb235fa509e3206f959761d11e3777e16d0e98
+lightClientAddrForL3=0x5e36aa9caaf5f708fca5c04d2d4c776a62b2b258
 dev_build_nitro=false
 dev_build_blockscout=false
 espresso=false
+l2_espresso=false
 latest_espresso_image=false
 l3_custom_fee_token=false
 l3_token_bridge=false
@@ -96,6 +98,7 @@ while [[ $# -gt 0 ]]; do
         --espresso)
             simple=false
             espresso=true
+            l2_espresso=true
             shift
             ;;
         --latest-espresso-image)
@@ -277,13 +280,19 @@ elif ! $simple; then
 fi
 if $l3node; then
     NODES="$NODES l3node"
+    export ESPRESSO_DEPLOYER_ALT_CHAIN_PROVIDERS="http://sequencer:8547"
+    export ESPRESSO_DEPLOYER_ALT_MNEMONICS="indoor dish desk flag debris potato excuse depart ticket judge file exit"
+    export ESPRESSO_SEQUENCER_DEPLOYER_ALT_INDICES="5"
 fi
 if $blockscout; then
     NODES="$NODES blockscout"
 fi
 
 if $espresso; then
-    if $force_build; then
+    if $l3node; then
+        l2_espresso=false
+    fi
+    if $force_build && $l2_espresso; then
         INITIAL_SEQ_NODES="$INITIAL_SEQ_NODES espresso-dev-node"
     else
         NODES="$NODES espresso-dev-node"
@@ -396,9 +405,10 @@ if $force_init; then
     docker compose run scripts send-l1 --ethamount 0.0001 --from user_l1user --to user_l1user_b --wait --delay 500 --times 1000000 > /dev/null &
 
     l2ownerAddress=`docker compose run scripts print-address --account l2owner | tail -n 1 | tr -d '\r\n'`
+    echo $l2ownerAddress
 
     echo == Writing l2 chain config
-    docker compose run scripts --l2owner $l2ownerAddress  write-l2-chain-config --espresso $espresso
+    docker compose run scripts --l2owner $l2ownerAddress  write-l2-chain-config --espresso $l2_espresso
 
     sequenceraddress=`docker compose run scripts print-address --account sequencer | tail -n 1 | tr -d '\r\n'`
     l2ownerKey=`docker compose run scripts print-private-key --account l2owner | tail -n 1 | tr -d '\r\n'`
@@ -407,13 +417,14 @@ if $force_init; then
     echo == Deploying L2 chain
     docker compose run -e PARENT_CHAIN_RPC="http://geth:8545" -e DEPLOYER_PRIVKEY=$l2ownerKey -e PARENT_CHAIN_ID=$l1chainid -e CHILD_CHAIN_NAME="arb-dev-test" -e MAX_DATA_SIZE=117964 -e OWNER_ADDRESS=$l2ownerAddress -e WASM_MODULE_ROOT=$wasmroot -e SEQUENCER_ADDRESS=$sequenceraddress -e AUTHORIZE_VALIDATORS=10 -e CHILD_CHAIN_CONFIG_PATH="/config/l2_chain_config.json" -e CHAIN_DEPLOYMENT_INFO="/config/deployment.json" -e CHILD_CHAIN_INFO="/config/deployed_chain_info.json" -e LIGHT_CLIENT_ADDR=$lightClientAddr  rollupcreator create-rollup-testnode
     docker compose run --entrypoint sh rollupcreator -c "jq [.[]] /config/deployed_chain_info.json > /config/l2_chain_info.json"
+    docker compose run --entrypoint sh rollupcreator -c "cat /config/l2_chain_info.json"
 
     if $simple; then
         echo == Writing configs
         docker compose run scripts write-config --simple
     else
         echo == Writing configs
-        docker compose run scripts write-config --espresso $espresso --lightClientAddress $lightClientAddr
+        docker compose run scripts write-config --espresso $l2_espresso --lightClientAddress $lightClientAddr
 
         echo == Initializing redis
         docker compose up --wait redis
@@ -424,7 +435,7 @@ if $force_init; then
     docker compose up --wait $INITIAL_SEQ_NODES
     docker compose run scripts bridge-funds --ethamount 100000 --wait
     docker compose run scripts send-l2 --ethamount 10000 --to espresso-sequencer --wait
-    docker compose run scripts send-l2 --ethamount 100 --to l2owner --wait
+    docker compose run scripts send-l2 --ethamount 10000 --to l2owner --wait
 
     if $tokenbridge; then
         echo == Deploying L1-L2 token bridge
@@ -460,7 +471,7 @@ if $force_init; then
         echo == Writing l3 chain config
         l3owneraddress=`docker compose run scripts print-address --account l3owner | tail -n 1 | tr -d '\r\n'`
         echo l3owneraddress $l3owneraddress
-        docker compose run scripts --l2owner $l3owneraddress  write-l3-chain-config
+        docker compose run scripts --l2owner $l3owneraddress  write-l3-chain-config --espresso $espresso
 
         if $l3_custom_fee_token; then
             echo == Deploying custom fee token
@@ -474,7 +485,7 @@ if $force_init; then
         l3ownerkey=`docker compose run scripts print-private-key --account l3owner | tail -n 1 | tr -d '\r\n'`
         l3sequenceraddress=`docker compose run scripts print-address --account l3sequencer | tail -n 1 | tr -d '\r\n'`
 
-        docker compose run -e DEPLOYER_PRIVKEY=$l3ownerkey -e PARENT_CHAIN_RPC="http://sequencer:8547" -e PARENT_CHAIN_ID=412346 -e CHILD_CHAIN_NAME="orbit-dev-test" -e MAX_DATA_SIZE=104857 -e OWNER_ADDRESS=$l3owneraddress -e WASM_MODULE_ROOT=$wasmroot -e SEQUENCER_ADDRESS=$l3sequenceraddress -e AUTHORIZE_VALIDATORS=10 -e CHILD_CHAIN_CONFIG_PATH="/config/l3_chain_config.json" -e CHAIN_DEPLOYMENT_INFO="/config/l3deployment.json" -e CHILD_CHAIN_INFO="/config/deployed_l3_chain_info.json" $EXTRA_L3_DEPLOY_FLAG rollupcreator create-rollup-testnode
+        docker compose run -e DEPLOYER_PRIVKEY=$l3ownerkey -e PARENT_CHAIN_RPC="http://sequencer:8547" -e PARENT_CHAIN_ID=412346 -e CHILD_CHAIN_NAME="orbit-dev-test" -e MAX_DATA_SIZE=104857 -e OWNER_ADDRESS=$l3owneraddress -e WASM_MODULE_ROOT=$wasmroot -e SEQUENCER_ADDRESS=$l3sequenceraddress -e AUTHORIZE_VALIDATORS=10 -e CHILD_CHAIN_CONFIG_PATH="/config/l3_chain_config.json" -e CHAIN_DEPLOYMENT_INFO="/config/l3deployment.json" -e CHILD_CHAIN_INFO="/config/deployed_l3_chain_info.json" -e LIGHT_CLIENT_ADDR=$lightClientAddrForL3 $EXTRA_L3_DEPLOY_FLAG rollupcreator create-rollup-testnode
         docker compose run --entrypoint sh rollupcreator -c "jq [.[]] /config/deployed_l3_chain_info.json > /config/l3_chain_info.json"
 
         echo == Funding l3 funnel and dev key

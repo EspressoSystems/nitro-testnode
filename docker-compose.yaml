@@ -306,6 +306,7 @@ services:
     depends_on:
       - sequencer
       - validation_node
+      - espresso-dev-node
 
   validation_node:
     pid: host # allow debugging
@@ -376,6 +377,18 @@ services:
       - ESPRESSO_DEV_NODE_PORT
       - RUST_LOG=info
       - RUST_LOG_FORMAT
+      - ESPRESSO_DEPLOYER_ALT_CHAIN_PROVIDERS=${ESPRESSO_DEPLOYER_ALT_CHAIN_PROVIDERS:-}
+      - ESPRESSO_DEPLOYER_ALT_MNEMONICS=${ESPRESSO_DEPLOYER_ALT_MNEMONICS:-}
+      - ESPRESSO_SEQUENCER_DEPLOYER_ALT_INDICES=${ESPRESSO_SEQUENCER_DEPLOYER_ALT_INDICES:-}
+    depends_on:
+      - geth
+      - sequencer
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fL http://localhost:$ESPRESSO_DEV_NODE_PORT || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
     extra_hosts:
       - "host.docker.internal:host-gateway"
 

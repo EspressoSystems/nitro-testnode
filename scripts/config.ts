@@ -334,6 +334,12 @@ function writeConfigs(argv: any) {
     l3Config.node["delayed-sequencer"]["use-merge-finality"] = false
     l3Config.node["batch-poster"].enable = true
     l3Config.node["batch-poster"]["redis-url"] = ""
+    if (argv.espresso) {
+        l3Config.execution.sequencer.espresso = true
+        l3Config.execution.sequencer["hotshot-url"] = argv.espressoUrl
+        l3Config.node.feed.output.enable = true
+        l3Config.node.dangerous["no-sequencer-coordinator"] = true
+    }
     fs.writeFileSync(path.join(consts.configpath, "l3node_config.json"), JSON.stringify(l3Config))
 
     let validationNodeConfig = JSON.parse(JSON.stringify({
@@ -405,6 +411,7 @@ function writeL3ChainConfig(argv: any) {
         "eip150Hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
         "eip155Block": 0,
         "eip158Block": 0,
+        "espresso": argv.espresso,
         "byzantiumBlock": 0,
         "constantinopleBlock": 0,
         "petersburgBlock": 0,
@@ -422,8 +429,12 @@ function writeL3ChainConfig(argv: any) {
             "DataAvailabilityCommittee": false,
             "InitialArbOSVersion": 30,
             "InitialChainOwner": argv.l2owner,
-            "GenesisBlockNum": 0
+            "GenesisBlockNum": 0,
+            "EnableEspresso": false
         }
+    }
+    if (argv.espresso) {
+        l3ChainConfig.arbitrum.EnableEspresso = true
     }
     const l3ChainConfigJSON = JSON.stringify(l3ChainConfig)
     fs.writeFileSync(path.join(consts.configpath, "l3_chain_config.json"), l3ChainConfigJSON)
