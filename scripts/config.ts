@@ -180,7 +180,6 @@ function writeConfigs(argv: any) {
                 "strategy": "MakeNodes",
             },
             "sequencer": false,
-            "espresso": false,
             "dangerous": {
                 "no-sequencer-coordinator": false,
                 "disable-blob-reader": true,
@@ -247,7 +246,8 @@ function writeConfigs(argv: any) {
             "forwarding-target": "null",
         },
         "persistent": {
-            "chain": "local"
+            "chain": "local",
+            "db-engine": "leveldb"
         },
         "ws": {
             "addr": "0.0.0.0"
@@ -296,7 +296,6 @@ function writeConfigs(argv: any) {
         sequencerConfig.node["delayed-sequencer"].enable = true
 
         if (argv.espresso) {
-            sequencerConfig.node.espresso = true
             sequencerConfig.execution.sequencer.espresso = true
             sequencerConfig.execution.sequencer["hotshot-url"] = argv.espressoUrl
             sequencerConfig.node.feed.output.enable = true

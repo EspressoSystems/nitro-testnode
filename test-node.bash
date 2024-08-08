@@ -6,7 +6,7 @@ NITRO_NODE_VERSION=offchainlabs/nitro-node:v3.0.1-cf4b74e-dev
 ESPRESSO_VERSION=ghcr.io/espressosystems/nitro-espresso-integration/nitro-node-dev:integration
 BLOCKSCOUT_VERSION=offchainlabs/blockscout:v1.0.0-c8db5b1
 
-DEFAULT_NITRO_CONTRACTS_VERSION="deploy"
+DEFAULT_NITRO_CONTRACTS_VERSION="develop"
 DEFAULT_TOKEN_BRIDGE_VERSION="v1.2.2"
 
 # Set default versions if not overriden by provided env vars
@@ -301,7 +301,7 @@ if $force_build; then
         echo execute from a sub-directory of nitro or use NITRO_SRC environment variable
         exit 1
     fi
-    docker build "$NITRO_SRC" -t nitro-node-dev --target nitro-node-dev -f
+    docker build "$NITRO_SRC" -t nitro-node-dev --target nitro-node-dev
   fi
   if $dev_build_blockscout; then
     if $blockscout; then
