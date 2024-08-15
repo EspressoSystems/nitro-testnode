@@ -6,7 +6,7 @@
 cd ${GITHUB_WORKSPACE}
 
 # TODO once develop is merged into nitro-contract's master, remove the NITRO_CONTRACTS_BRANCH env var
-./test-node.bash --init-force  --no-simple --detach
+./test-node.bash --init-force --espresso  --no-simple --detach
 
 START=$(date +%s)
 L2_TRANSACTION_SUCCEEDED=false
