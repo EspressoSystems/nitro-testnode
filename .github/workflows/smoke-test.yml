@@ -36,5 +36,10 @@ jobs:
           key: ${{ runner.os }}-buildx-${{ hashFiles('Dockerfile') }}
           restore-keys: ${{ runner.os }}-buildx-
 
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
       - name:  Start Smoke Test with Latest Espresso Image
         run: ${{ github.workspace }}/.github/workflows/smoke-test-node.bash
