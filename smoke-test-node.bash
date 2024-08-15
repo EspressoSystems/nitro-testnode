@@ -205,6 +205,3 @@ if $run; then
 
     docker compose up $UP_FLAG $NODES
 fi
-
-
-

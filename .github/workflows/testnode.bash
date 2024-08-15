@@ -10,6 +10,7 @@ cd ${GITHUB_WORKSPACE}
 
 START=$(date +%s)
 L2_TRANSACTION_SUCCEEDED=false
+L3_TRANSACTION_SUCCEEDED=false
 SUCCEEDED=false
 
 while true; do
@@ -33,10 +34,10 @@ while true; do
         break
     fi
 
-    # Check if the timeout (20 min) has been reached.
+    # Check if the timeout (10 min) has been reached.
     NOW=$(date +%s)
     DIFF=$((NOW - START))
-    if [ "$DIFF" -ge 1200 ]; then
+    if [ "$DIFF" -ge 600 ]; then
         echo "Timed out"
         break
     fi
