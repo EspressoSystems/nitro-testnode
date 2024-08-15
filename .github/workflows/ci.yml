@@ -32,6 +32,9 @@ jobs:
         path: /tmp/.buildx-cache
         key: ${{ runner.os }}-buildx-${{ hashFiles('Dockerfile') }}
         restore-keys: ${{ runner.os }}-buildx-
-          
+
     - name:  Startup Nitro testnode
       run: ${{ github.workspace }}/.github/workflows/testnode.bash
+
+    - name:  Start smoke test
+      run: ${{ github.workspace }}/.github/workflows/smoke-test-node.bash
