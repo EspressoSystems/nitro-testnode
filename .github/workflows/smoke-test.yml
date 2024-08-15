@@ -10,7 +10,7 @@ on:
       - master
       - integration
   schedule:
-    #      Run at the end of every day to make
+    #      Run at the end of every day
     - cron: "0 0 * * *"
 
 
