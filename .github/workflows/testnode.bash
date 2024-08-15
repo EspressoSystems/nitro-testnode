@@ -6,7 +6,7 @@
 cd ${GITHUB_WORKSPACE}
 
 # TODO once develop is merged into nitro-contract's master, remove the NITRO_CONTRACTS_BRANCH env var
-./test-node.bash --init-force --espresso  --no-simple --detach
+./test-node.bash --init-force --l3node --no-simple --detach
 
 START=$(date +%s)
 L2_TRANSACTION_SUCCEEDED=false
@@ -21,7 +21,14 @@ while true; do
     fi
 
 
-    if [ "$L2_TRANSACTION_SUCCEEDED" = true ]; then
+    if [ "$L3_TRANSACTION_SUCCEEDED" = false ]; then
+        if ${GITHUB_WORKSPACE}/test-node.bash script send-l3 --ethamount 100 --to user_l3user --wait; then
+            echo "Sending l3 transaction succeeded"
+            L3_TRANSACTION_SUCCEEDED=true
+        fi
+    fi
+
+    if [ "$L2_TRANSACTION_SUCCEEDED" = true ] && [ "$L3_TRANSACTION_SUCCEEDED" = true ]; then
         SUCCEEDED=true
         break
     fi

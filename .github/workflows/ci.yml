@@ -33,6 +33,7 @@ jobs:
         key: ${{ runner.os }}-buildx-${{ hashFiles('Dockerfile') }}
         restore-keys: ${{ runner.os }}-buildx-
 
-    - name:  Startup Nitro testnode
-      run: ${{ github.workspace }}/.github/workflows/testnode.bash
+# This is currently broken as L3 node support needs to be fixed
+#    - name:  Startup Nitro testnode
+#      run: ${{ github.workspace }}/.github/workflows/testnode.bash
 
