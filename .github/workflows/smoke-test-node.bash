@@ -2,9 +2,7 @@
 # The script starts up the test node and waits until the timeout (10min) or
 # until send-l2 succeeds and the latest confirmation is fetched.
 
-# Start the test node and get PID, to terminate it once send-l2 is done.
-cd ${GITHUB_WORKSPACE}
-
+# Start the test node and get PID, to terminate it once send-l2 is done and the latest confirmation is fetched.
 ./smoke-test-node.bash --init  --detach
 
 START=$(date +%s)
@@ -22,7 +20,6 @@ fi
 
 if [ "$LATEST_CONFIRMATION_FETCHED" = false ]; then
  rollupAddress=`docker compose run --entrypoint sh poster -c "jq -r '.[0].rollup.rollup' /config/deployed_chain_info.json | tail -n 1 | tr -d '\r\n'"`
- cast call --rpc-url http://localhost:8545  $rollupAddress 'latestConfirmed()(uint256)' | grep "error" > /dev/null
   error=` cast call --rpc-url http://localhost:8545  $rollupAddress 'latestConfirmed()(uint256)' | grep "error"`
      if [ "$error" == "" ]; then
        echo "Lastest confirmation fetched"
