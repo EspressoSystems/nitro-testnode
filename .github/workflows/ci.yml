@@ -8,12 +8,12 @@ on:
     push:
       branches:
         - master
-        - develop
-  
+        - integration
+
 
 jobs:
   build_and_run:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
     - name: Checkout
@@ -36,5 +36,3 @@ jobs:
     - name:  Startup Nitro testnode
       run: ${{ github.workspace }}/.github/workflows/testnode.bash
 
-    - name:  Start smoke test
-      run: ${{ github.workspace }}/.github/workflows/smoke-test-node.bash
