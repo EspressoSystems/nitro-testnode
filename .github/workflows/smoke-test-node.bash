@@ -44,10 +44,10 @@ fi
 sleep 10
 done
 
-docker-compose stop
+docker compose stop
 
 if [ "$SUCCEEDED" = false ]; then
-docker-compose logs
+docker compose logs
 exit 1
 fi
 
