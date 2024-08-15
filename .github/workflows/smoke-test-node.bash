@@ -28,7 +28,7 @@ while true; do
   fi
 
 
-  if [ "$L2_TRANSACTION_SUCCEEDED" = true ] && [ "$LASTEST_CONFIRMATION_FETCHED" = true ]; then
+  if [ "$L2_TRANSACTION_SUCCEEDED" = true ] && [ "$LATEST_CONFIRMATION_FETCHED" = true ]; then
       SUCCEEDED=true
       break
   fi
@@ -50,5 +50,7 @@ if [ "$SUCCEEDED" = false ]; then
   docker compose logs
   exit 1
 fi
+
+echo "Smoke test succeeded"
 
 exit 0
