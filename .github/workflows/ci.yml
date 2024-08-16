@@ -8,12 +8,12 @@ on:
     push:
       branches:
         - master
-        - integration
-
+        - develop
+  
 
 jobs:
   build_and_run:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-8
 
     steps:
     - name: Checkout
@@ -32,8 +32,6 @@ jobs:
         path: /tmp/.buildx-cache
         key: ${{ runner.os }}-buildx-${{ hashFiles('Dockerfile') }}
         restore-keys: ${{ runner.os }}-buildx-
-
-# This is currently broken as L3 node support needs to be fixed
-#    - name:  Startup Nitro testnode
-#      run: ${{ github.workspace }}/.github/workflows/testnode.bash
-
+          
+    - name:  Startup Nitro testnode
+      run: ${{ github.workspace }}/.github/workflows/testnode.bash
