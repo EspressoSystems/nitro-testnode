@@ -13,9 +13,14 @@ on:
     #      Run at the end of every day
     - cron: "0 0 * * *"
 
+# Cancel in-progress jobs except for integration branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !contains(github.ref, 'integration/')}}
+
 
 jobs:
-  build_and_run:
+  smoke_test:
     runs-on: ubuntu-24.04
 
     steps:
@@ -42,4 +47,6 @@ jobs:
           version: nightly
 
       - name:  Start Smoke Test with Latest Espresso Image
-        run: ${{ github.workspace }}/.github/workflows/smoke-test-node.bash
+        run: |
+          ./smoke-test.bash
+        timeout-minutes: 30

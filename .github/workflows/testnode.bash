@@ -21,7 +21,6 @@ while true; do
         fi
     fi
 
-
     if [ "$L3_TRANSACTION_SUCCEEDED" = false ]; then
         if ${GITHUB_WORKSPACE}/test-node.bash script send-l3 --ethamount 100 --to user_l3user --wait; then
             echo "Sending l3 transaction succeeded"
@@ -45,10 +44,10 @@ while true; do
     sleep 10
 done
 
-docker compose stop
+docker-compose stop
 
 if [ "$SUCCEEDED" = false ]; then
-    docker compose logs
+    docker-compose logs
     exit 1
 fi
 
