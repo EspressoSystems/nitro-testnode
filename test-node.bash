@@ -282,7 +282,7 @@ if $l3node; then
     NODES="$NODES l3node"
     export ESPRESSO_DEPLOYER_ALT_CHAIN_PROVIDERS="http://sequencer:8547"
     export ESPRESSO_DEPLOYER_ALT_MNEMONICS="indoor dish desk flag debris potato excuse depart ticket judge file exit"
-    export ESPRESSO_SEQUENCER_DEPLOYER_ALT_INDICES="5"
+    export ESPRESSO_SEQUENCER_DEPLOYER_ALT_INDICES="6"
 fi
 if $blockscout; then
     NODES="$NODES blockscout"
@@ -291,7 +291,7 @@ fi
 if $espresso; then
     if $l3node; then
         # If we run the `l3node` with enabling espresso mode, then the
-        # l2 node will be run without `espresso` mode.
+        # l2 node will run without `espresso` mode.
         l2_espresso=false
     fi
     if $force_build && $l2_espresso; then
@@ -437,7 +437,7 @@ if $force_init; then
     docker compose up --wait $INITIAL_SEQ_NODES
     docker compose run scripts bridge-funds --ethamount 100000 --wait
     docker compose run scripts send-l2 --ethamount 10000 --to espresso-sequencer --wait
-    docker compose run scripts send-l2 --ethamount 10000 --to l2owner --wait
+    docker compose run scripts send-l2 --ethamount 100 --to l2owner --wait
 
     if $tokenbridge; then
         echo == Deploying L1-L2 token bridge
