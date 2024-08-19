@@ -290,6 +290,8 @@ fi
 
 if $espresso; then
     if $l3node; then
+        # If we run the `l3node` with enabling espresso mode, then the
+        # l2 node will be run without `espresso` mode.
         l2_espresso=false
     fi
     if $force_build && $l2_espresso; then
