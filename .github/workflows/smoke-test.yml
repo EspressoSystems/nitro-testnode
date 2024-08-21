@@ -65,3 +65,8 @@ jobs:
         run: |
           ./smoke-test.bash
         timeout-minutes: 30
+
+      - name:  Start Smoke Test For L3 with Latest Espresso Image
+        run: |
+          ./smoke-test-l3.bash
+        timeout-minutes: 30
