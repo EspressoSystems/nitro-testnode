@@ -6,15 +6,14 @@ on:
     merge_group:
     pull_request:
     push:
-
-# Cancel in-progress jobs except for integration branch
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ !contains(github.ref, 'integration/')}}
+      branches:
+        - master
+        - develop
+  
 
 jobs:
   build_and_run:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-8
 
     steps:
     - name: Checkout
@@ -27,5 +26,12 @@ jobs:
       with:
         driver-opts: network=host
 
+    - name: Cache Docker layers
+      uses: actions/cache@v3
+      with:
+        path: /tmp/.buildx-cache
+        key: ${{ runner.os }}-buildx-${{ hashFiles('Dockerfile') }}
+        restore-keys: ${{ runner.os }}-buildx-
+          
     - name:  Startup Nitro testnode
       run: ${{ github.workspace }}/.github/workflows/testnode.bash
