@@ -17,6 +17,11 @@ concurrency:
 
 jobs:
   smoke_test:
+
+    strategy:
+      matrix:
+        test-script: [ smoke-test.bash, smoke-test-l3.bash ]
+
     runs-on: ubuntu-24.04
 
     steps:
@@ -61,12 +66,7 @@ jobs:
           build-args: |
             TOKEN_BRIDGE_BRANCH=v1.2.2
 
-      - name:  Start Smoke Test with Latest Espresso Image
+      - name: Smoke Test with Latest Espresso Image
         run: |
-          ./smoke-test.bash
-        timeout-minutes: 30
-
-      - name:  Start Smoke Test For L3 with Latest Espresso Image
-        run: |
-          ./smoke-test-l3.bash
+          ${{ matrix.test-script }}
         timeout-minutes: 30
