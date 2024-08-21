@@ -20,7 +20,7 @@ jobs:
 
     strategy:
       matrix:
-        test-script: [ smoke-test.bash, smoke-test-l3.bash ]
+        test-script: [ ./smoke-test.bash, ./smoke-test-l3.bash ]
 
     runs-on: ubuntu-24.04
 
