@@ -300,8 +300,7 @@ function writeConfigs(argv: any) {
         sequencerConfig.node["delayed-sequencer"].enable = true
 
         if (argv.espresso) {
-            sequencerConfig.execution.sequencer.espresso = true
-            sequencerConfig.execution.sequencer["hotshot-url"] = argv.espressoUrl
+            sequencerConfig.execution.sequencer["enable-espresso-sovereign"] = true
             sequencerConfig.node.feed.output.enable = true
             sequencerConfig.node.dangerous["no-sequencer-coordinator"] = true
         } else {
@@ -339,8 +338,7 @@ function writeConfigs(argv: any) {
     l3Config.node["batch-poster"].enable = true
     l3Config.node["batch-poster"]["redis-url"] = ""
     if (argv.espresso) {
-        l3Config.execution.sequencer.espresso = true
-        l3Config.execution.sequencer["hotshot-url"] = argv.espressoUrl
+        l3Config.execution.sequencer["enable-espresso-sovereign"] = true
         l3Config.node.feed.output.enable = true
         l3Config.node.dangerous["no-sequencer-coordinator"] = true
     }
@@ -399,7 +397,6 @@ function writeL2ChainConfig(argv: any) {
     }
     if (argv.espresso) {
         let chainConfig = l2ChainConfig as any
-        chainConfig.arbitrum["EnableEspresso"] = true
         chainConfig["espresso"] = true
     }
     const l2ChainConfigJSON = JSON.stringify(l2ChainConfig)
