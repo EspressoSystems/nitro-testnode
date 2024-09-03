@@ -261,6 +261,10 @@ function writeConfigs(argv: any) {
         config["execution"]["sequencer"]["espresso"] = false
         config["execution"]["sequencer"]["hotshot-url"] = ""
         config["execution"]["sequencer"]["espresso-namespace"] = 412346
+        config.node["transaction-streamer"] = {}
+        config.node["transaction-streamer"]["sovereign-sequencer-enabled"] = false
+        config.node["transaction-streamer"]["hotshot-url"] = ""
+        config.node["transaction-streamer"]["espresso-namespace"] = 412346
     }
 
 
@@ -276,6 +280,8 @@ function writeConfigs(argv: any) {
         simpleConfig.node["delayed-sequencer"].enable = true
         simpleConfig.node["batch-poster"].enable = true
         simpleConfig.node["batch-poster"]["redis-url"] = ""
+        simpleConfig.node["transaction-streamer"]["hotshot-url"] = argv.espressoUrl
+        simpleConfig.node["transaction-streamer"]["sovereign-sequencer-enabled"] = true
         simpleConfig.execution["sequencer"].enable = true
         fs.writeFileSync(path.join(consts.configpath, "sequencer_config.json"), JSON.stringify(simpleConfig))
     } else {
@@ -309,13 +315,15 @@ function writeConfigs(argv: any) {
         fs.writeFileSync(path.join(consts.configpath, "sequencer_config.json"), JSON.stringify(sequencerConfig))
 
         let posterConfig = JSON.parse(baseConfJSON)
-    if (argv.espresso) {
-        posterConfig.node.feed.input.url.push("ws://sequencer:9642")
-        posterConfig.node["batch-poster"]["hotshot-url"] = argv.espressoUrl
-        posterConfig.node["batch-poster"]["light-client-address"] = argv.lightClientAddress
-    } else {
-        posterConfig.node["seq-coordinator"].enable = true
-    }
+        if (argv.espresso) {
+            posterConfig.node.feed.input.url.push("ws://sequencer:9642")
+            posterConfig.node["batch-poster"]["hotshot-url"] = argv.espressoUrl
+            posterConfig.node["batch-poster"]["light-client-address"] = argv.lightClientAddress
+            posterConfig.node["transaction-streamer"]["hotshot-url"] = argv.espressoUrl
+            posterConfig.node["transaction-streamer"]["sovereign-sequencer-enabled"] = true
+        } else {
+            posterConfig.node["seq-coordinator"].enable = true
+        }
         posterConfig.node["batch-poster"].enable = true
         fs.writeFileSync(path.join(consts.configpath, "poster_config.json"), JSON.stringify(posterConfig))
     }
