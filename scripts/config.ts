@@ -258,13 +258,11 @@ function writeConfigs(argv: any) {
         config.node['block-validator']["light-client-address"] = ""
         config.node["batch-poster"]["hotshot-url"] = ""
         config.node["batch-poster"]["light-client-address"] = ""
-        config["execution"]["sequencer"]["espresso"] = false
-        config["execution"]["sequencer"]["hotshot-url"] = ""
-        config["execution"]["sequencer"]["espresso-namespace"] = 412346
-        config.node["transaction-streamer"] = {}
-        config.node["transaction-streamer"]["sovereign-sequencer-enabled"] = false
-        config.node["transaction-streamer"]["hotshot-url"] = ""
-        config.node["transaction-streamer"]["espresso-namespace"] = 412346
+        config.node["transaction-streamer"] = {
+            "sovereign-sequencer-enabled": false,
+            "hotshot-url": "",
+            "espresso-namespace": 412346,
+        }
     }
 
 
@@ -280,8 +278,10 @@ function writeConfigs(argv: any) {
         simpleConfig.node["delayed-sequencer"].enable = true
         simpleConfig.node["batch-poster"].enable = true
         simpleConfig.node["batch-poster"]["redis-url"] = ""
-        simpleConfig.node["transaction-streamer"]["hotshot-url"] = argv.espressoUrl
-        simpleConfig.node["transaction-streamer"]["sovereign-sequencer-enabled"] = true
+        if (argv.espresso) {
+            simpleConfig.node["transaction-streamer"]["hotshot-url"] = argv.espressoUrl
+            simpleConfig.node["transaction-streamer"]["sovereign-sequencer-enabled"] = true
+        }
         simpleConfig.execution["sequencer"].enable = true
         fs.writeFileSync(path.join(consts.configpath, "sequencer_config.json"), JSON.stringify(simpleConfig))
     } else {
@@ -406,6 +406,7 @@ function writeL2ChainConfig(argv: any) {
     if (argv.espresso) {
         let chainConfig = l2ChainConfig as any
         chainConfig["espresso"] = true
+        chainConfig.arbitrum["EnableEspresso"] = true
     }
     const l2ChainConfigJSON = JSON.stringify(l2ChainConfig)
     fs.writeFileSync(path.join(consts.configpath, "l2_chain_config.json"), l2ChainConfigJSON)
