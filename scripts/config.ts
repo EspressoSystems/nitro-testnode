@@ -405,8 +405,8 @@ function writeL2ChainConfig(argv: any) {
     }
     if (argv.espresso) {
         let chainConfig = l2ChainConfig as any
-        chainConfig["espresso"] = true
         chainConfig.arbitrum["EnableEspresso"] = true
+        chainConfig["espresso"] = true
     }
     const l2ChainConfigJSON = JSON.stringify(l2ChainConfig)
     fs.writeFileSync(path.join(consts.configpath, "l2_chain_config.json"), l2ChainConfigJSON)
