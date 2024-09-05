@@ -20,7 +20,7 @@ jobs:
 
     strategy:
       matrix:
-        test-script: [ ./smoke-test.bash, ./smoke-test-l3.bash, ./smoke-test-nitro-simple.bash ]
+        test-script: [ ./smoke-test.bash, ./smoke-test-l3.bash, ./smoke-test-nitro-simple.bash, ./smoke-test-full-node.bash ]
 
     runs-on: ubuntu-24.04
 
@@ -41,7 +41,7 @@ jobs:
           driver-opts: network=host
 
       # Explicitly building the docker images because it's not clear how we can
-      # use the github acion (gha) cache if we let docker compose build the images.
+      # use the github action (gha) cache if we let docker compose build the images.
       - uses: docker/build-push-action@v5
         with:
           context: ./rollupcreator

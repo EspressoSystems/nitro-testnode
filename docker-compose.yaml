@@ -393,6 +393,29 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
+  # Reads from sequencer feed, forwards transactions to sequencer
+  full-node:
+    pid: host # allow debugging
+    image: nitro-node-dev-testnode
+    ports:
+      - "127.0.0.1:8947:8547"
+      - "127.0.0.1:8948:8548"
+    entrypoint: /usr/local/bin/nitro
+    volumes:
+      - "config:/config"
+      - "l1keystore:/home/user/l1keystore"
+    # use the sequencer_config.json but override the sequencer settings and the forwarding settings.
+    command: --conf.file /config/sequencer_config.json --node.sequencer=false --node.batch-poster.enable=false --execution.sequencer.enable=false --execution.forwarding-target http://sequencer:8547 --node.delayed-sequencer.enable=false --node.feed.input.url ws://sequencer:9642 --http.port 8547 --http.api net,web3,arb,debug,net,eth --ws.port 8548
+    depends_on:
+      - geth
+      - sequencer
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fL http://localhost:8947 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
 volumes:
   l1data:
   consensus:
