@@ -250,17 +250,16 @@ function writeConfigs(argv: any) {
             "vhosts": "*",
             "corsdomain": "*"
         },
-    }
+    } as any
 
     if (argv.espresso) {
-        let config = baseConfig as any
-        config.node['block-validator']["espresso"] = false
-        config.node['block-validator']["light-client-address"] = ""
-        config.node["batch-poster"]["hotshot-url"] = ""
-        config.node["batch-poster"]["light-client-address"] = ""
-        config.node["transaction-streamer"] = {
+        baseConfig.node['block-validator']["espresso"] = false
+        baseConfig.node['block-validator']["light-client-address"] = ""
+        baseConfig.node["batch-poster"]["hotshot-url"] = ""
+        baseConfig.node["batch-poster"]["light-client-address"] = ""
+        baseConfig.node["transaction-streamer"] = {
             "sovereign-sequencer-enabled": false,
-            "hotshot-url": "",
+            "hotshot-url": argv.espressoUrl,
             "espresso-namespace": 412346,
         }
     }
@@ -278,10 +277,6 @@ function writeConfigs(argv: any) {
         simpleConfig.node["delayed-sequencer"].enable = true
         simpleConfig.node["batch-poster"].enable = true
         simpleConfig.node["batch-poster"]["redis-url"] = ""
-        if (argv.espresso) {
-            simpleConfig.node["transaction-streamer"]["hotshot-url"] = argv.espressoUrl
-            simpleConfig.node["transaction-streamer"]["sovereign-sequencer-enabled"] = true
-        }
         simpleConfig.execution["sequencer"].enable = true
         fs.writeFileSync(path.join(consts.configpath, "sequencer_config.json"), JSON.stringify(simpleConfig))
     } else {
