@@ -390,7 +390,8 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
 
   espresso-dev-node:
-    image: ghcr.io/espressosystems/espresso-sequencer/espresso-dev-node:main
+    # TODO: revert to `:main` tag once we are compatible with the updated LC ABI
+    image: ghcr.io/espressosystems/espresso-sequencer/espresso-dev-node:20240906-lc-legacy-abi
     ports:
       - "$ESPRESSO_SEQUENCER_API_PORT:$ESPRESSO_SEQUENCER_API_PORT"
       - "$ESPRESSO_BUILDER_PORT:$ESPRESSO_BUILDER_PORT"
