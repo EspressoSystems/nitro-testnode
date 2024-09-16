@@ -70,3 +70,8 @@ jobs:
         run: |
           ${{ matrix.test-script }}
         timeout-minutes: 30
+
+      - name: Dump docker logs on failure
+        if: failure()
+        run: |
+          docker compose logs
