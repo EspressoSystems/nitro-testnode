@@ -4,4 +4,5 @@ export const configpath = "/config";
 export const tokenbridgedatapath = "/tokenbridge-data";
 // Not secure. Do not use for production purposes
 export const l1mnemonic =
+  process.env.L1_MNEMONIC ||
   "indoor dish desk flag debris potato excuse depart ticket judge file exit";
