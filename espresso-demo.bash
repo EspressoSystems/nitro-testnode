@@ -38,7 +38,7 @@ force_build=false
 validate=false
 detach=false
 tokenbridge=true
-lightClientAddr=0xb6eb235fa509e3206f959761d11e3777e16d0e98
+lightClientAddr=$LIGHT_CLIENT_ADDR
 latest_espresso_image=false
 dev_build_nitro=false
 dev_build_blockscout=false
@@ -275,32 +275,51 @@ if $force_init; then
     docker compose -f $COMPOSE_FILE run scripts write-accounts
 
     echo == Funding validator, sequencer and l2owner
-    docker compose -f $COMPOSE_FILE run scripts send-l1 --ethamount 0.001 --to validator --wait
-    docker compose -f $COMPOSE_FILE run scripts send-l1 --ethamount 0.001 --to sequencer --wait
-    docker compose -f $COMPOSE_FILE run scripts send-l1 --ethamount 0.001 --to l2owner --wait
+    docker compose -f $COMPOSE_FILE run scripts send-l1 --l1url $L1_URL_WS  --ethamount 0.001 --to validator --wait
+    docker compose -f $COMPOSE_FILE run scripts send-l1 --l1url $L1_URL_WS  --ethamount 0.001 --to sequencer --wait
+    docker compose -f $COMPOSE_FILE run scripts send-l1 --l1url $L1_URL_WS  --ethamount 1 --to l2owner --wait
 
-    l2ownerAddress=`docker compose -f $COMPOSE_FILE run scripts print-address --account l2owner | tail -n 1 | tr -d '\r\n'`
+    l2ownerAddress=`docker compose -f $COMPOSE_FILE run scripts  print-address --account l2owner | tail -n 1 | tr -d '\r\n'`
     echo $l2ownerAddress
 
-    # TODO: should we ask for config from the user here?
     echo == Writing l2 chain config
     docker compose -f $COMPOSE_FILE run scripts --l2owner $l2ownerAddress write-l2-chain-config --espresso $espresso --chainId $L2_CHAIN_ID
 
-    sequenceraddress=`docker compose run scripts print-address --account sequencer | tail -n 1 | tr -d '\r\n'`
-    l2ownerKey=`docker compose run scripts print-private-key --account l2owner | tail -n 1 | tr -d '\r\n'`
-    wasmroot=`docker compose run --entrypoint sh sequencer -c "cat /home/user/target/machines/latest/module-root.txt"`
+    sequenceraddress=`docker compose -f $COMPOSE_FILE run scripts print-address --account sequencer | tail -n 1 | tr -d '\r\n'`
+    l2ownerKey=`docker compose -f $COMPOSE_FILE run scripts print-private-key --account l2owner | tail -n 1 | tr -d '\r\n'`
+    wasmroot=`docker compose -f $COMPOSE_FILE run --entrypoint sh sequencer -c "cat /home/user/target/machines/latest/module-root.txt"`
 
-    # echo == Initializing redis
-    # docker compose up --wait redis
-    # docker compose run scripts redis-init --redundancy $redundantsequencers
+    echo == Deploying L2 chain
+    docker compose -f $COMPOSE_FILE run -e PARENT_CHAIN_RPC=$L1_URL_HTTP -e DEPLOYER_PRIVKEY=$l2ownerKey -e PARENT_CHAIN_ID=$l1chainid -e CHILD_CHAIN_NAME="arb-dev-test" -e MAX_DATA_SIZE=117964 -e OWNER_ADDRESS=$l2ownerAddress -e WASM_MODULE_ROOT=$wasmroot -e SEQUENCER_ADDRESS=$sequenceraddress -e AUTHORIZE_VALIDATORS=10 -e CHILD_CHAIN_CONFIG_PATH="/config/l2_chain_config.json" -e CHAIN_DEPLOYMENT_INFO="/config/deployment.json" -e CHILD_CHAIN_INFO="/config/deployed_chain_info.json" -e LIGHT_CLIENT_ADDR=$lightClientAddr  rollupcreator create-rollup-testnode
+    docker compose -f $COMPOSE_FILE run --entrypoint sh rollupcreator -c "jq [.[]] /config/deployed_chain_info.json > /config/l2_chain_info.json"
+    docker compose -f $COMPOSE_FILE run --entrypoint sh rollupcreator -c "cat /config/l2_chain_info.json"
 
-    # echo == Bridging funds
-    # docker compose up --wait $INITIAL_SEQ_NODES
-    # docker compose run scripts bridge-funds --ethamount 0.001 --wait
+    echo == Writing configs
+    docker compose -f $COMPOSE_FILE run scripts write-config --espresso $l2_espresso --lightClientAddress $lightClientAddr --l1url $L1_URL_HTTP --chainId $L2_CHAIN_ID
 
-    # if $tokenbridge; then
-    #     echo == Deploying L1-L2 token bridge
-    # fi
+    echo == Initializing redis
+    docker compose -f $COMPOSE_FILE up --wait redis
+    docker compose -f $COMPOSE_FILE run scripts redis-init --redundancy $redundantsequencers
+    
+
+    echo == Bridging funds
+    docker compose -f $COMPOSE_FILE up --wait $INITIAL_SEQ_NODES
+    docker compose -f $COMPOSE_FILE run scripts bridge-funds --l1url $L1_URL_WS  --ethamount 0.001 --wait
+    docker compose -f $COMPOSE_FILE run scripts send-l2 --ethamount 0.001 --to l2owner --wait
+
+   
+   if $tokenbridge; then
+         echo == Deploying L1-L2 token bridge
+        sleep 10 # no idea why this sleep is needed but without it the deploy fails randomly
+        rollupAddress=`docker compose -f $COMPOSE_FILE run --entrypoint sh poster -c "jq -r '.[0].rollup.rollup' /config/deployed_chain_info.json | tail -n 1 | tr -d '\r\n'"`
+        l2ownerKey=`docker compose -f $COMPOSE_FILE run scripts print-private-key --account l2owner | tail -n 1 | tr -d '\r\n'`
+        docker compose -f $COMPOSE_FILE run -e ROLLUP_OWNER_KEY=$l2ownerKey -e ROLLUP_ADDRESS=$rollupAddress -e PARENT_KEY=$devprivkey -e PARENT_RPC=$L1_URL_HTTP -e CHILD_KEY=$devprivkey -e CHILD_RPC=http://sequencer:8547 tokenbridge deploy:local:token-bridge
+        docker compose -f $COMPOSE_FILE run --entrypoint sh tokenbridge -c "cat network.json && cp network.json l1l2_network.json && cp network.json localNetwork.json"
+        echo
+    fi
+
+     echo == Deploy CacheManager on L2
+    docker compose -f $COMPOSE_FILE run -e CHILD_CHAIN_RPC="http://sequencer:8547" -e CHAIN_OWNER_PRIVKEY=$l2ownerKey  rollupcreator deploy-cachemanager-testnode
 fi
 
 

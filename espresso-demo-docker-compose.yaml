@@ -220,7 +220,7 @@ services:
         TOKEN_BRIDGE_BRANCH: ${TOKEN_BRIDGE_BRANCH:-}
     environment:
       - ARB_URL=http://sequencer:8547
-      - ETH_URL=https://sepolia.infura.io/v3/b9794ad1ddf84dfb8c34d6b
+      - ETH_URL=$L1_URL_HTTP
     volumes:
       - "tokenbridge-data:/workspace"
       - /var/run/docker.sock:/var/run/docker.sock
