@@ -61,6 +61,7 @@ l3_custom_fee_token_decimals=18
 batchposters=1
 devprivkey=b6b15c8cb491557369f3c7d2c287b053eb229daa9c22138887752191c9520659
 l1chainid=1337
+migration=false
 simple=true
 simple_with_validator=false
 
@@ -108,6 +109,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --latest-espresso-image)
             latest_espresso_image=true
+            shift
+            ;;
+        --migration)
+            migration=true
             shift
             ;;
         --build)
@@ -234,6 +239,9 @@ while [[ $# -gt 0 ]]; do
             echo --no-tokenbridge  don\'t build or launch tokenbridge
             echo --no-run          does not launch nodes \(useful with build or init\)
             echo --no-simple       run a full configuration with separate sequencer/batch-poster/validator/relayer
+            echo --espresso        launch an espresso compatible node
+            echo --latest-espresso-image Pull the latest image for the espresso node
+            echo --migration       Build l2 chain config in a manner that would allow migrating to Espresso.
             echo
             echo script runs inside a separate docker. For SCRIPT-ARGS, run $0 script --help
             exit 0
@@ -435,7 +443,13 @@ if $force_init; then
     echo $l2ownerAddress
 
     echo == Writing l2 chain config
-    docker compose run scripts --l2owner $l2ownerAddress  write-l2-chain-config --espresso $l2_espresso
+    if $migration; then
+       docker compose run scripts --l2owner $l2ownerAddress  write-l2-chain-config --espresso $l2_espresso --migration $migration
+       echo == Migration compatible chain config written
+    else
+        docker compose run scripts --l2owner $l2ownerAddress  write-l2-chain-config --espresso $l2_espresso
+        echo == Espresso compatible chain config written
+    fi
 
     sequenceraddress=`docker compose run scripts print-address --account sequencer | tail -n 1 | tr -d '\r\n'`
     l2ownerKey=`docker compose run scripts print-private-key --account l2owner | tail -n 1 | tr -d '\r\n'`
@@ -444,12 +458,11 @@ if $force_init; then
     echo == Deploying L2 chain
     docker compose run -e PARENT_CHAIN_RPC="http://geth:8545" -e DEPLOYER_PRIVKEY=$l2ownerKey -e PARENT_CHAIN_ID=$l1chainid -e CHILD_CHAIN_NAME="arb-dev-test" -e MAX_DATA_SIZE=117964 -e OWNER_ADDRESS=$l2ownerAddress -e WASM_MODULE_ROOT=$wasmroot -e SEQUENCER_ADDRESS=$sequenceraddress -e AUTHORIZE_VALIDATORS=10 -e CHILD_CHAIN_CONFIG_PATH="/config/l2_chain_config.json" -e CHAIN_DEPLOYMENT_INFO="/config/deployment.json" -e CHILD_CHAIN_INFO="/config/deployed_chain_info.json" -e LIGHT_CLIENT_ADDR=$lightClientAddr  rollupcreator create-rollup-testnode
     docker compose run --entrypoint sh rollupcreator -c "jq [.[]] /config/deployed_chain_info.json > /config/l2_chain_info.json"
-    docker compose run --entrypoint sh rollupcreator -c "jq [.[]] /config/deployed_chain_info.json > /espresso-config/l2_chain_info.json"
     docker compose run --entrypoint sh rollupcreator -c "cat /config/l2_chain_info.json"
 
     if $simple; then
         echo == Writing configs for simple
-        docker compose run scripts write-config --simple --simpleWithValidator $simple_with_validator --espresso $l2_espresso --lightClientAddress $lightClientAddr
+        docker compose run scripts write-config --simple --simpleWithValidator $simple_with_validator --espresso $l2_espresso --lightClientAddress $lightClientAddr    
 
     else
         echo == Writing configs

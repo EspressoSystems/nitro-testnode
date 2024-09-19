@@ -33,9 +33,10 @@ async function main() {
     })
     .options(stressOptions)
     .options({
-      espresso: { boolean: true, decription: 'use Espresso Sequencer for sequencing and DA', default: false },
+      espresso: { boolean: true, description: 'use Espresso Sequencer for sequencing and DA', default: false },
       espressoUrl: { string: true, description: 'Espresso Sequencer url', default: 'http://espresso-dev-node:41000' },
       lightClientAddress: { string: true, description: 'address of the light client contract', default: ''},
+      migration: {boolean: true, description: 'Build l2 config that is espresso compatible, but without enabling espresso behavior', default: false},
     })
     .command(bridgeFundsCommand)
     .command(bridgeToL3Command)

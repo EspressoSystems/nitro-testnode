@@ -8,8 +8,6 @@ set -euo pipefail
 set -a # automatically export all variables
 set -x # print each command before executing it, for debugging
 
-
-
 # Find directory of this script, the project, and the orbit-actions submodule
 TEST_DIR="$(dirname $(readlink -f $0))"
 TESTNODE_DIR="$(dirname "$TEST_DIR")"
@@ -31,7 +29,6 @@ cd "$TESTNODE_DIR"
 docker compose up espresso-dev-node --detach
 
 # Export environment variables in .env file
-# A similar env file should be supplied for whatever 
 . "$TEST_DIR/.env"
 
 # Overwrite the ROLLUP_ADDRESS for this test, it might not be the same as the one in the .env file
@@ -45,15 +42,15 @@ L1_TOKEN_BRIDGE_CREATOR_ADDRESS=$(docker compose run --entrypoint cat scripts /t
 CHILD_CHAIN_UPGRADE_EXECUTOR_ADDRESS=$(cast call $L1_TOKEN_BRIDGE_CREATOR_ADDRESS 'inboxToL2Deployment(address)(address,address,address,address,address,address,address,address,address)' $INBOX_ADDRESS | tail -n 2 | head -n 1 | tr -d '\r\n')
 
 # Export l2 owner private key and address
-# These commands are exclusive to the test.
 # * Essential migration sub step * These addresses are likely known addresses to operators in the event of a real migration
 PRIVATE_KEY="$(docker compose run scripts print-private-key --account l2owner | tail -n 1 | tr -d '\r\n')"
 OWNER_ADDRESS="$(docker compose run scripts print-address --account l2owner | tail -n 1 | tr -d '\r\n')"
 
-# Echo for debug
 echo "Deploying Espresso Osp"
+
 # Change directory to orbit actions dir for the following commands.
 cd $ORBIT_ACTIONS_DIR
+
 # ** Essential migration step ** Forge script to deploy new OSP entry. We do this to later point the rollups challenge manager to the espresso integrated OSP.
 forge script --chain $PARENT_CHAIN_CHAIN_ID contracts/parent-chain/espresso-migration/DeployEspressoOsp.s.sol:DeployEspressoOsp --rpc-url $PARENT_CHAIN_RPC_URL --broadcast -vvvv
 
@@ -61,10 +58,8 @@ forge script --chain $PARENT_CHAIN_CHAIN_ID contracts/parent-chain/espresso-migr
 #  * Essential migration sub step * These addresses are likely known addresses to operators in the event of a real migration after they have deployed the new OSP contracts, however, if operators create a script for the migration, this command is useful.
 NEW_OSP_ENTRY=$(cat broadcast/DeployEspressoOsp.s.sol/1337/run-latest.json | jq -r '.transactions[4].contractAddress'| cast to-checksum)
 
-# Echo for debugging.
 echo "Deployed new OspEntry at $NEW_OSP_ENTRY"
 
-# Echo for debug
 echo "Deploying Espresso Osp migration action"
 
 # ** Essential migration step ** Forge script to deploy Espresso OSP migration action
@@ -85,14 +80,12 @@ echo "Executed OspMigrationAction via UpgradeExecutor"
 
 # Get the number of confirmed nodes before the upgrade to ensure the staker is still working.
 NUM_CONFIRMED_NODES_BEFORE_UPGRADE=$(cast call --rpc-url $PARENT_CHAIN_RPC_URL $ROLLUP_ADDRESS 'latestConfirmed()(uint256)')
-# Shutdown nitro node
 
-# This is part of the migration but the mechanics of this can be left up to operators.
 # ** Essential migration step ** The previous sequencer that is not compatible with espresso must be shut down so that we can start a new sequencer node that can have it's ArbOS version updated to signify the upgrade has occurred.
 docker stop nitro-testnode-sequencer-1
 
-# Change directories to start nitro node in new docker container with espresso image
 cd $TESTNODE_DIR
+
 # Start nitro node in new docker container with espresso image
 ./espresso-tests/create-espresso-integrated-nitro-node.bash
 
@@ -103,7 +96,6 @@ while ! curl -s $CHILD_CHAIN_RPC_URL > /dev/null; do
   sleep 5
 done
 
-# Echo for debugging
 echo "Adding child chain upgrade executor as an L2 chain owner"
 # This step is done for the purposes of the test, as there should already be an upgrade executor on the child chain that is a chain owner
 cast send 0x0000000000000000000000000000000000000070 'addChainOwner(address)' $CHILD_CHAIN_UPGRADE_EXECUTOR_ADDRESS --rpc-url $CHILD_CHAIN_RPC_URL --private-key $PRIVATE_KEY
@@ -111,6 +103,7 @@ cast send 0x0000000000000000000000000000000000000070 'addChainOwner(address)' $C
 echo "Deploying ArbOS Upgrade action"
 
 cd $ORBIT_ACTIONS_DIR
+
 # Forge script to deploy the Espresso ArbOS upgrade action.
 # ** Essential migration step ** the ArbOS upgrade signifies that the chain is now espresso compatible.
 forge script --chain $CHILD_CHAIN_CHAIN_NAME contracts/child-chain/arbos-upgrade/DeployArbOSUpgradeAction.s.sol:DeployArbOSUpgradeAction  --rpc-url $CHILD_CHAIN_RPC_URL --broadcast -vvvv
@@ -118,7 +111,6 @@ forge script --chain $CHILD_CHAIN_CHAIN_NAME contracts/child-chain/arbos-upgrade
 # Get the address of the newly deployed upgrade action.
 ARBOS_UPGRADE_ACTION=$(cat broadcast/DeployArbOSUpgradeAction.s.sol/412346/run-latest.json | jq -r '.transactions[0].contractAddress')
 
-# Echo information for debugging.
 echo "Deployed ArbOSUpgradeAction at $ARBOS_UPGRADE_ACTION"
 
 # Grab the pre-upgrade ArbOS version for testing.
@@ -132,6 +124,7 @@ cast send $CHILD_CHAIN_UPGRADE_EXECUTOR_ADDRESS "execute(address, bytes)" $ARBOS
 
 # Grab the post upgrade ArbOS version.
 ARBOS_VERSION_AFTER_UPGRADE=$(cast call "0x0000000000000000000000000000000000000064" "arbOSVersion()(uint64)" --rpc-url $CHILD_CHAIN_RPC_URL)
+
 # Wait to observe the ArbOS version update. (potentially add a timeout or max retry number before failing)
 while [ $ARBOS_VERSION_BEFORE_UPGRADE == $ARBOS_VERSION_AFTER_UPGRADE ]
 do
@@ -144,14 +137,20 @@ if [ $ARBOS_VERSION_AFTER_UPGRADE != "90" ]; then
   fail "ArbOS version not updated: Expected 90, Actual $ARBOS_VERSION_AFTER_UPGRADE"
 fi
 
+# Cast call to child chain upgrade executor that targets the ArbOwner precompile with the wasm
+# The hard code address is the ArbOwner precompile location
+
+cd $TEST_DIR
+
+cast send $CHILD_CHAIN_UPGRADE_EXECUTOR_ADDRESS "execute(address, bytes)" 0x0000000000000000000000000000000000000070 $(cast calldata "setChainConfig(string)" "$(cat ./test-chain-config.json)") --rpc-url $CHILD_CHAIN_RPC_URL --private-key $PRIVATE_KEY
+
+cd $ORBIT_ACTIONS_DIR
+
 # Test for new OSP address
 CHALLENGE_MANAGER_OSP_ADDRESS=$(cast call $CHALLENGE_MANAGER_ADDRESS "osp()(address)" --rpc-url $PARENT_CHAIN_RPC_URL)
 if [ $NEW_OSP_ENTRY != $CHALLENGE_MANAGER_OSP_ADDRESS ]; then
   fail "OSP has not been set to newly deployed OSP: \n Newly deployed: $NEW_OSP_ENTRY \n Currently set OSP: $CHALLENGE_MANAGER_OSP_ADDRESS"
 fi
-# Check for balance before transfer.
-# The following sequence is to check that transactions are still successfully being sequenced on the L2
-ORIGINAL_OWNER_BALANCE=$(cast balance $OWNER_ADDRESS -e --rpc-url $CHILD_CHAIN_RPC_URL)
 
 # Send 1 eth as the owner
 RECIPIENT_ADDRESS=0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
@@ -165,7 +164,6 @@ BALANCE_NEW=$(cast balance $RECIPIENT_ADDRESS -e --rpc-url $CHILD_CHAIN_RPC_URL)
 if [ $BALANCE_NEW == $BALANCE_ORIG ]; then
   fail "Balance of $RECIPIENT_ADDRESS should have changed but remained: $BALANCE_ORIG"
 fi
-# Echo successful balance update
 echo "Balance of $RECIPIENT_ADDRESS changed from $BALANCE_ORIG to $BALANCE_NEW"
 
 # Check that the staker is making progress after the upgrade
@@ -173,10 +171,9 @@ while [ "$NUM_CONFIRMED_NODES_BEFORE_UPGRADE" == "$(cast call --rpc-url $PARENT_
   echo "Waiting for confirmed nodes ..."
   sleep 5
 done
-# Echo to confirm that stakers are behaving normally.
+
 echo "Confirmed nodes have progressed"
 
-# Echo to signal that test has been successful
 echo "Migration successfully completed!"
 
 docker compose down
