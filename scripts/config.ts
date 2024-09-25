@@ -160,7 +160,7 @@ function writeConfigs(argv: any) {
             },
         },
         "chain": {
-            "id": 412346,
+            "id": argv.chainId,
             "info-files": [chainInfoFile],
         },
         "node": {
@@ -261,7 +261,7 @@ function writeConfigs(argv: any) {
         config.node["transaction-streamer"] = {
             "sovereign-sequencer-enabled": false,
             "hotshot-url": "",
-            "espresso-namespace": 412346,
+            "espresso-namespace": argv.chainId,
         }
     }
 
@@ -416,7 +416,7 @@ function writeConfigs(argv: any) {
 
 function writeL2ChainConfig(argv: any) {
     const l2ChainConfig = {
-        "chainId": 412346,
+        "chainId": argv.chainId,
         "homesteadBlock": 0,
         "daoForkSupport": true,
         "eip150Block": 0,
