@@ -441,6 +441,7 @@ function writeL2ChainConfig(argv: any) {
             "InitialArbOSVersion": 30,
             "InitialChainOwner": argv.l2owner,
             "GenesisBlockNum": 0,
+            "MaxCodeSize": 50 * 1024,
         }
     }
     if (argv.espresso) {
