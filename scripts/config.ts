@@ -201,6 +201,7 @@ function writeConfigs(argv: any) {
                 "enable": false,
                 "redis-url": argv.redisUrl,
                 "max-delay": "30s",
+                "max-size": 200000,
                 "l1-block-bound": "ignore",
                 "parent-chain-wallet" : {
                     "account": namedAddress("sequencer"),
@@ -235,6 +236,7 @@ function writeConfigs(argv: any) {
         "execution": {
             "sequencer": {
                 "enable": false,
+                "max-tx-data-size": 110000,
             },
             "forwarding-target": "null",
         },
@@ -441,7 +443,7 @@ function writeL2ChainConfig(argv: any) {
             "InitialArbOSVersion": 30,
             "InitialChainOwner": argv.l2owner,
             "GenesisBlockNum": 0,
-            "MaxCodeSize": 50 * 1024,
+            "MaxCodeSize": 150 * 1024,
         }
     }
     if (argv.espresso) {
