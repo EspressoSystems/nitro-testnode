@@ -39,6 +39,15 @@ jobs:
         uses: foundry-rs/foundry-toolchain@v1
         with:
           version: nightly
+      
+      - name: Install node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: 'npm'
+      
+      - name: Install wscat
+        run: npm install -g wscat
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -71,10 +80,7 @@ jobs:
           build-args: |
             TOKEN_BRIDGE_BRANCH=v1.2.2
 
-      - name: Install websocat
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y websocat
+
 
       - name: Smoke Test with Latest Espresso Image
         run: |

@@ -9,7 +9,7 @@ listen_to_sequencer_feed() {
             echo "Sender address detected"
             break
         fi
-    done < <(websocat ws://127.0.0.1:9642)
+    done < <(wscat ws://127.0.0.1:9642)
 }
 
 
