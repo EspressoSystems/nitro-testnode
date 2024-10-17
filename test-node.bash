@@ -463,7 +463,7 @@ if $force_init; then
         docker compose run scripts write-config --espresso $l2_espresso --lightClientAddress $lightClientAddr
         if $enableEspressoFinalityNode; then
             echo == Writing configs for finality node
-            docker compose run scripts write-config  --enableEspressoFinalityNode --lightClientAddress $lightClientAddr
+            docker compose run scripts write-config  --espresso $l2_espresso  --enableEspressoFinalityNode --lightClientAddress $lightClientAddr
         fi
         echo == Initializing redis
         docker compose up --wait redis
