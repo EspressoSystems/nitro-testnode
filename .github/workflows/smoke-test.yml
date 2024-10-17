@@ -35,19 +35,19 @@ jobs:
         with:
           submodules: recursive
 
+      # Install wscat for finality node smoke test to listen to sequencer feed
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'  # Specify the Node.js version
+
+      - name: Install wscat
+        run: npm install -g wscat
+
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
           version: nightly
-      
-      - name: Install node
-        uses: actions/setup-node@v3
-        with:
-          node-version: 18
-          cache: 'npm'
-      
-      - name: Install wscat
-        run: npm install -g wscat
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -79,8 +79,6 @@ jobs:
           # Use default branch from test-node.bash
           build-args: |
             TOKEN_BRIDGE_BRANCH=v1.2.2
-
-
 
       - name: Smoke Test with Latest Espresso Image
         run: |
