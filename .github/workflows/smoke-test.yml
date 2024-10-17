@@ -14,13 +14,18 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ !contains(github.ref, 'integration/')}}
 
-
 jobs:
   smoke_test:
-
     strategy:
       matrix:
-        test-script: [ ./smoke-test.bash, ./smoke-test-l3.bash, ./smoke-test-nitro-simple.bash, ./smoke-test-full-node.bash ]
+        test-script:
+          [
+            ./smoke-test.bash,
+            ./smoke-test-l3.bash,
+            ./smoke-test-nitro-simple.bash,
+            ./smoke-test-full-node.bash,
+            ./smoke-test-finality-node.bash,
+          ]
 
     runs-on: ubuntu-24.04
 
@@ -65,6 +70,11 @@ jobs:
           # Use default branch from test-node.bash
           build-args: |
             TOKEN_BRIDGE_BRANCH=v1.2.2
+
+      - name: Install websocat
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y websocat
 
       - name: Smoke Test with Latest Espresso Image
         run: |

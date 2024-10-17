@@ -352,8 +352,27 @@ function writeConfigs(argv: any) {
         } else {
             sequencerConfig.node["seq-coordinator"].enable = true
         }
-        fs.writeFileSync(path.join(consts.configpath, "sequencer_config.json"), JSON.stringify(sequencerConfig))
-
+        
+        if (argv.enableFinalityNode) {
+          sequencerConfig.execution.sequencer["enable-espresso-finality-node"] =
+            true;
+          sequencerConfig.execution.sequencer["enable-espresso-sovereign"] = false;
+          sequencerConfig.execution.sequencer["espresso-finality-node-config"] = {
+            "hotshot-url": argv.espressoUrl,
+            "start-block": 0,
+            namespace: 412346,
+          };
+          fs.writeFileSync(
+            path.join(consts.configpath, "espresso_finality_sequencer_config.json"),
+            JSON.stringify(sequencerConfig)
+          );
+        } else {
+          fs.writeFileSync(
+            path.join(consts.configpath, "sequencer_config.json"),
+            JSON.stringify(sequencerConfig)
+          );
+        }
+        
         let posterConfig = JSON.parse(baseConfJSON)
         if (argv.espresso) {
             posterConfig.node.feed.input.url.push("ws://sequencer:9642")

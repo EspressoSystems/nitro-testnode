@@ -182,6 +182,23 @@ services:
     depends_on:
       - geth
   
+  sequencer-espresso-finality:
+    pid: host # allow debugging
+    image: nitro-node-dev-testnode
+    entrypoint: /usr/local/bin/nitro
+    ports:
+      - "127.0.0.1:8549:8547"
+      - "127.0.0.1:8550:8548"
+      - "127.0.0.1:9645:9642"
+    volumes:
+      - "seqdata_espresso_finality:/home/user/.arbitrum/local/nitro"
+      - "l1keystore:/home/user/l1keystore"
+      - "config:/config"
+      - "tokenbridge-data:/tokenbridge-data"
+    command: --conf.file /config/espresso_finality_sequencer_config.json --node.feed.output.enable --node.feed.output.port 9642  --http.api net,web3,eth,txpool,debug --node.seq-coordinator.my-url  ws://sequencer:8550 --graphql.enable --graphql.vhosts * --graphql.corsdomain *
+    depends_on:
+      - geth
+  
   sequencer_b:
     pid: host # allow debugging
     image: nitro-node-dev-testnode
@@ -451,6 +468,7 @@ volumes:
   seqdata_b:
   seqdata_c:
   seqdata_d:
+  seqdata_espresso_finality
   unsafestaker-data:
   validator-data:
   poster-data:
