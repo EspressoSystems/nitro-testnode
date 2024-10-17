@@ -106,7 +106,7 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --espresso-finality-node)
-            espressoFinalityNode=true
+            enableEspressoFinalityNode=true
             shift
             ;;
         --latest-espresso-image)
@@ -461,9 +461,9 @@ if $force_init; then
     else
         echo == Writing configs
         docker compose run scripts write-config --espresso $l2_espresso --lightClientAddress $lightClientAddr
-        if $espressoFinalityNode; then
+        if $enableEspressoFinalityNode; then
             echo == Writing configs for finality node
-            docker compose run scripts write-config  --espressoFinalityNode --lightClientAddress $lightClientAddr
+            docker compose run scripts write-config  --enableEspressoFinalityNode --lightClientAddress $lightClientAddr
         fi
         echo == Initializing redis
         docker compose up --wait redis

@@ -353,7 +353,7 @@ function writeConfigs(argv: any) {
             sequencerConfig.node["seq-coordinator"].enable = true
         }
         
-        if (argv.enableFinalityNode) {
+        if (argv.enableEspressoFinalityNode) {
           sequencerConfig.execution.sequencer["enable-espresso-finality-node"] =
             true;
           sequencerConfig.execution.sequencer["enable-espresso-sovereign"] = false;
