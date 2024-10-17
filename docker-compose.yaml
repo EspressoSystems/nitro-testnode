@@ -468,7 +468,7 @@ volumes:
   seqdata_b:
   seqdata_c:
   seqdata_d:
-  seqdata_espresso_finality
+  seqdata_espresso_finality:
   unsafestaker-data:
   validator-data:
   poster-data:
