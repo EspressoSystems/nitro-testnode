@@ -36,6 +36,7 @@ async function main() {
       espresso: { boolean: true, decription: 'use Espresso Sequencer for sequencing and DA', default: false },
       espressoUrl: { string: true, description: 'Espresso Sequencer url', default: 'http://espresso-dev-node:41000' },
       lightClientAddress: { string: true, description: 'address of the light client contract', default: ''},
+      enableFinalityNode: {boolean: true, description: 'enable finality node', default: false},
     })
     .command(bridgeFundsCommand)
     .command(bridgeToL3Command)

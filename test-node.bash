@@ -63,7 +63,6 @@ devprivkey=b6b15c8cb491557369f3c7d2c287b053eb229daa9c22138887752191c9520659
 l1chainid=1337
 simple=true
 simple_with_validator=false
-
 while [[ $# -gt 0 ]]; do
     case $1 in
         --init)
@@ -104,6 +103,10 @@ while [[ $# -gt 0 ]]; do
         --espresso)
             espresso=true
             l2_espresso=true
+            shift
+            ;;
+        --espresso-finality-node)
+            enableFinalityNode=true
             shift
             ;;
         --latest-espresso-image)
@@ -234,6 +237,7 @@ while [[ $# -gt 0 ]]; do
             echo --no-tokenbridge  don\'t build or launch tokenbridge
             echo --no-run          does not launch nodes \(useful with build or init\)
             echo --no-simple       run a full configuration with separate sequencer/batch-poster/validator/relayer
+            echo --enable-finality-node enable espresso finality node
             echo
             echo script runs inside a separate docker. For SCRIPT-ARGS, run $0 script --help
             exit 0
@@ -294,6 +298,7 @@ if [ $batchposters -gt 2 ]; then
 fi
 
 
+
 if $validate; then
     NODES="$NODES validator"
 elif ! $simple; then
@@ -308,6 +313,7 @@ if $l3node; then
     export ESPRESSO_DEPLOYER_ALT_MNEMONICS="indoor dish desk flag debris potato excuse depart ticket judge file exit"
     export ESPRESSO_SEQUENCER_DEPLOYER_ALT_INDICES="6"
 fi
+
 if $blockscout; then
     NODES="$NODES blockscout"
 fi
@@ -397,6 +403,7 @@ if $force_init; then
     docker compose run --entrypoint sh geth -c "chown -R 1000:1000 /keystore"
     docker compose run --entrypoint sh geth -c "chown -R 1000:1000 /config"
 
+
     if $consensusclient; then
       echo == Writing configs
       docker compose run scripts write-geth-genesis-config
@@ -418,6 +425,7 @@ if $force_init; then
       docker compose up --wait prysm_validator
     else
       docker compose up --wait geth
+    #   docker compose up --wait geth-espresso-finality
       docker compose run scripts write-geth-genesis-config
     fi
 
@@ -454,7 +462,10 @@ if $force_init; then
     else
         echo == Writing configs
         docker compose run scripts write-config --espresso $l2_espresso --lightClientAddress $lightClientAddr
-
+        if $enableFinalityNode; then
+            echo == Writing configs for finality node
+            docker compose run scripts write-config  --enableFinalityNode --lightClientAddress $lightClientAddr
+        fi
         echo == Initializing redis
         docker compose up --wait redis
         docker compose run scripts redis-init --redundancy $redundantsequencers
