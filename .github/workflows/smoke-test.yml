@@ -25,6 +25,7 @@ jobs:
             ./smoke-test-nitro-simple.bash,
             ./smoke-test-full-node.bash,
             ./smoke-test-espresso-finality-node.bash,
+            ./smoke-test-altlayer.bash,
           ]
 
     runs-on: ubuntu-24.04
