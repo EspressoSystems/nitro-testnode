@@ -21,4 +21,4 @@ while true; do
 done
 
 echo "Smoke test succeeded."
-# docker compose down
+docker compose down
