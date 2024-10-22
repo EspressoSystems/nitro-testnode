@@ -184,8 +184,6 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
-# TODO add L3
-
 volumes:
   l1data:
   consensus:
