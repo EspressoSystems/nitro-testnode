@@ -87,7 +87,7 @@ if $force_init; then
 fi
 
 
-NODES="sequencer redis poster validator full-node"
+NODES="sequencer redis poster validator"
 INITIAL_SEQ_NODES="sequencer validation_node"
 
 if $force_build; then

@@ -5,6 +5,9 @@ COMPOSE_FILE=docker-compose-altlayer.yaml
 
 ./altlayer-test-node.bash --init --latest-espresso-image --detach
 
+docker compose up -d full-node --detach
+
+
 # Sending L2 transaction through the full-node's api
 user=user_l2user
 ./altlayer-test-node.bash script send-l2 --ethamount 100 --to $user --wait
