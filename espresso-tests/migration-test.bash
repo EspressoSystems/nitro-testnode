@@ -84,10 +84,12 @@ NUM_CONFIRMED_NODES_BEFORE_UPGRADE=$(cast call --rpc-url $PARENT_CHAIN_RPC_URL $
 # ** Essential migration step ** The previous sequencer that is not compatible with espresso must be shut down so that we can start a new sequencer node that can have it's ArbOS version updated to signify the upgrade has occurred.
 docker stop nitro-testnode-sequencer-1
 
+docker wait nitro-testnode-sequencer-1
+
 cd $TESTNODE_DIR
 
 # Start nitro node in new docker container with espresso image
-./espresso-tests/create-espresso-integrated-nitro-node.bash
+./espresso-tests/create-espresso-integrated-nitro-node-from-local-tag.bash
 
 # Wait for CHILD_CHAIN_RPC_URL to be available
 # * Essential migration sub step * This is technically essential to the migration, but doesn't usually take long and shouldn't need to be programatically determined during a live migration.
@@ -123,7 +125,7 @@ cast send $CHILD_CHAIN_UPGRADE_EXECUTOR_ADDRESS "execute(address, bytes)" $ARBOS
 # Check the upgrade happened
 
 # Grab the post upgrade ArbOS version.
-ARBOS_VERSION_AFTER_UPGRADE=$(cast call "0x0000000000000000000000000000000000000064" "arbOSVersion()(uint64)" --rpc-url $CHILD_CHAIN_RPC_URL)
+ARBOS_VERSION_AFTER_UPGRADE=$(cast call "0x0000000000000000000000000000000000000064" "arbOSVersion()(uint64)" --rpc-url $CHILD_CHAIN_RPC_URL)   
 
 # Wait to observe the ArbOS version update. (potentially add a timeout or max retry number before failing)
 while [ $ARBOS_VERSION_BEFORE_UPGRADE == $ARBOS_VERSION_AFTER_UPGRADE ]
@@ -142,7 +144,7 @@ fi
 
 cd $TEST_DIR
 
-cast send $CHILD_CHAIN_UPGRADE_EXECUTOR_ADDRESS "execute(address, bytes)" 0x0000000000000000000000000000000000000070 $(cast calldata "setChainConfig(string)" "$(cat ./test-chain-config.json)") --rpc-url $CHILD_CHAIN_RPC_URL --private-key $PRIVATE_KEY
+cast send $CHILD_CHAIN_UPGRADE_EXECUTOR_ADDRESS $(cast calldata "executeCall(address, bytes)" "0x0000000000000000000000000000000000000070" $(cast calldata "setChainConfig(string)" "$(cat ./test-chain-config.json)")) --rpc-url $CHILD_CHAIN_RPC_URL --private-key $PRIVATE_KEY
 
 cd $ORBIT_ACTIONS_DIR
 
