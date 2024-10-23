@@ -9,7 +9,7 @@ docker compose up -d full-node --detach
 
 # Sending L2 transaction through the full-node's api
 user=user_l2user
-./test-node.bash script send-l2 --ethamount 100 --to $user --wait
+./test-node.bash script send-l2 --l2url ws://full-node:8548 --ethamount 100 --to $user --wait
 
 # Check the balance from full-node's api
 userAddress=$(docker compose run scripts print-address --account $user | tail -n 1 | tr -d '\r\n')
