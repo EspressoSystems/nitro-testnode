@@ -64,7 +64,6 @@ l1chainid=1337
 migration=false
 simple=true
 simple_with_validator=false
-
 while [[ $# -gt 0 ]]; do
     case $1 in
         --init)
@@ -105,6 +104,10 @@ while [[ $# -gt 0 ]]; do
         --espresso)
             espresso=true
             l2_espresso=true
+            shift
+            ;;
+        --espresso-finality-node)
+            enableEspressoFinalityNode=true
             shift
             ;;
         --latest-espresso-image)
@@ -242,6 +245,7 @@ while [[ $# -gt 0 ]]; do
             echo --espresso        launch an espresso compatible node
             echo --latest-espresso-image Pull the latest image for the espresso node
             echo --migration       Build l2 chain config in a manner that would allow migrating to Espresso.
+            echo --enable-finality-node enable espresso finality node
             echo
             echo script runs inside a separate docker. For SCRIPT-ARGS, run $0 script --help
             exit 0
@@ -303,6 +307,7 @@ if [ $batchposters -gt 2 ]; then
 fi
 
 
+
 if $validate; then
     NODES="$NODES validator"
 elif ! $simple; then
@@ -317,6 +322,7 @@ if $l3node; then
     export ESPRESSO_DEPLOYER_ALT_MNEMONICS="indoor dish desk flag debris potato excuse depart ticket judge file exit"
     export ESPRESSO_SEQUENCER_DEPLOYER_ALT_INDICES="6"
 fi
+
 if $blockscout; then
     NODES="$NODES blockscout"
 fi
@@ -406,6 +412,7 @@ if $force_init; then
     docker compose run --entrypoint sh geth -c "chown -R 1000:1000 /keystore"
     docker compose run --entrypoint sh geth -c "chown -R 1000:1000 /config"
 
+
     if $consensusclient; then
       echo == Writing configs
       docker compose run scripts write-geth-genesis-config
@@ -468,7 +475,10 @@ if $force_init; then
     else
         echo == Writing configs
         docker compose run scripts write-config --espresso $l2_espresso --lightClientAddress $lightClientAddr
-
+        if $enableEspressoFinalityNode; then
+            echo == Writing configs for finality node
+            docker compose run scripts write-config  --espresso $l2_espresso  --enableEspressoFinalityNode --lightClientAddress $lightClientAddr
+        fi
         echo == Initializing redis
         docker compose up --wait redis
         docker compose run scripts redis-init --redundancy $redundantsequencers

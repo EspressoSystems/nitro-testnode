@@ -14,13 +14,18 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ !contains(github.ref, 'integration/')}}
 
-
 jobs:
   smoke_test:
-
     strategy:
       matrix:
-        test-script: [ ./smoke-test.bash, ./smoke-test-l3.bash, ./smoke-test-nitro-simple.bash, ./smoke-test-full-node.bash ]
+        test-script:
+          [
+            ./smoke-test.bash,
+            ./smoke-test-l3.bash,
+            ./smoke-test-nitro-simple.bash,
+            ./smoke-test-full-node.bash,
+            ./smoke-test-espresso-finality-node.bash,
+          ]
 
     runs-on: ubuntu-24.04
 
@@ -29,6 +34,15 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+
+      # Install wscat for finality node smoke test to listen to sequencer feed
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "16"
+
+      - name: Install wscat
+        run: npm install -g wscat
 
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
