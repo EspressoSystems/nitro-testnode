@@ -178,4 +178,4 @@ echo "Confirmed nodes have progressed"
 
 echo "Migration successfully completed!"
 
-docker compose down
+#docker compose down
