@@ -248,7 +248,8 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-if $espresso; then
+if $espresso || $migration ; then
+    echo == entering the first migration check.
     NITRO_CONTRACTS_REPO=https://github.com/EspressoSystems/nitro-contracts.git
     NITRO_CONTRACTS_BRANCH=develop
     export NITRO_CONTRACTS_REPO
@@ -320,7 +321,7 @@ if $blockscout; then
     NODES="$NODES blockscout"
 fi
 
-if $espresso; then
+if $espresso || $migration ; then
     if $l3node; then
         # If we run the `l3node` with enabling espresso mode, then the
         # l2 node will run without `espresso` mode.
