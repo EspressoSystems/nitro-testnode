@@ -246,6 +246,7 @@ function writeConfigs(argv: any) {
           url: argv.validationNodeUrl,
           jwtsecret: valJwtSecret,
         },
+        "dangerous": {"reset-block-validation": false},
       },
       feed: {
         input: {
