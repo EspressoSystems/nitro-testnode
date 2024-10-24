@@ -52,6 +52,7 @@ lightClientAddr=0xb6eb235fa509e3206f959761d11e3777e16d0e98
 lightClientAddrForL3=0x5e36aa9caaf5f708fca5c04d2d4c776a62b2b258
 dev_build_nitro=false
 dev_build_blockscout=false
+enableEspressoFinalityNode=false
 espresso=false
 l2_espresso=false
 latest_espresso_image=false
