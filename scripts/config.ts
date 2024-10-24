@@ -299,11 +299,9 @@ function writeConfigs(argv: any) {
         }
     }
 
-
-    const baseConfJSON = JSON.stringify(baseConfig)
-
     baseConfig.node["data-availability"]["sequencer-inbox-address"] = ethers.utils.hexlify(getChainInfo()[0]["rollup"]["sequencer-inbox"]);
 
+    const baseConfJSON = JSON.stringify(baseConfig)
 
     if (argv.simple) {
         let simpleConfig = JSON.parse(baseConfJSON)
