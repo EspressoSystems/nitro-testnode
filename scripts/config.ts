@@ -258,6 +258,7 @@ function writeConfigs(argv: any) {
         config.node['block-validator']["light-client-address"] = ""
         config.node["batch-poster"]["hotshot-url"] = ""
         config.node["batch-poster"]["light-client-address"] = ""
+        config["execution"]["sequencer"]["enable-espresso-sovereign"] = ""
         config.node["transaction-streamer"] = {
             "sovereign-sequencer-enabled": false,
             "hotshot-url": "",
@@ -291,6 +292,9 @@ function writeConfigs(argv: any) {
             simpleConfig.node["block-validator"]["espresso"] = true
             simpleConfig.node["block-validator"]["light-client-address"] = argv.lightClientAddress
             simpleConfig.node["block-validator"]["dangerous"]["reset-block-validation"] = true
+            simpleConfig["execution"]["sequencer"]["enable-espresso-sovereign"] = true
+            simpleConfig["execution"]["sequencer"]["light-client-address"] = argv.lightClientAddress
+            simpleConfig["execution"]["sequencer"]["switch-delay-threshold"] = argv.switchDelayThreshold
         }
 
         if (argv.simpleWithValidator) {
@@ -347,6 +351,8 @@ function writeConfigs(argv: any) {
 
         if (argv.espresso) {
             sequencerConfig.execution.sequencer["enable-espresso-sovereign"] = true
+            sequencerConfig["execution"]["sequencer"]["light-client-address"] = argv.lightClientAddress
+            sequencerConfig["execution"]["sequencer"]["switch-delay-threshold"] = argv.switchDelayThreshold
             sequencerConfig.node.feed.output.enable = true
             sequencerConfig.node.dangerous["no-sequencer-coordinator"] = true
         } else {
@@ -465,8 +471,13 @@ function writeL2ChainConfig(argv: any) {
     if (argv.espresso) {
         let chainConfig = l2ChainConfig as any
         chainConfig.arbitrum["EnableEspresso"] = true
-        chainConfig["espresso"] = true
     }
+
+    if (argv.migration) {
+        let chainConfig = l2ChainConfig as any
+        chainConfig.arbitrum["EnableEspresso"] = false
+    }
+
     const l2ChainConfigJSON = JSON.stringify(l2ChainConfig)
     fs.writeFileSync(path.join(consts.configpath, "l2_chain_config.json"), l2ChainConfigJSON)
 }
