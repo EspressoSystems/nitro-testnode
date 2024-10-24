@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 
-set -e
+set -eu
 
-NITRO_NODE_VERSION=offchainlabs/nitro-node:v3.1.0-7d1d84c-dev
-BLOCKSCOUT_VERSION=offchainlabs/blockscout:v1.0.0-c8db5b1
 
 DEFAULT_NITRO_CONTRACTS_REPO="https://github.com/OffchainLabs/nitro-contracts.git"
+NITRO_NODE_VERSION=offchainlabs/nitro-node:v3.2.1-d81324d-dev
+BLOCKSCOUT_VERSION=offchainlabs/blockscout:v1.1.0-0e716c8
+
+# This commit matches v2.1.0 release of nitro-contracts, with additional support to set arb owner through upgrade executor
 DEFAULT_NITRO_CONTRACTS_VERSION="99c07a7db2fcce75b751c5a2bd4936e898cda065"
 DEFAULT_TOKEN_BRIDGE_VERSION="v1.2.2"
 
@@ -40,7 +42,6 @@ else
 fi
 
 run=true
-force_build=false
 validate=false
 detach=false
 blockscout=false
@@ -63,6 +64,18 @@ devprivkey=b6b15c8cb491557369f3c7d2c287b053eb229daa9c22138887752191c9520659
 l1chainid=1337
 simple=true
 simple_with_validator=false
+
+# Use the dev versions of nitro/blockscout
+dev_nitro=false
+dev_blockscout=false
+
+# Rebuild docker images
+build_dev_nitro=false
+build_dev_blockscout=false
+build_utils=false
+force_build_utils=false
+build_node_images=false
+
 while [[ $# -gt 0 ]]; do
     case $1 in
         --init)
@@ -71,6 +84,8 @@ while [[ $# -gt 0 ]]; do
                 read -p "are you sure? [y/n]" -n 1 response
                 if [[ $response == "y" ]] || [[ $response == "Y" ]]; then
                     force_init=true
+                    build_utils=true
+                    build_node_images=true
                     echo
                 else
                     exit 0
@@ -80,6 +95,8 @@ while [[ $# -gt 0 ]]; do
             ;;
         --init-force)
             force_init=true
+            build_utils=true
+            build_node_images=true
             shift
             ;;
         --dev)
@@ -87,14 +104,18 @@ while [[ $# -gt 0 ]]; do
             shift
             if [[ $# -eq 0 || $1 == -* ]]; then
                 # If no argument after --dev, set both flags to true
-                dev_build_nitro=true
-                dev_build_blockscout=true
+                dev_nitro=true
+                build_dev_nitro=true
+                dev_blockscout=true
+                build_dev_blockscout=true
             else
                 while [[ $# -gt 0 && $1 != -* ]]; do
                     if [[ $1 == "nitro" ]]; then
-                        dev_build_nitro=true
+                        dev_nitro=true
+                        build_dev_nitro=true
                     elif [[ $1 == "blockscout" ]]; then
-                        dev_build_blockscout=true
+                        dev_blockscout=true
+                        build_dev_blockscout=true
                     fi
                     shift
                 done
@@ -114,7 +135,45 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --build)
-            force_build=true
+            build_dev_nitro=true
+            build_dev_blockscout=true
+            build_utils=true
+            build_node_images=true
+            shift
+            ;;
+        --no-build)
+            build_dev_nitro=false
+            build_dev_blockscout=false
+            build_utils=false
+            build_node_images=false
+            shift
+            ;;
+        --build-dev-nitro)
+            build_dev_nitro=true
+            shift
+            ;;
+        --no-build-dev-nitro)
+            build_dev_nitro=false
+            shift
+            ;;
+        --build-dev-blockscout)
+            build_dev_blockscout=true
+            shift
+            ;;
+        --no-build-dev-blockscout)
+            build_dev_blockscout=false
+            shift
+            ;;
+        --build-utils)
+            build_utils=true
+            shift
+            ;;
+        --no-build-utils)
+            build_utils=false
+            shift
+            ;;
+        --force-build-utils)
+            force_build_utils=true
             shift
             ;;
         --validate)
@@ -154,7 +213,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         --pos)
             consensusclient=true
-            l1chainid=32382
+            l1chainid=1337
             shift
             ;;
         --l3node)
@@ -219,6 +278,7 @@ while [[ $# -gt 0 ]]; do
             echo
             echo OPTIONS:
             echo --build           rebuild docker images
+            echo --no-build        don\'t rebuild docker images
             echo --dev             build nitro and blockscout dockers from source instead of pulling them. Disables simple mode
             echo --init            remove all data, rebuild, deploy new rollup
             echo --pos             l1 is a proof-of-stake chain \(using prysm for consensus\)
@@ -238,6 +298,13 @@ while [[ $# -gt 0 ]]; do
             echo --no-run          does not launch nodes \(useful with build or init\)
             echo --no-simple       run a full configuration with separate sequencer/batch-poster/validator/relayer
             echo --enable-finality-node enable espresso finality node
+            echo --build-dev-nitro     rebuild dev nitro docker image
+            echo --no-build-dev-nitro  don\'t rebuild dev nitro docker image
+            echo --build-dev-blockscout     rebuild dev blockscout docker image
+            echo --no-build-dev-blockscout  don\'t rebuild dev blockscout docker image
+            echo --build-utils         rebuild scripts, rollupcreator, token bridge docker images
+            echo --no-build-utils      don\'t rebuild scripts, rollupcreator, token bridge docker images
+            echo --force-build-utils   force rebuilding utils, useful if NITRO_CONTRACTS_ or TOKEN_BRIDGE_BRANCH changes
             echo
             echo script runs inside a separate docker. For SCRIPT-ARGS, run $0 script --help
             exit 0
@@ -350,14 +417,39 @@ if $force_build; then
     fi
   fi
 
+
+if $dev_nitro && $build_dev_nitro; then
+  echo == Building Nitro
+  if ! [ -n "${NITRO_SRC+set}" ]; then
+      NITRO_SRC=`dirname $PWD`
+  fi
+  if ! grep ^FROM "${NITRO_SRC}/Dockerfile" | grep nitro-node 2>&1 > /dev/null; then
+      echo nitro source not found in "$NITRO_SRC"
+      echo execute from a sub-directory of nitro or use NITRO_SRC environment variable
+      exit 1
+  fi
+  docker build "$NITRO_SRC" -t nitro-node-dev --target nitro-node-dev
+fi
+if $dev_blockscout && $build_dev_blockscout; then
+  if $blockscout; then
+    echo == Building Blockscout
+    docker build blockscout -t blockscout -f blockscout/docker/Dockerfile
+  fi
+fi
+
+if $build_utils; then
   LOCAL_BUILD_NODES="scripts rollupcreator"
   if $tokenbridge || $l3_token_bridge; then
     LOCAL_BUILD_NODES="$LOCAL_BUILD_NODES tokenbridge"
   fi
-  docker compose build --no-rm $LOCAL_BUILD_NODES
+  UTILS_NOCACHE=""
+  if $force_build_utils; then
+      UTILS_NOCACHE="--no-cache"
+  fi
+  docker compose build --no-rm $UTILS_NOCACHE $LOCAL_BUILD_NODES
 fi
 
-if $dev_build_nitro; then
+if $dev_nitro; then
   docker tag nitro-node-dev:latest nitro-node-dev-testnode
 else
   if $latest_espresso_image; then
@@ -369,18 +461,16 @@ else
   fi
 fi
 
-if $dev_build_blockscout; then
-  if $blockscout; then
+if $blockscout; then
+  if $dev_blockscout; then
     docker tag blockscout:latest blockscout-testnode
-  fi
-else
-  if $blockscout; then
+  else
     docker pull $BLOCKSCOUT_VERSION
     docker tag $BLOCKSCOUT_VERSION blockscout-testnode
   fi
 fi
 
-if $force_build; then
+if $build_node_images; then
     docker compose build --no-rm $NODES scripts
 fi
 
@@ -407,19 +497,21 @@ if $force_init; then
     if $consensusclient; then
       echo == Writing configs
       docker compose run scripts write-geth-genesis-config
+    echo == Writing geth configs
+    docker compose run scripts write-geth-genesis-config
 
-      echo == Writing configs
+    if $consensusclient; then
+      echo == Writing prysm configs
       docker compose run scripts write-prysm-config
 
-      echo == Initializing go-ethereum genesis configuration
-      docker compose run geth init --datadir /datadir/ /config/geth_genesis.json
-
-      echo == Starting geth
-      docker compose up --wait geth
-
       echo == Creating prysm genesis
-      docker compose up create_beacon_chain_genesis
+      docker compose run create_beacon_chain_genesis
+    fi
 
+    echo == Initializing go-ethereum genesis configuration
+    docker compose run geth init --state.scheme hash --datadir /datadir/ /config/geth_genesis.json
+
+    if $consensusclient; then
       echo == Running prysm
       docker compose up --wait prysm_beacon_chain
       docker compose up --wait prysm_validator
@@ -427,6 +519,12 @@ if $force_init; then
       docker compose up --wait geth
       docker compose run scripts write-geth-genesis-config
     fi
+
+    echo == Starting geth
+    docker compose up --wait geth
+
+    echo == Waiting for geth to sync
+    docker compose run scripts wait-for-sync --url http://geth:8545
 
     echo == Funding validator, sequencer and l2owner
     docker compose run scripts send-l1 --ethamount 1000 --to validator --wait
@@ -512,6 +610,7 @@ if $force_init; then
         echo l3owneraddress $l3owneraddress
         docker compose run scripts --l2owner $l3owneraddress  write-l3-chain-config --espresso $espresso
 
+        EXTRA_L3_DEPLOY_FLAG=""
         if $l3_custom_fee_token; then
             echo == Deploying custom fee token
             nativeTokenAddress=`docker compose run scripts create-erc20 --deployer user_fee_token_deployer --bridgeable $tokenbridge --decimals $l3_custom_fee_token_decimals | tail -n 1 | awk '{ print $NF }'`
@@ -542,6 +641,11 @@ if $force_init; then
             fi
             docker compose run -e PARENT_WETH_OVERRIDE=$l2Weth -e ROLLUP_OWNER_KEY=$l3ownerkey -e ROLLUP_ADDRESS=$rollupAddress -e PARENT_RPC=http://sequencer:8547 -e PARENT_KEY=$deployer_key  -e CHILD_RPC=http://l3node:3347 -e CHILD_KEY=$deployer_key tokenbridge deploy:local:token-bridge
             docker compose run --entrypoint sh tokenbridge -c "cat network.json && cp network.json l2l3_network.json"
+
+            # set L3 UpgradeExecutor, deployed by token bridge creator in previous step, to be the L3 chain owner. L3owner (EOA) and alias of L2 UpgradeExectuor have the executor role on the L3 UpgradeExecutor
+            echo == Set L3 UpgradeExecutor to be chain owner
+            tokenBridgeCreator=`docker compose run --entrypoint sh tokenbridge -c "cat l2l3_network.json" | jq -r '.l1TokenBridgeCreator'`
+            docker compose run scripts transfer-l3-chain-ownership --creator $tokenBridgeCreator
             echo
         fi
 
