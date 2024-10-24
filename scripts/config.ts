@@ -1,11 +1,12 @@
-import * as fs from 'fs';
-import * as consts from './consts'
-import { namedAccount, namedAddress } from './accounts'
+import * as fs from "fs";
+import * as consts from "./consts";
+import { ethers } from "ethers";
+import { namedAccount, namedAddress } from "./accounts";
 
 const path = require("path");
 
 function writePrysmConfig(argv: any) {
-    const prysm = `
+  const prysm = `
 CONFIG_NAME: interop
 PRESET_BASE: interop
 
@@ -13,31 +14,42 @@ PRESET_BASE: interop
 GENESIS_FORK_VERSION: 0x20000089
 
 # Altair
-ALTAIR_FORK_EPOCH: 1
+ALTAIR_FORK_EPOCH: 0
 ALTAIR_FORK_VERSION: 0x20000090
 
 # Merge
-BELLATRIX_FORK_EPOCH: 2
+BELLATRIX_FORK_EPOCH: 0
 BELLATRIX_FORK_VERSION: 0x20000091
 TERMINAL_TOTAL_DIFFICULTY: 50
 
+# Capella
+CAPELLA_FORK_EPOCH: 0
+CAPELLA_FORK_VERSION: 0x20000092
+MAX_WITHDRAWALS_PER_PAYLOAD: 16
+
+# DENEB
+DENEB_FORK_EPOCH: 0
+DENEB_FORK_VERSION: 0x20000093
+
+# ELECTRA
+ELECTRA_FORK_VERSION: 0x20000094
+
 # Time parameters
-SECONDS_PER_SLOT: 12
+SECONDS_PER_SLOT: 2
 SLOTS_PER_EPOCH: 6
 
 # Deposit contract
 DEPOSIT_CONTRACT_ADDRESS: 0x4242424242424242424242424242424242424242
-    `
-    fs.writeFileSync(path.join(consts.configpath, "prysm.yaml"), prysm)
+    `;
+  fs.writeFileSync(path.join(consts.configpath, "prysm.yaml"), prysm);
 }
 
 function writeGethGenesisConfig(argv: any) {
-    const gethConfig = `
+  const gethConfig = `
     {
         "config": {
             "ChainName": "l1_chain",
-                "chainId": 32382,
-                "consensus": "clique",
+                "chainId": 1337,
                 "homesteadBlock": 0,
                 "daoForkSupport": true,
                 "eip150Block": 0,
@@ -54,13 +66,12 @@ function writeGethGenesisConfig(argv: any) {
                 "terminalBlockHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
                 "arrowGlacierBlock": 0,
                 "grayGlacierBlock": 0,
-                "clique": {
-                "period": 5,
-                    "epoch": 30000
-            },
-            "terminalTotalDifficulty": 50
+                "shanghaiTime": 0,
+                "cancunTime": 1706778826,
+                "terminalTotalDifficulty": 0,
+                "terminalTotalDifficultyPassed": true
         },
-        "difficulty": "1",
+        "difficulty": "0",
         "extradata": "0x00000000000000000000000000000000000000000000000000000000000000003f1Eae7D46d88F08fc2F8ed27FCb2AB183EB2d0E0B0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
         "nonce": "0x42",
         "timestamp": "0x0",
@@ -142,421 +153,661 @@ function writeGethGenesisConfig(argv: any) {
         }
     }
     }
-    `
-    fs.writeFileSync(path.join(consts.configpath, "geth_genesis.json"), gethConfig)
-    const jwt = `0x98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4`
-    fs.writeFileSync(path.join(consts.configpath, "jwt.hex"), jwt)
-    const val_jwt = `0xe3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`
-    fs.writeFileSync(path.join(consts.configpath, "val_jwt.hex"), val_jwt)
+    `;
+  fs.writeFileSync(
+    path.join(consts.configpath, "geth_genesis.json"),
+    gethConfig
+  );
+  const jwt = `0x98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4`;
+  fs.writeFileSync(path.join(consts.configpath, "jwt.hex"), jwt);
+  const val_jwt = `0xe3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`;
+  fs.writeFileSync(path.join(consts.configpath, "val_jwt.hex"), val_jwt);
+}
+
+type ChainInfo = {
+  [key: string]: any;
+};
+
+// Define a function to return ChainInfo
+function getChainInfo(): ChainInfo {
+  const filePath = path.join(consts.configpath, "l2_chain_info.json");
+  const fileContents = fs.readFileSync(filePath).toString();
+  const chainInfo: ChainInfo = JSON.parse(fileContents);
+  return chainInfo;
 }
 
 function writeConfigs(argv: any) {
-    const valJwtSecret = path.join(consts.configpath, "val_jwt.hex")
-    const chainInfoFile = path.join(consts.configpath, "l2_chain_info.json")
-    const baseConfig = {
-        "parent-chain": {
-            "connection": {
-                "url": argv.l1url,
-            },
+  const valJwtSecret = path.join(consts.configpath, "val_jwt.hex");
+  const chainInfoFile = path.join(consts.configpath, "l2_chain_info.json");
+  let baseConfig = {
+    "parent-chain": {
+      connection: {
+        url: argv.l1url,
+      },
+    },
+    chain: {
+      id: 412346,
+      "info-files": [chainInfoFile],
+    },
+    node: {
+      staker: {
+        dangerous: {
+          "without-block-validator": false,
         },
-        "chain": {
-            "id": 412346,
-            "info-files": [chainInfoFile],
+        "parent-chain-wallet": {
+          account: namedAddress("validator"),
+          password: consts.l1passphrase,
+          pathname: consts.l1keystore,
         },
-        "node": {
-            "staker": {
-                "dangerous": {
-                    "without-block-validator": false
-                },
-                "parent-chain-wallet" : {
-                    "account": namedAddress("validator"),
-                    "password": consts.l1passphrase,
-                    "pathname": consts.l1keystore,    
-                },
-                "disable-challenge": false,
-                "enable": false,
-                "staker-interval": "10s",
-                "make-assertion-interval": "10s",
-                "strategy": "MakeNodes",
-            },
-            "sequencer": false,
-            "dangerous": {
-                "no-sequencer-coordinator": false,
-                "disable-blob-reader": true,
-            },
-            "delayed-sequencer": {
-                "enable": false
-            },
-            "seq-coordinator": {
-                "enable": false,
-                "redis-url": argv.redisUrl,
-                "lockout-duration": "30s",
-                "lockout-spare": "1s",
-                "my-url": "",
-                "retry-interval": "0.5s",
-                "seq-num-duration": "24h0m0s",
-                "update-interval": "3s",
-            },
-            "batch-poster": {
-                "enable": false,
-                "redis-url": argv.redisUrl,
-                "max-delay": "30s",
-                "l1-block-bound": "ignore",
-                "parent-chain-wallet" : {
-                    "account": namedAddress("sequencer"),
-                    "password": consts.l1passphrase,
-                    "pathname": consts.l1keystore,    
-                },
-                "data-poster": {
-                    "redis-signer": {
-                        "signing-key": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-                    },
-                    "wait-for-l1-finality": false
-                },
-            },
-            "block-validator": {
-				"validation-server" : {
-					"url": argv.validationNodeUrl,
-					"jwtsecret": valJwtSecret,
-				},
-                "dangerous": {"reset-block-validation": false},
-            },
-            "feed": {
-                "input": {
-                    "url": [], // websocket urls
-                },
-                "output": {
-                    "enable": false,
-                    "signed": false,
-                    "addr": "0.0.0.0",
-                },
-            }
+        "disable-challenge": false,
+        enable: false,
+        "staker-interval": "10s",
+        "make-assertion-interval": "10s",
+        strategy: "MakeNodes",
+      },
+      sequencer: false,
+      dangerous: {
+        "no-sequencer-coordinator": false,
+        "disable-blob-reader": true,
+      },
+      "delayed-sequencer": {
+        enable: false,
+      },
+      "seq-coordinator": {
+        enable: false,
+        "redis-url": argv.redisUrl,
+        "lockout-duration": "30s",
+        "lockout-spare": "1s",
+        "my-url": "",
+        "retry-interval": "0.5s",
+        "seq-num-duration": "24h0m0s",
+        "update-interval": "3s",
+      },
+      "batch-poster": {
+        enable: false,
+        "redis-url": argv.redisUrl,
+        "max-delay": "30s",
+        "l1-block-bound": "ignore",
+        "parent-chain-wallet": {
+          account: namedAddress("sequencer"),
+          password: consts.l1passphrase,
+          pathname: consts.l1keystore,
         },
-        "execution": {
-            "sequencer": {
-                "enable": false,
-            },
-            "forwarding-target": "null",
+        "data-poster": {
+          "redis-signer": {
+            "signing-key":
+              "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+          },
+          "wait-for-l1-finality": false,
         },
-        "persistent": {
-            "chain": "local",
-            "db-engine": "leveldb"
+      },
+      "block-validator": {
+        "validation-server": {
+          url: argv.validationNodeUrl,
+          jwtsecret: valJwtSecret,
         },
-        "ws": {
-            "addr": "0.0.0.0"
+        "dangerous": {"reset-block-validation": false},
+      },
+      feed: {
+        input: {
+          url: [], // websocket urls
         },
-        "http": {
-            "addr": "0.0.0.0",
-            "vhosts": "*",
-            "corsdomain": "*"
+        output: {
+          enable: false,
+          signed: false,
+          addr: "0.0.0.0",
         },
-    }
+      },
+      "data-availability": {
+        enable: argv.anytrust,
+        "rpc-aggregator": dasBackendsJsonConfig(argv),
+        "rest-aggregator": {
+          enable: true,
+          urls: ["http://das-mirror:9877"],
+        },
+        // TODO Fix das config to not need this redundant config
+        "parent-chain-node-url": argv.l1url,
+        "sequencer-inbox-address": "not_set",
+      },
+    },
+    execution: {
+      sequencer: {
+        enable: false,
+      },
+      "forwarding-target": "null",
+    },
+    persistent: {
+      chain: "local",
+      "db-engine": "leveldb",
+    },
+    ws: {
+      addr: "0.0.0.0",
+    },
+    http: {
+      addr: "0.0.0.0",
+      vhosts: "*",
+      corsdomain: "*",
+    },
+  };
 
+  if (argv.espresso) {
+    let config = baseConfig as any;
+    config.node["block-validator"]["espresso"] = false;
+    config.node["block-validator"]["light-client-address"] = "";
+    config.node["batch-poster"]["hotshot-url"] = "";
+    config.node["batch-poster"]["light-client-address"] = "";
+    config.node["transaction-streamer"] = {
+      "sovereign-sequencer-enabled": false,
+      "hotshot-url": "",
+      "espresso-namespace": 412346,
+    };
+  }
+
+  baseConfig.node["data-availability"]["sequencer-inbox-address"] =
+    ethers.utils.hexlify(getChainInfo()[0]["rollup"]["sequencer-inbox"]);
+
+  const baseConfJSON = JSON.stringify(baseConfig);
+
+  if (argv.simple) {
+    let simpleConfig = JSON.parse(baseConfJSON);
+    simpleConfig.node.staker.enable = true;
+    simpleConfig.node.staker["use-smart-contract-wallet"] = true;
+    simpleConfig.node.staker.dangerous["without-block-validator"] = true;
+    simpleConfig.node.sequencer = true;
+    simpleConfig.node.dangerous["no-sequencer-coordinator"] = true;
+    simpleConfig.node["delayed-sequencer"].enable = true;
+    simpleConfig.node["batch-poster"].enable = true;
+    simpleConfig.node["batch-poster"]["redis-url"] = "";
     if (argv.espresso) {
-        let config = baseConfig as any
-        config.node['block-validator']["espresso"] = false
-        config.node['block-validator']["light-client-address"] = ""
-        config.node["batch-poster"]["hotshot-url"] = ""
-        config.node["batch-poster"]["light-client-address"] = ""
-        config.node["transaction-streamer"] = {
-            "sovereign-sequencer-enabled": false,
-            "hotshot-url": "",
-            "espresso-namespace": 412346,
-        }
+      simpleConfig.node["transaction-streamer"]["hotshot-url"] =
+        argv.espressoUrl;
+      simpleConfig.node["transaction-streamer"]["sovereign-sequencer-enabled"] =
+        true;
     }
+    simpleConfig.execution["sequencer"].enable = true;
 
-
-    const baseConfJSON = JSON.stringify(baseConfig)
-
-    if (argv.simple) {
-        let simpleConfig = JSON.parse(baseConfJSON)
-        simpleConfig.node.staker.enable = true
-        simpleConfig.node.staker["use-smart-contract-wallet"] = true
-        simpleConfig.node.staker.dangerous["without-block-validator"] = true
-        simpleConfig.node.sequencer = true
-        simpleConfig.node.dangerous["no-sequencer-coordinator"] = true
-        simpleConfig.node["delayed-sequencer"].enable = true
-        simpleConfig.node["batch-poster"].enable = true
-        simpleConfig.node["batch-poster"]["redis-url"] = ""
-        if (argv.espresso) {
-            simpleConfig.node["transaction-streamer"]["hotshot-url"] = argv.espressoUrl
-            simpleConfig.node["transaction-streamer"]["sovereign-sequencer-enabled"] = true
-        }
-        simpleConfig.execution["sequencer"].enable = true
-
-        if (argv.espresso) {
-            simpleConfig.node.feed.output.enable = true
-            simpleConfig.node["batch-poster"]["hotshot-url"] = argv.espressoUrl
-            simpleConfig.node["batch-poster"]["light-client-address"] = argv.lightClientAddress
-            simpleConfig.node["block-validator"]["espresso"] = true
-            simpleConfig.node["block-validator"]["light-client-address"] = argv.lightClientAddress
-            simpleConfig.node["block-validator"]["dangerous"]["reset-block-validation"] = true
-        }
-
-        if (argv.simpleWithValidator) {
-            simpleConfig.node.staker.dangerous["without-block-validator"] = false
-            // Write a validation node config
-            let validationNodeConfig = JSON.parse(JSON.stringify({
-                "persistent": {
-                    "chain": "local"
-                },
-                "ws": {
-                    "addr": "",
-                },
-                "http": {
-                    "addr": "",
-                },
-                "validation": {
-                    "api-auth": true,
-                    "api-public": false,
-                },
-                "auth": {
-                    "jwtsecret": valJwtSecret,
-                    "addr": "0.0.0.0",
-                },
-            }))
-            fs.writeFileSync(path.join(consts.configpath, "validation_node_config.json"), JSON.stringify(validationNodeConfig))
-            if(argv.espresso){
-                //if we are attempting to start a new espresso sequencer we should also give that validator a val_jwt file as it hasn't been written to the espresso-config.
-                const val_jwt = `0xe3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`
-                fs.writeFileSync(path.join(consts.configpath, "val_jwt.hex"), val_jwt)    
-            }
-        }
-
-        fs.writeFileSync(path.join(consts.configpath, "sequencer_config.json"), JSON.stringify(simpleConfig))
-    } else {
-        let validatorConfig = JSON.parse(baseConfJSON)
-        validatorConfig.node.staker.enable = true
-        validatorConfig.node.staker["use-smart-contract-wallet"] = true
-        if (argv.espresso) {
-            validatorConfig.node["block-validator"]["espresso"] = true
-            validatorConfig.node["block-validator"]["light-client-address"] = argv.lightClientAddress
-            validatorConfig.node["block-validator"]["dangerous"]["reset-block-validation"] = true
-        }
-        let validconfJSON = JSON.stringify(validatorConfig)
-        fs.writeFileSync(path.join(consts.configpath, "validator_config.json"), validconfJSON)
-
-        let unsafeStakerConfig = JSON.parse(validconfJSON)
-        unsafeStakerConfig.node.staker.dangerous["without-block-validator"] = true
-        fs.writeFileSync(path.join(consts.configpath, "unsafe_staker_config.json"), JSON.stringify(unsafeStakerConfig))
-
-        let sequencerConfig = JSON.parse(baseConfJSON)
-        sequencerConfig.node.sequencer = true
-        sequencerConfig.execution["sequencer"].enable = true
-        sequencerConfig.node["delayed-sequencer"].enable = true
-
-        if (argv.espresso) {
-            sequencerConfig.execution.sequencer["enable-espresso-sovereign"] = true
-            sequencerConfig.node.feed.output.enable = true
-            sequencerConfig.node.dangerous["no-sequencer-coordinator"] = true
-        } else {
-            sequencerConfig.node["seq-coordinator"].enable = true
-        }
-        
-        if (argv.espresso && argv.enableEspressoFinalityNode) {
-          sequencerConfig.execution.sequencer["enable-espresso-finality-node"] =
-            true;
-          sequencerConfig.execution.sequencer["enable-espresso-sovereign"] = false;
-          sequencerConfig.execution.sequencer["espresso-finality-node-config"] = {
-            "hotshot-url": argv.espressoUrl,
-            "start-block": 0,
-            namespace: 412346,
-          };
-          fs.writeFileSync(
-            path.join(consts.configpath, "espresso_finality_sequencer_config.json"),
-            JSON.stringify(sequencerConfig)
-          );
-        } else {
-          fs.writeFileSync(
-            path.join(consts.configpath, "sequencer_config.json"),
-            JSON.stringify(sequencerConfig)
-          );
-        }
-        
-        let posterConfig = JSON.parse(baseConfJSON)
-        if (argv.espresso) {
-            posterConfig.node.feed.input.url.push("ws://sequencer:9642")
-            posterConfig.node["batch-poster"]["hotshot-url"] = argv.espressoUrl
-            posterConfig.node["batch-poster"]["light-client-address"] = argv.lightClientAddress
-            posterConfig.node["transaction-streamer"]["hotshot-url"] = argv.espressoUrl
-            posterConfig.node["transaction-streamer"]["sovereign-sequencer-enabled"] = true
-        } else {
-            posterConfig.node["seq-coordinator"].enable = true
-        }
-        posterConfig.node["batch-poster"].enable = true
-        fs.writeFileSync(path.join(consts.configpath, "poster_config.json"), JSON.stringify(posterConfig))
+    if (argv.anytrust) {
+      simpleConfig.node["data-availability"]["rpc-aggregator"].enable = true;
     }
-
-    let l3Config = JSON.parse(baseConfJSON)
-    l3Config["parent-chain"].connection.url = argv.l2url
-    l3Config.node.staker["parent-chain-wallet"].account = namedAddress("l3owner")
-    l3Config.node["batch-poster"]["parent-chain-wallet"].account = namedAddress("l3sequencer")
-    l3Config.chain.id = 333333
-    const l3ChainInfoFile = path.join(consts.configpath, "l3_chain_info.json")
-    l3Config.chain["info-files"] = [l3ChainInfoFile]
-    l3Config.node.staker.enable = true
-    l3Config.node.staker["use-smart-contract-wallet"] = true
-    l3Config.node.sequencer = true
-    l3Config.execution["sequencer"].enable = true
-    l3Config.node["dangerous"]["no-sequencer-coordinator"] = true
-    l3Config.node["delayed-sequencer"].enable = true
-    l3Config.node["delayed-sequencer"]["finalize-distance"] = 0
-    l3Config.node["delayed-sequencer"]["use-merge-finality"] = false
-    l3Config.node["batch-poster"].enable = true
-    l3Config.node["batch-poster"]["redis-url"] = ""
     if (argv.espresso) {
-        l3Config.execution.sequencer["enable-espresso-sovereign"] = true
-        l3Config.node.feed.output.enable = true
-        l3Config.node.dangerous["no-sequencer-coordinator"] = true
+      simpleConfig.node.feed.output.enable = true;
+      simpleConfig.node["batch-poster"]["hotshot-url"] = argv.espressoUrl;
+      simpleConfig.node["batch-poster"]["light-client-address"] =
+        argv.lightClientAddress;
+      simpleConfig.node["block-validator"]["espresso"] = true;
+      simpleConfig.node["block-validator"]["light-client-address"] =
+        argv.lightClientAddress;
+      simpleConfig.node["block-validator"]["dangerous"][
+        "reset-block-validation"
+      ] = true;
     }
-    fs.writeFileSync(path.join(consts.configpath, "l3node_config.json"), JSON.stringify(l3Config))
 
-    let validationNodeConfig = JSON.parse(JSON.stringify({
-        "persistent": {
-            "chain": "local"
-        },
-        "ws": {
-            "addr": "",
-        },
-        "http": {
-            "addr": "",
-        },
-        "validation": {
+    if (argv.simpleWithValidator) {
+      simpleConfig.node.staker.dangerous["without-block-validator"] = false;
+      // Write a validation node config
+      let validationNodeConfig = JSON.parse(
+        JSON.stringify({
+          persistent: {
+            chain: "local",
+          },
+          ws: {
+            addr: "",
+          },
+          http: {
+            addr: "",
+          },
+          validation: {
             "api-auth": true,
             "api-public": false,
-        },
-        "auth": {
-            "jwtsecret": valJwtSecret,
-            "addr": "0.0.0.0",
-        },
-    }))
-    fs.writeFileSync(path.join(consts.configpath, "validation_node_config.json"), JSON.stringify(validationNodeConfig))
+          },
+          auth: {
+            jwtsecret: valJwtSecret,
+            addr: "0.0.0.0",
+          },
+        })
+      );
+      fs.writeFileSync(
+        path.join(consts.configpath, "validation_node_config.json"),
+        JSON.stringify(validationNodeConfig)
+      );
+      if (argv.espresso) {
+        //if we are attempting to start a new espresso sequencer we should also give that validator a val_jwt file as it hasn't been written to the espresso-config.
+        const val_jwt = `0xe3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`;
+        fs.writeFileSync(path.join(consts.configpath, "val_jwt.hex"), val_jwt);
+      }
+    }
+
+    fs.writeFileSync(
+      path.join(consts.configpath, "sequencer_config.json"),
+      JSON.stringify(simpleConfig)
+    );
+  } else {
+    let validatorConfig = JSON.parse(baseConfJSON);
+    validatorConfig.node.staker.enable = true;
+    validatorConfig.node.staker["use-smart-contract-wallet"] = true;
+    if (argv.espresso) {
+      validatorConfig.node["block-validator"]["espresso"] = true;
+      validatorConfig.node["block-validator"]["light-client-address"] =
+        argv.lightClientAddress;
+      validatorConfig.node["block-validator"]["dangerous"][
+        "reset-block-validation"
+      ] = true;
+    }
+    let validconfJSON = JSON.stringify(validatorConfig);
+    fs.writeFileSync(
+      path.join(consts.configpath, "validator_config.json"),
+      validconfJSON
+    );
+
+    let unsafeStakerConfig = JSON.parse(validconfJSON);
+    unsafeStakerConfig.node.staker.dangerous["without-block-validator"] = true;
+    fs.writeFileSync(
+      path.join(consts.configpath, "unsafe_staker_config.json"),
+      JSON.stringify(unsafeStakerConfig)
+    );
+
+    let sequencerConfig = JSON.parse(baseConfJSON);
+    sequencerConfig.node.sequencer = true;
+    sequencerConfig.execution["sequencer"].enable = true;
+    sequencerConfig.node["delayed-sequencer"].enable = true;
+
+    if (argv.espresso) {
+      sequencerConfig.execution.sequencer["enable-espresso-sovereign"] = true;
+      sequencerConfig.node.feed.output.enable = true;
+      sequencerConfig.node.dangerous["no-sequencer-coordinator"] = true;
+    } else {
+      sequencerConfig.node["seq-coordinator"].enable = true;
+    }
+
+    if (argv.espresso && argv.enableEspressoFinalityNode) {
+      sequencerConfig.execution.sequencer["enable-espresso-finality-node"] =
+        true;
+      sequencerConfig.execution.sequencer["enable-espresso-sovereign"] = false;
+      sequencerConfig.execution.sequencer["espresso-finality-node-config"] = {
+        "hotshot-url": argv.espressoUrl,
+        "start-block": 0,
+        namespace: 412346,
+      };
+      fs.writeFileSync(
+        path.join(consts.configpath, "espresso_finality_sequencer_config.json"),
+        JSON.stringify(sequencerConfig)
+      );
+    } else {
+      fs.writeFileSync(
+        path.join(consts.configpath, "sequencer_config.json"),
+        JSON.stringify(sequencerConfig)
+      );
+    }
+
+    let posterConfig = JSON.parse(baseConfJSON);
+    if (argv.espresso) {
+      posterConfig.node.feed.input.url.push("ws://sequencer:9642");
+      posterConfig.node["batch-poster"]["hotshot-url"] = argv.espressoUrl;
+      posterConfig.node["batch-poster"]["light-client-address"] =
+        argv.lightClientAddress;
+      posterConfig.node["transaction-streamer"]["hotshot-url"] =
+        argv.espressoUrl;
+      posterConfig.node["transaction-streamer"]["sovereign-sequencer-enabled"] =
+        true;
+    } else {
+      posterConfig.node["seq-coordinator"].enable = true;
+    }
+    posterConfig.node["batch-poster"].enable = true;
+    if (argv.anytrust) {
+      posterConfig.node["data-availability"]["rpc-aggregator"].enable = true;
+    }
+    fs.writeFileSync(
+      path.join(consts.configpath, "poster_config.json"),
+      JSON.stringify(posterConfig)
+    );
+  }
+
+  let l3Config = JSON.parse(baseConfJSON);
+  l3Config["parent-chain"].connection.url = argv.l2url;
+  l3Config.node.staker["parent-chain-wallet"].account = namedAddress("l3owner");
+  l3Config.node["batch-poster"]["parent-chain-wallet"].account =
+    namedAddress("l3sequencer");
+  l3Config.chain.id = 333333;
+  const l3ChainInfoFile = path.join(consts.configpath, "l3_chain_info.json");
+  l3Config.chain["info-files"] = [l3ChainInfoFile];
+  l3Config.node.staker.enable = true;
+  l3Config.node.staker["use-smart-contract-wallet"] = true;
+  l3Config.node.sequencer = true;
+  l3Config.execution["sequencer"].enable = true;
+  l3Config.node["dangerous"]["no-sequencer-coordinator"] = true;
+  l3Config.node["delayed-sequencer"].enable = true;
+  l3Config.node["delayed-sequencer"]["finalize-distance"] = 0;
+  l3Config.node["delayed-sequencer"]["use-merge-finality"] = false;
+  l3Config.node["batch-poster"].enable = true;
+  l3Config.node["batch-poster"]["redis-url"] = "";
+  if (argv.espresso) {
+    l3Config.execution.sequencer["enable-espresso-sovereign"] = true;
+    l3Config.node.feed.output.enable = true;
+    l3Config.node.dangerous["no-sequencer-coordinator"] = true;
+  }
+  fs.writeFileSync(
+    path.join(consts.configpath, "l3node_config.json"),
+    JSON.stringify(l3Config)
+  );
+
+  let validationNodeConfig = JSON.parse(
+    JSON.stringify({
+      persistent: {
+        chain: "local",
+      },
+      ws: {
+        addr: "",
+      },
+      http: {
+        addr: "",
+      },
+      validation: {
+        "api-auth": true,
+        "api-public": false,
+      },
+      auth: {
+        jwtsecret: valJwtSecret,
+        addr: "0.0.0.0",
+      },
+    })
+  );
+  fs.writeFileSync(
+    path.join(consts.configpath, "validation_node_config.json"),
+    JSON.stringify(validationNodeConfig)
+  );
 }
 
 function writeL2ChainConfig(argv: any) {
-    const l2ChainConfig = {
-        "chainId": 412346,
-        "homesteadBlock": 0,
-        "daoForkSupport": true,
-        "eip150Block": 0,
-        "eip150Hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-        "eip155Block": 0,
-        "eip158Block": 0,
-        "byzantiumBlock": 0,
-        "constantinopleBlock": 0,
-        "petersburgBlock": 0,
-        "istanbulBlock": 0,
-        "muirGlacierBlock": 0,
-        "berlinBlock": 0,
-        "londonBlock": 0,
-        "clique": {
-            "period": 0,
-            "epoch": 0
-        },
-        "arbitrum": {
-            "EnableArbOS": true,
-            "AllowDebugPrecompiles": true,
-            "DataAvailabilityCommittee": false,
-            "InitialArbOSVersion": 30,
-            "InitialChainOwner": argv.l2owner,
-            "GenesisBlockNum": 0,
-        }
-    }
-    if (argv.espresso) {
-        let chainConfig = l2ChainConfig as any
-        chainConfig.arbitrum["EnableEspresso"] = true
-        chainConfig["espresso"] = true
-    }
-    const l2ChainConfigJSON = JSON.stringify(l2ChainConfig)
-    fs.writeFileSync(path.join(consts.configpath, "l2_chain_config.json"), l2ChainConfigJSON)
+  const l2ChainConfig = {
+    chainId: 412346,
+    homesteadBlock: 0,
+    daoForkSupport: true,
+    eip150Block: 0,
+    eip150Hash:
+      "0x0000000000000000000000000000000000000000000000000000000000000000",
+    eip155Block: 0,
+    eip158Block: 0,
+    byzantiumBlock: 0,
+    constantinopleBlock: 0,
+    petersburgBlock: 0,
+    istanbulBlock: 0,
+    muirGlacierBlock: 0,
+    berlinBlock: 0,
+    londonBlock: 0,
+    clique: {
+      period: 0,
+      epoch: 0,
+    },
+    arbitrum: {
+      EnableArbOS: true,
+      AllowDebugPrecompiles: true,
+      DataAvailabilityCommittee: argv.anytrust,
+      InitialArbOSVersion: 32,
+      InitialChainOwner: argv.l2owner,
+      GenesisBlockNum: 0,
+    },
+  };
+  if (argv.espresso) {
+    let chainConfig = l2ChainConfig as any;
+    chainConfig.arbitrum["EnableEspresso"] = true;
+    chainConfig["espresso"] = true;
+  }
+  const l2ChainConfigJSON = JSON.stringify(l2ChainConfig);
+  fs.writeFileSync(
+    path.join(consts.configpath, "l2_chain_config.json"),
+    l2ChainConfigJSON
+  );
 }
 
 function writeL3ChainConfig(argv: any) {
-    const l3ChainConfig = {
-        "chainId": 333333,
-        "homesteadBlock": 0,
-        "daoForkSupport": true,
-        "eip150Block": 0,
-        "eip150Hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-        "eip155Block": 0,
-        "eip158Block": 0,
-        "byzantiumBlock": 0,
-        "constantinopleBlock": 0,
-        "petersburgBlock": 0,
-        "istanbulBlock": 0,
-        "muirGlacierBlock": 0,
-        "berlinBlock": 0,
-        "londonBlock": 0,
-        "clique": {
-            "period": 0,
-            "epoch": 0
+  const l3ChainConfig = {
+    chainId: 333333,
+    homesteadBlock: 0,
+    daoForkSupport: true,
+    eip150Block: 0,
+    eip150Hash:
+      "0x0000000000000000000000000000000000000000000000000000000000000000",
+    eip155Block: 0,
+    eip158Block: 0,
+    byzantiumBlock: 0,
+    constantinopleBlock: 0,
+    petersburgBlock: 0,
+    istanbulBlock: 0,
+    muirGlacierBlock: 0,
+    berlinBlock: 0,
+    londonBlock: 0,
+    clique: {
+      period: 0,
+      epoch: 0,
+    },
+    arbitrum: {
+      EnableArbOS: true,
+      AllowDebugPrecompiles: true,
+      DataAvailabilityCommittee: false,
+      InitialArbOSVersion: 31,
+      InitialChainOwner: argv.l2owner,
+      GenesisBlockNum: 0,
+    },
+  };
+  if (argv.espresso) {
+    let chainConfig = l3ChainConfig as any;
+    chainConfig.arbitrum["EnableEspresso"] = true;
+    chainConfig["espresso"] = true;
+  }
+  const l3ChainConfigJSON = JSON.stringify(l3ChainConfig);
+  fs.writeFileSync(
+    path.join(consts.configpath, "l3_chain_config.json"),
+    l3ChainConfigJSON
+  );
+}
+
+function writeL2DASCommitteeConfig(argv: any) {
+  const sequencerInboxAddr = ethers.utils.hexlify(
+    getChainInfo()[0]["rollup"]["sequencer-inbox"]
+  );
+  const l2DASCommitteeConfig = {
+    "data-availability": {
+      key: {
+        "key-dir": "/das/keys",
+      },
+      "local-file-storage": {
+        "data-dir": "/das/data",
+        enable: true,
+        "enable-expiry": true,
+      },
+      "sequencer-inbox-address": sequencerInboxAddr,
+      "parent-chain-node-url": argv.l1url,
+    },
+    "enable-rest": true,
+    "enable-rpc": true,
+    "log-level": "INFO",
+    "rest-addr": "0.0.0.0",
+    "rest-port": "9877",
+    "rpc-addr": "0.0.0.0",
+    "rpc-port": "9876",
+  };
+  const l2DASCommitteeConfigJSON = JSON.stringify(l2DASCommitteeConfig);
+
+  fs.writeFileSync(
+    path.join(consts.configpath, "l2_das_committee.json"),
+    l2DASCommitteeConfigJSON
+  );
+}
+
+function writeL2DASMirrorConfig(argv: any, sequencerInboxAddr: string) {
+  const l2DASMirrorConfig = {
+    "data-availability": {
+      "local-file-storage": {
+        "data-dir": "/das/data",
+        enable: true,
+        "enable-expiry": false,
+      },
+      "sequencer-inbox-address": sequencerInboxAddr,
+      "parent-chain-node-url": argv.l1url,
+      "rest-aggregator": {
+        enable: true,
+        "sync-to-storage": {
+          eager: false,
+          "ignore-write-errors": false,
+          "state-dir": "/das/metadata",
+          "sync-expired-data": true,
         },
-        "arbitrum": {
-            "EnableArbOS": true,
-            "AllowDebugPrecompiles": true,
-            "DataAvailabilityCommittee": false,
-            "InitialArbOSVersion": 30,
-            "InitialChainOwner": argv.l2owner,
-            "GenesisBlockNum": 0,
-        }
-    }
-    if (argv.espresso) {
-        let chainConfig = l3ChainConfig as any
-        chainConfig.arbitrum["EnableEspresso"] = true
-        chainConfig["espresso"] = true
-    }
-    const l3ChainConfigJSON = JSON.stringify(l3ChainConfig)
-    fs.writeFileSync(path.join(consts.configpath, "l3_chain_config.json"), l3ChainConfigJSON)
+        urls: ["http://das-committee-a:9877", "http://das-committee-b:9877"],
+      },
+    },
+    "enable-rest": true,
+    "enable-rpc": false,
+    "log-level": "INFO",
+    "rest-addr": "0.0.0.0",
+    "rest-port": "9877",
+  };
+  const l2DASMirrorConfigJSON = JSON.stringify(l2DASMirrorConfig);
+
+  fs.writeFileSync(
+    path.join(consts.configpath, "l2_das_mirror.json"),
+    l2DASMirrorConfigJSON
+  );
+}
+
+function writeL2DASKeysetConfig(argv: any) {
+  const l2DASKeysetConfig = {
+    keyset: dasBackendsJsonConfig(argv),
+  };
+  const l2DASKeysetConfigJSON = JSON.stringify(l2DASKeysetConfig);
+
+  fs.writeFileSync(
+    path.join(consts.configpath, "l2_das_keyset.json"),
+    l2DASKeysetConfigJSON
+  );
+}
+
+function dasBackendsJsonConfig(argv: any) {
+  const backends = {
+    enable: false,
+    "assumed-honest": 1,
+    backends: [
+      {
+        url: "http://das-committee-a:9876",
+        pubkey: argv.dasBlsA,
+      },
+      {
+        url: "http://das-committee-b:9876",
+        pubkey: argv.dasBlsB,
+      },
+    ],
+  };
+  return backends;
 }
 
 export const writeConfigCommand = {
-    command: "write-config",
-    describe: "writes config files",
-    builder: {
-        simple: {
-          boolean: true,
-          describe: "simple config (sequencer is also poster, validator)",
-          default: false,
-        },
-        simpleWithValidator: {
-            boolean: true,
-            describe: "simple config but with real validator",
-            default: false,
-        },
-      },    
-    handler: (argv: any) => {
-        writeConfigs(argv)
-    }
-}
+  command: "write-config",
+  describe: "writes config files",
+  builder: {
+    simple: {
+      boolean: true,
+      describe: "simple config (sequencer is also poster, validator)",
+      default: false,
+    },
+    simpleWithValidator: {
+      boolean: true,
+      describe: "simple config but with real validator",
+      default: false,
+    },
+    anytrust: {
+      boolean: true,
+      describe: "run nodes in anytrust mode",
+      default: false,
+    },
+    dasBlsA: {
+      string: true,
+      describe: "DAS committee member A BLS pub key",
+      default: "",
+    },
+    dasBlsB: {
+      string: true,
+      describe: "DAS committee member B BLS pub key",
+      default: "",
+    },
+  },
+  handler: (argv: any) => {
+    writeConfigs(argv);
+  },
+};
 
 export const writePrysmCommand = {
-    command: "write-prysm-config",
-    describe: "writes prysm config files",
-    handler: (argv: any) => {
-        writePrysmConfig(argv)
-    }
-}
+  command: "write-prysm-config",
+  describe: "writes prysm config files",
+  handler: (argv: any) => {
+    writePrysmConfig(argv);
+  },
+};
 
 export const writeGethGenesisCommand = {
-    command: "write-geth-genesis-config",
-    describe: "writes a go-ethereum genesis configuration",
-    handler: (argv: any) => {
-        writeGethGenesisConfig(argv)
-    }
-}
+  command: "write-geth-genesis-config",
+  describe: "writes a go-ethereum genesis configuration",
+  handler: (argv: any) => {
+    writeGethGenesisConfig(argv);
+  },
+};
 
 export const writeL2ChainConfigCommand = {
-    command: "write-l2-chain-config",
-    describe: "writes l2 chain config file",
-    handler: (argv: any) => {
-        writeL2ChainConfig(argv)
-    }
-}
+  command: "write-l2-chain-config",
+  describe: "writes l2 chain config file",
+  builder: {
+    anytrust: {
+      boolean: true,
+      describe: "enable anytrust in chainconfig",
+      default: false,
+    },
+  },
+  handler: (argv: any) => {
+    writeL2ChainConfig(argv);
+  },
+};
 
 export const writeL3ChainConfigCommand = {
-    command: "write-l3-chain-config",
-    describe: "writes l3 chain config file",
-    handler: (argv: any) => {
-        writeL3ChainConfig(argv)
-    }
-}
+  command: "write-l3-chain-config",
+  describe: "writes l3 chain config file",
+  handler: (argv: any) => {
+    writeL3ChainConfig(argv);
+  },
+};
+
+export const writeL2DASCommitteeConfigCommand = {
+  command: "write-l2-das-committee-config",
+  describe: "writes daserver committee member config file",
+  handler: (argv: any) => {
+    writeL2DASCommitteeConfig(argv);
+  },
+};
+
+export const writeL2DASMirrorConfigCommand = {
+  command: "write-l2-das-mirror-config",
+  describe: "writes daserver mirror config file",
+  handler: (argv: any) => {
+    const sequencerInboxAddr = ethers.utils.hexlify(
+      getChainInfo()[0]["rollup"]["sequencer-inbox"]
+    );
+    writeL2DASMirrorConfig(argv, sequencerInboxAddr);
+  },
+};
+
+export const writeL2DASKeysetConfigCommand = {
+  command: "write-l2-das-keyset-config",
+  describe: "writes DAS keyset config",
+  builder: {
+    dasBlsA: {
+      string: true,
+      describe: "DAS committee member A BLS pub key",
+      default: "",
+    },
+    dasBlsB: {
+      string: true,
+      describe: "DAS committee member B BLS pub key",
+      default: "",
+    },
+  },
+  handler: (argv: any) => {
+    writeL2DASKeysetConfig(argv);
+  },
+};

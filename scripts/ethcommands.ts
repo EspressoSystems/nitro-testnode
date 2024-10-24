@@ -3,8 +3,10 @@ import { BigNumber, ContractFactory, ethers, Wallet } from "ethers";
 import * as consts from "./consts";
 import { namedAccount, namedAddress } from "./accounts";
 import * as L1GatewayRouter from "@arbitrum/token-bridge-contracts/build/contracts/contracts/tokenbridge/ethereum/gateway/L1GatewayRouter.sol/L1GatewayRouter.json";
+import * as L1AtomicTokenBridgeCreator from "@arbitrum/token-bridge-contracts/build/contracts/contracts/tokenbridge/ethereum/L1AtomicTokenBridgeCreator.sol/L1AtomicTokenBridgeCreator.json";
 import * as ERC20 from "@openzeppelin/contracts/build/contracts/ERC20.json";
 import * as fs from "fs";
+import { ARB_OWNER } from "./consts";
 const path = require("path");
 
 async function sendTransaction(argv: any, threadId: number) {
@@ -235,6 +237,56 @@ export const bridgeNativeTokenToL3Command = {
   },
 };
 
+export const transferL3ChainOwnershipCommand = {
+  command: "transfer-l3-chain-ownership",
+  describe: "transfer L3 chain ownership to upgrade executor",
+  builder: {
+    creator: {
+      string: true,
+      describe: "address of the token bridge creator",
+    },
+    wait: {
+      boolean: true,
+      describe: "wait till ownership is transferred",
+      default: false,
+    },
+  },
+  handler: async (argv: any) => {
+    // get inbox address from config file
+    const deploydata = JSON.parse(
+      fs
+        .readFileSync(path.join(consts.configpath, "l3deployment.json"))
+        .toString()
+    );
+    const inboxAddr = ethers.utils.hexlify(deploydata.inbox);
+
+    // get L3 upgrade executor address from token bridge creator
+    const l2provider = new ethers.providers.WebSocketProvider(argv.l2url);
+    const tokenBridgeCreator = new ethers.Contract(argv.creator, L1AtomicTokenBridgeCreator.abi, l2provider);
+    const [,,,,,,,l3UpgradeExecutorAddress,] = await tokenBridgeCreator.inboxToL2Deployment(inboxAddr);
+
+    // set TX params
+    argv.provider = new ethers.providers.WebSocketProvider(argv.l3url);
+    argv.to = "address_" + ARB_OWNER;
+    argv.from = "l3owner";
+    argv.ethamount = "0";
+
+    // add L3 UpgradeExecutor to chain owners
+    const arbOwnerIface = new ethers.utils.Interface([
+      "function addChainOwner(address newOwner) external",
+      "function removeChainOwner(address ownerToRemove) external"
+    ])
+    argv.data = arbOwnerIface.encodeFunctionData("addChainOwner", [l3UpgradeExecutorAddress]);
+    await runStress(argv, sendTransaction);
+
+    // remove L3 owner from chain owners
+    argv.data = arbOwnerIface.encodeFunctionData("removeChainOwner", [namedAccount("l3owner").address]);
+    await runStress(argv, sendTransaction);
+
+    argv.provider.destroy();
+  }
+};
+
 export const createERC20Command = {
   command: "create-erc20",
   describe: "creates simple ERC20 on L2",
@@ -279,8 +331,10 @@ export const createERC20Command = {
       const l1GatewayRouter = new ethers.Contract(l1l2tokenbridge.l2Network.tokenBridge.l1GatewayRouter, L1GatewayRouter.abi, deployerWallet);
       await (await token.functions.approve(l1l2tokenbridge.l2Network.tokenBridge.l1ERC20Gateway, ethers.constants.MaxUint256)).wait();
       const supply = await token.totalSupply();
+      // transfer 90% of supply to l2
+      const transferAmount = supply.mul(9).div(10);
       await (await l1GatewayRouter.functions.outboundTransfer(
-        token.address, deployerWallet.address, supply, 100000000, 1000000000, "0x000000000000000000000000000000000000000000000000000fffffffffff0000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000", {
+        token.address, deployerWallet.address, transferAmount, 100000000, 1000000000, "0x000000000000000000000000000000000000000000000000000fffffffffff0000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000", {
           value: ethers.utils.parseEther("1"),
         }
       )).wait();
@@ -317,6 +371,25 @@ export const createERC20Command = {
     argv.provider.destroy();
   },
 };
+
+// Will revert if the keyset is already valid.
+async function setValidKeyset(argv: any, upgradeExecutorAddr: string, sequencerInboxAddr: string, keyset: string){
+    const innerIface = new ethers.utils.Interface(["function setValidKeyset(bytes)"])
+    const innerData = innerIface.encodeFunctionData("setValidKeyset", [keyset]);
+
+    // The Executor contract is the owner of the SequencerInbox so calls must be made
+    // through it.
+    const outerIface = new ethers.utils.Interface(["function executeCall(address,bytes)"])
+    argv.data = outerIface.encodeFunctionData("executeCall", [sequencerInboxAddr, innerData]);
+
+    argv.from = "l2owner";
+    argv.to = "address_" + upgradeExecutorAddr
+    argv.ethamount = "0"
+
+    await sendTransaction(argv, 0);
+
+    argv.provider.destroy();
+}
 
 export const transferERC20Command = {
   command: "transfer-erc20",
@@ -471,3 +544,43 @@ export const sendRPCCommand = {
         await rpcProvider.send(argv.method, argv.params)
     }
 }
+
+export const setValidKeysetCommand = {
+    command: "set-valid-keyset",
+    describe: "sets the anytrust keyset",
+    handler: async (argv: any) => {
+        argv.provider = new ethers.providers.WebSocketProvider(argv.l1url);
+        const deploydata = JSON.parse(
+            fs
+                .readFileSync(path.join(consts.configpath, "deployment.json"))
+                .toString()
+        );
+        const sequencerInboxAddr = ethers.utils.hexlify(deploydata["sequencer-inbox"]);
+        const upgradeExecutorAddr = ethers.utils.hexlify(deploydata["upgrade-executor"]);
+
+        const keyset = fs
+            .readFileSync(path.join(consts.configpath, "l2_das_keyset.hex"))
+            .toString()
+
+        await setValidKeyset(argv, upgradeExecutorAddr, sequencerInboxAddr, keyset)
+    }
+};
+
+export const waitForSyncCommand = {
+  command: "wait-for-sync",
+  describe: "wait for rpc to sync",
+  builder: {
+    url: { string: true, describe: "url to send rpc call", default: "http://sequencer:8547"},
+  },
+  handler: async (argv: any) => {
+    const rpcProvider = new ethers.providers.JsonRpcProvider(argv.url)
+    let syncStatus;
+    do {
+        syncStatus = await rpcProvider.send("eth_syncing", [])
+        if (syncStatus !== false) {
+            // Wait for a short interval before checking again
+            await new Promise(resolve => setTimeout(resolve, 5000))
+        }
+    } while (syncStatus !== false)
+  },
+};
