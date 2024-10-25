@@ -9,11 +9,11 @@ const specialAccounts = 6;
 
 async function writeAccounts() {
   for (let i = 0; i < specialAccounts; i++) {
-    const wallet = specialAccount(i)
+    const wallet = specialAccount(i);
     let walletJSON = await wallet.encrypt(consts.l1passphrase);
     fs.writeFileSync(
       path.join(consts.l1keystore, wallet.address + ".key"),
-      walletJSON
+      walletJSON,
     );
   }
 }
@@ -21,13 +21,13 @@ async function writeAccounts() {
 function specialAccount(index: number): ethers.Wallet {
   return ethers.Wallet.fromMnemonic(
     consts.l1mnemonic,
-    "m/44'/60'/0'/0/" + index
+    "m/44'/60'/0'/0/" + index,
   );
 }
 
 export function namedAccount(
   name: string,
-  threadId?: number | undefined
+  threadId?: number | undefined,
 ): ethers.Wallet {
   if (name == "funnel") {
     return specialAccount(0);
@@ -49,7 +49,7 @@ export function namedAccount(
   }
   if (name.startsWith("user_")) {
     return new ethers.Wallet(
-      ethers.utils.sha256(ethers.utils.toUtf8Bytes(name))
+      ethers.utils.sha256(ethers.utils.toUtf8Bytes(name)),
     );
   }
   if (name.startsWith("threaduser_")) {
@@ -59,9 +59,9 @@ export function namedAccount(
     return new ethers.Wallet(
       ethers.utils.sha256(
         ethers.utils.toUtf8Bytes(
-          name.substring(6) + "_thread_" + threadId.toString()
-        )
-      )
+          name.substring(6) + "_thread_" + threadId.toString(),
+        ),
+      ),
     );
   }
   if (name.startsWith("key_")) {
@@ -72,7 +72,7 @@ export function namedAccount(
 
 export function namedAddress(
   name: string,
-  threadId?: number | undefined
+  threadId?: number | undefined,
 ): string {
   if (name.startsWith("address_")) {
     return name.substring(8);
@@ -118,6 +118,37 @@ export const printAddressCommand = {
   },
 };
 
+export const printBalanceCommand = {
+  command: "print-balance",
+  describe: "prints the balance of the requested address",
+  builder: {
+    account: {
+      string: true,
+      describe: "address (see general help)",
+      default: "funnel",
+    },
+    block: {
+      string: true,
+      describe: "option: [latest | earliest | pending | safe | finalized]",
+      default: "latest",
+    },
+    url: {
+      string: true,
+      describe: "url to send rpc call",
+      default: "http://sequencer:8547",
+    },
+  },
+  handler: async (argv: any) => {
+    const rpcProvider = new ethers.providers.JsonRpcProvider(argv.url);
+
+    const result = await rpcProvider.send("eth_getBalance", [
+      namedAddress(argv.account),
+      argv.block,
+    ]);
+    console.log(ethers.utils.formatEther(result) + " ether");
+  },
+};
+
 export const printPrivateKeyCommand = {
   command: "print-private-key",
   describe: "prints the requested private key",
@@ -131,7 +162,7 @@ export const printPrivateKeyCommand = {
   handler: async (argv: any) => {
     await runStress(argv, handlePrintPrivateKey);
   },
-}
+};
 
 export const writeAccountsCommand = {
   command: "write-accounts",
