@@ -146,6 +146,40 @@ cd $TEST_DIR
 
 cast send $CHILD_CHAIN_UPGRADE_EXECUTOR_ADDRESS $(cast calldata "executeCall(address, bytes)" "0x0000000000000000000000000000000000000070" $(cast calldata "setChainConfig(string)" "$(cat ./test-chain-config.json)")) --rpc-url $CHILD_CHAIN_RPC_URL --private-key $PRIVATE_KEY
 
+echo == Waiting for chain config to update and for hotshot to be live
+# Guess on a long sleep here for now
+
+sleep 90s
+
+start_num=0
+num_transactions=10
+
+echo == Simulating l2 traffic
+
+while [ $start_num != $num_transactions ]; do
+    docker compose run scripts send-l2 --ethamount 100 --to l2owner --from funnel --l2url ws://sequencer-on-espresso:8548 --wait 
+    ((start_num+=1))
+done
+
+sleep 10s
+
+echo == Attempting to fetch information about transactions from the espresso network
+
+
+# Iterate over the many blocks to see if we find a transaction from the nitro chain.
+start_block=80
+end_block=200
+
+while [ $start_block != $end_block ]; do
+    export namespace=$(curl http://localhost:41000/v0/availability/block/"$start_block"/namespace/$CHILD_CHAIN_CHAIN_NAME | jq -r '.transactions.[0].namespace' | tail -n 1 )
+    if [ "$namespace" -eq "$CHILD_CHAIN_CHAIN_NAME" ]; then
+        echo "ChainID matches chainID from transaction stored in Espresso network!, chain config has been successfully set."
+        break
+    fi 
+
+    ((start_block+=1))
+done
+
 cd $ORBIT_ACTIONS_DIR
 
 # Test for new OSP address
@@ -173,6 +207,9 @@ while [ "$NUM_CONFIRMED_NODES_BEFORE_UPGRADE" == "$(cast call --rpc-url $PARENT_
   echo "Waiting for confirmed nodes ..."
   sleep 5
 done
+
+
+
 
 echo "Confirmed nodes have progressed"
 
