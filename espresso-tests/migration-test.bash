@@ -84,7 +84,9 @@ NUM_CONFIRMED_NODES_BEFORE_UPGRADE=$(cast call --rpc-url $PARENT_CHAIN_RPC_URL $
 # ** Essential migration step ** The previous sequencer that is not compatible with espresso must be shut down so that we can start a new sequencer node that can have it's ArbOS version updated to signify the upgrade has occurred.
 docker stop nitro-testnode-sequencer-1
 
-docker wait nitro-testnode-sequencer-1
+#wait for the first testnode to be removed by docker to avoid port conflicts.
+sleep 5s 
+
 
 cd $TESTNODE_DIR
 
