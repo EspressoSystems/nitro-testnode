@@ -3,5 +3,5 @@
         url = https://github.com/OffchainLabs/blockscout.git
 [submodule "orbit-actions"]
 	path = orbit-actions
-	url = git@github.com:EspressoSystems/orbit-actions.git
+	url = https://github.com/EspressoSystems/orbit-actions.git
 	branch = integration
