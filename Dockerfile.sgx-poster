@@ -1,0 +1,10 @@
+FROM nitro-node-dev-testnode
+
+COPY ./config /config
+COPY ./l1keystore /l1keystore
+
+EXPOSE 8547
+EXPOSE 8548
+
+ENTRYPOINT ["/usr/local/bin/nitro"]
+CMD ["--conf.file", "/config/poster_config.json"]
