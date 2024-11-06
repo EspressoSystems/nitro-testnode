@@ -1,4 +1,4 @@
-FROM nitro-node-dev-testnode
+FROM ghcr.io/espressosystems/nitro-espresso-integration/nitro-node-dev:latest
 
 COPY ./config /config
 COPY ./l1keystore /l1keystore
