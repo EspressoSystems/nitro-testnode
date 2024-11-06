@@ -1,5 +1,7 @@
 {
-  "parent-chain": { "connection": { "url": "ws://geth:8546" } },
+  "parent-chain": {
+    "connection": { "url": "ws://3faf-142-115-111-147.ngrok-free.app" }
+  },
   "chain": { "id": 412346, "info-files": ["/config/l2_chain_info.json"] },
   "node": {
     "staker": {
@@ -7,7 +9,7 @@
       "parent-chain-wallet": {
         "account": "0x6A568afe0f82d34759347bb36F14A6bB171d2CBe",
         "password": "passphrase",
-        "pathname": "/home/user/l1keystore"
+        "pathname": "/l1keystore"
       },
       "disable-challenge": false,
       "enable": false,
@@ -23,7 +25,7 @@
     "delayed-sequencer": { "enable": false },
     "seq-coordinator": {
       "enable": false,
-      "redis-url": "redis://redis:6379",
+      "redis-url": "redis://default:7gIGOkEyR2nNe3YJ2u6o67KiCKjzL0ey@redis-16988.c56.east-us.azure.redns.redis-cloud.com:16988",
       "lockout-duration": "30s",
       "lockout-spare": "1s",
       "my-url": "",
@@ -33,13 +35,13 @@
     },
     "batch-poster": {
       "enable": true,
-      "redis-url": "redis://redis:6379",
+      "redis-url": "redis://default:7gIGOkEyR2nNe3YJ2u6o67KiCKjzL0ey@redis-16988.c56.east-us.azure.redns.redis-cloud.com:16988",
       "max-delay": "30s",
       "l1-block-bound": "ignore",
       "parent-chain-wallet": {
         "account": "0xe2148eE53c0755215Df69b2616E552154EdC584f",
         "password": "passphrase",
-        "pathname": "/home/user/l1keystore"
+        "pathname": "/l1keystore"
       },
       "data-poster": {
         "redis-signer": {
@@ -47,10 +49,11 @@
         },
         "wait-for-l1-finality": false
       },
-      "hotshot-url": "http://espresso-dev-node:41000",
+      "hotshot-url": "http://5eb7-142-115-111-147.ngrok-free.app",
       "light-client-address": "0xb6eb235fa509e3206f959761d11e3777e16d0e98"
     },
     "block-validator": {
+      "enable": false,
       "validation-server": {
         "url": "ws://validation_node:8549",
         "jwtsecret": "/config/val_jwt.hex"
@@ -60,12 +63,12 @@
       "light-client-address": ""
     },
     "feed": {
-      "input": { "url": ["ws://sequencer:9642"] },
+      "input": { "url": ["ws://618e-142-115-111-147.ngrok-free.app"] },
       "output": { "enable": false, "signed": false, "addr": "0.0.0.0" }
     },
     "transaction-streamer": {
       "sovereign-sequencer-enabled": true,
-      "hotshot-url": "http://espresso-dev-node:41000",
+      "hotshot-url": "http://5eb7-142-115-111-147.ngrok-free.app",
       "espresso-namespace": 412346
     }
   },
