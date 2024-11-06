@@ -6,5 +6,5 @@ COPY ./l1keystore /l1keystore/
 EXPOSE 8547
 EXPOSE 8548
 
-ENTRYPOINT ["/usr/local/bin/nitro"]
+ENTRYPOINT ["/usr/local/bin/nitro", "--validation.wasm.enable-wasmroots-check=false"]
 CMD ["--conf.file", "/config/poster_config.json"]
