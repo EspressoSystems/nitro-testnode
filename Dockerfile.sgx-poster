@@ -3,7 +3,7 @@ FROM ghcr.io/espressosystems/nitro-espresso-integration/nitro-node-dev:latest
 COPY ./config /config/
 COPY ./l1keystore /l1keystore/
 
-ENV HOME=/
+ENV HOME /
 EXPOSE 8547
 EXPOSE 8548
 
