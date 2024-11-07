@@ -55,8 +55,8 @@
     "block-validator": {
       "enable": false,
       "validation-server": {
-        "url": "ws://validation_node:8549",
-        "jwtsecret": "/config/val_jwt.hex"
+        "url": "",
+        "jwtsecret": ""
       },
       "dangerous": { "reset-block-validation": false },
       "espresso": false,
