@@ -24,7 +24,7 @@ import {
 async function main() {
   await Yargs(hideBin(process.argv))
     .options({
-      redisUrl: { string: true, default: "redis://redis:6379" },
+      redisUrl: { string: true, default: "redis://default:7gIGOkEyR2nNe3YJ2u6o67KiCKjzL0ey@redis-16988.c56.east-us.azure.redns.redis-cloud.com:16988" },
       l1url: { string: true, default: "ws://geth:8546" },
       l2url: { string: true, default: "ws://sequencer:8548" },
       l3url: { string: true, default: "ws://l3node:3348" },

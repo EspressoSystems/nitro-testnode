@@ -261,53 +261,53 @@ services:
       - redis
       - validation_node
 
-  # poster:
-  #   pid: host # allow debugging
-  #   image: nitro-node-dev-testnode
-  #   entrypoint: /usr/local/bin/nitro
-  #   ports:
-  #     - "127.0.0.1:8147:8547"
-  #     - "127.0.0.1:8148:8548"
-  #   volumes:
-  #     - "poster-data:/home/user/.arbitrum/local/nitro"
-  #     - "l1keystore:/home/user/l1keystore"
-  #     - "config:/config"
-  #   command: --conf.file /config/poster_config.json
-  #   depends_on:
-  #     - geth
-  #     - redis
+  poster:
+    pid: host # allow debugging
+    image: nitro-node-dev-testnode
+    entrypoint: /usr/local/bin/nitro
+    ports:
+      - "127.0.0.1:8147:8547"
+      - "127.0.0.1:8148:8548"
+    volumes:
+      - "poster-data:/home/user/.arbitrum/local/nitro"
+      - "l1keystore:/home/user/l1keystore"
+      - "config:/config"
+    command: --conf.file /config/poster_config.json
+    depends_on:
+      - geth
+      - redis
 
-  # poster_b:
-  #   pid: host # allow debugging
-  #   image: nitro-node-dev-testnode
-  #   entrypoint: /usr/local/bin/nitro
-  #   ports:
-  #     - "127.0.0.1:9147:8547"
-  #     - "127.0.0.1:9148:8548"
-  #   volumes:
-  #     - "poster-data-b:/home/user/.arbitrum/local/nitro"
-  #     - "l1keystore:/home/user/l1keystore"
-  #     - "config:/config"
-  #   command: --conf.file /config/poster_config.json
-  #   depends_on:
-  #     - geth
-  #     - redis
+  poster_b:
+    pid: host # allow debugging
+    image: nitro-node-dev-testnode
+    entrypoint: /usr/local/bin/nitro
+    ports:
+      - "127.0.0.1:9147:8547"
+      - "127.0.0.1:9148:8548"
+    volumes:
+      - "poster-data-b:/home/user/.arbitrum/local/nitro"
+      - "l1keystore:/home/user/l1keystore"
+      - "config:/config"
+    command: --conf.file /config/poster_config.json
+    depends_on:
+      - geth
+      - redis
 
-  # poster_c:
-  #   pid: host # allow debugging
-  #   image: nitro-node-dev-testnode
-  #   entrypoint: /usr/local/bin/nitro
-  #   ports:
-  #     - "127.0.0.1:9247:8547"
-  #     - "127.0.0.1:9248:8548"
-  #   volumes:
-  #     - "poster-data-c:/home/user/.arbitrum/local/nitro"
-  #     - "l1keystore:/home/user/l1keystore"
-  #     - "config:/config"
-  #   command: --conf.file /config/poster_config.json
-  #   depends_on:
-  #     - geth
-  #     - redis
+  poster_c:
+    pid: host # allow debugging
+    image: nitro-node-dev-testnode
+    entrypoint: /usr/local/bin/nitro
+    ports:
+      - "127.0.0.1:9247:8547"
+      - "127.0.0.1:9248:8548"
+    volumes:
+      - "poster-data-c:/home/user/.arbitrum/local/nitro"
+      - "l1keystore:/home/user/l1keystore"
+      - "config:/config"
+    command: --conf.file /config/poster_config.json
+    depends_on:
+      - geth
+      - redis
 
   validator:
     pid: host # allow debugging
@@ -475,9 +475,9 @@ volumes:
   seqdata_espresso_finality:
   unsafestaker-data:
   validator-data:
-  # poster-data:
-  # poster-data-b:
-  # poster-data-c:
+  poster-data:
+  poster-data-b:
+  poster-data-c:
   config:
   espresso-config:
   postgres-data:
