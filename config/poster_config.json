@@ -1,6 +1,6 @@
 {
   "parent-chain": {
-    "connection": { "url": "ws://fedf-142-115-111-147.ngrok-free.app" }
+    "connection": { "url": "ws://98db-142-115-111-147.ngrok-free.app" }
   },
   "chain": { "id": 412346, "info-files": ["/config/l2_chain_info.json"] },
   "node": {
@@ -43,13 +43,15 @@
         "password": "passphrase",
         "pathname": "/l1keystore"
       },
+      "user-data-attestation-file": "/dev/attestation/user_report_data",
+      "quote-file": "/dev/attestation/quote",
       "data-poster": {
         "redis-signer": {
           "signing-key": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
         },
         "wait-for-l1-finality": false
       },
-      "hotshot-url": "http://b484-142-115-111-147.ngrok-free.app",
+      "hotshot-url": "http://f744-142-115-111-147.ngrok-free.app",
       "light-client-address": "0xb6eb235fa509e3206f959761d11e3777e16d0e98"
     },
     "block-validator": {
@@ -63,7 +65,7 @@
       "light-client-address": ""
     },
     "feed": {
-      "input": { "url": ["ws://a9ed-142-115-111-147.ngrok-free.app"] },
+      "input": { "url": ["ws://0ab8-142-115-111-147.ngrok-free.app"] },
       "output": { "enable": false, "signed": false, "addr": "0.0.0.0" }
     },
     "data-availability": {
@@ -71,7 +73,7 @@
     },
     "transaction-streamer": {
       "sovereign-sequencer-enabled": true,
-      "hotshot-url": "http://b484-142-115-111-147.ngrok-free.app",
+      "hotshot-url": "http://f744-142-115-111-147.ngrok-free.app",
       "espresso-namespace": 412346
     }
   },
