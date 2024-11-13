@@ -60,9 +60,7 @@
         "url": "",
         "jwtsecret": ""
       },
-      "dangerous": { "reset-block-validation": false },
-      "espresso": false,
-      "light-client-address": ""
+      "dangerous": { "reset-block-validation": false }
     },
     "feed": {
       "input": { "url": ["ws://0ab8-142-115-111-147.ngrok-free.app"] },
