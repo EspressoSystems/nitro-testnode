@@ -1,6 +1,6 @@
 {
   "parent-chain": {
-    "connection": { "url": "ws://74b1-142-115-111-147.ngrok-free.app" }
+    "connection": { "url": "ws://95a1-142-115-111-147.ngrok-free.app" }
   },
   "chain": { "id": 412346, "info-files": ["/config/l2_chain_info.json"] },
   "node": {
@@ -51,7 +51,7 @@
         },
         "wait-for-l1-finality": false
       },
-      "hotshot-url": "http://18b4-142-115-111-147.ngrok-free.app",
+      "hotshot-url": "http://dba1-142-115-111-147.ngrok-free.app",
       "light-client-address": "0xb6eb235fa509e3206f959761d11e3777e16d0e98"
     },
     "block-validator": {
@@ -63,7 +63,7 @@
       "dangerous": { "reset-block-validation": false }
     },
     "feed": {
-      "input": { "url": ["ws://c591-142-115-111-147.ngrok-free.app"] },
+      "input": { "url": ["ws://6e05-142-115-111-147.ngrok-free.app"] },
       "output": { "enable": false, "signed": false, "addr": "0.0.0.0" }
     },
     "data-availability": {
@@ -71,7 +71,7 @@
     },
     "transaction-streamer": {
       "sovereign-sequencer-enabled": true,
-      "hotshot-url": "http://18b4-142-115-111-147.ngrok-free.app",
+      "hotshot-url": "http://dba1-142-115-111-147.ngrok-free.app",
       "espresso-namespace": 412346
     }
   },
