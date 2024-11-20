@@ -5,6 +5,7 @@ RUN apt-get update && \
 WORKDIR /workspace
 RUN git clone --recurse-submodules --no-checkout https://github.com/EspressoSystems/nitro-contracts.git ./
 RUN git checkout ${NITRO_CONTRACTS_BRANCH}
+RUN git submodule update --recursive
 RUN curl -L https://foundry.paradigm.xyz | bash
 ENV PATH="${PATH}:/root/.foundry/bin"
 RUN foundryup
