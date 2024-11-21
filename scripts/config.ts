@@ -245,6 +245,15 @@ function writeConfigs(argv: any) {
         },
     }
 
+    if (argv.espresso) {
+      let config = baseConfig as any;
+      config.node["transaction-streamer"] = {
+        "sovereign-sequencer-enabled": false,
+        "hotshot-url": "",
+        "espresso-namespace": 412346,
+      };
+    }
+
 
     const baseConfJSON = JSON.stringify(baseConfig)
 
@@ -259,6 +268,16 @@ function writeConfigs(argv: any) {
         simpleConfig.node["batch-poster"].enable = true
         simpleConfig.node["batch-poster"]["redis-url"] = ""
         simpleConfig.execution["sequencer"].enable = true
+        if (argv.espresso) {
+          simpleConfig.node["transaction-streamer"]["hotshot-url"] =
+            argv.espressoUrl;
+          simpleConfig.node["transaction-streamer"]["sovereign-sequencer-enabled"] =
+            true;
+          simpleConfig.node.feed.output.enable = true;
+          simpleConfig.node["batch-poster"]["hotshot-url"] = argv.espressoUrl;
+          simpleConfig.node["batch-poster"]["light-client-address"] =
+            argv.lightClientAddress;
+        }
         fs.writeFileSync(path.join(consts.configpath, "sequencer_config.json"), JSON.stringify(simpleConfig))
     } else {
         let validatorConfig = JSON.parse(baseConfJSON)
@@ -273,14 +292,32 @@ function writeConfigs(argv: any) {
 
         let sequencerConfig = JSON.parse(baseConfJSON)
         sequencerConfig.node.sequencer = true
-        sequencerConfig.node["seq-coordinator"].enable = true
         sequencerConfig.execution["sequencer"].enable = true
         sequencerConfig.node["delayed-sequencer"].enable = true
+
+        if (argv.espresso) {
+          sequencerConfig.node.feed.output.enable = true;
+          sequencerConfig.node.dangerous["no-sequencer-coordinator"] = true;
+        } else {
+          sequencerConfig.node["seq-coordinator"].enable = true;
+        }
+
         fs.writeFileSync(path.join(consts.configpath, "sequencer_config.json"), JSON.stringify(sequencerConfig))
 
         let posterConfig = JSON.parse(baseConfJSON)
-        posterConfig.node["seq-coordinator"].enable = true
         posterConfig.node["batch-poster"].enable = true
+        if (argv.espresso) {
+          posterConfig.node.feed.input.url.push("ws://sequencer:9642");
+          posterConfig.node["batch-poster"]["hotshot-url"] = argv.espressoUrl;
+          posterConfig.node["batch-poster"]["light-client-address"] =
+            argv.lightClientAddress;
+          posterConfig.node["transaction-streamer"]["hotshot-url"] =
+            argv.espressoUrl;
+          posterConfig.node["transaction-streamer"]["sovereign-sequencer-enabled"] =
+            true;
+        } else {
+          posterConfig.node["seq-coordinator"].enable = true;
+        }
         fs.writeFileSync(path.join(consts.configpath, "poster_config.json"), JSON.stringify(posterConfig))
     }
 
@@ -301,6 +338,12 @@ function writeConfigs(argv: any) {
     l3Config.node["delayed-sequencer"]["use-merge-finality"] = false
     l3Config.node["batch-poster"].enable = true
     l3Config.node["batch-poster"]["redis-url"] = ""
+
+    if (argv.espresso) {
+      l3Config.node.feed.output.enable = true;
+      l3Config.node.dangerous["no-sequencer-coordinator"] = true;
+    }
+    
     fs.writeFileSync(path.join(consts.configpath, "l3node_config.json"), JSON.stringify(l3Config))
 
     let validationNodeConfig = JSON.parse(JSON.stringify({
