@@ -50,46 +50,44 @@ CHILD_CHAIN_UPGRADE_EXECUTOR_ADDRESS=$(cast call $L1_TOKEN_BRIDGE_CREATOR_ADDRES
 PRIVATE_KEY="$(docker compose run scripts print-private-key --account l2owner | tail -n 1 | tr -d '\r\n')"
 OWNER_ADDRESS="$(docker compose run scripts print-address --account l2owner | tail -n 1 | tr -d '\r\n')"
 
+DOCKER_RESULT= "$(docker compose run rollupcreator deploy-espresso-tee-verifier)"
+
+
 # Echo for debug
-echo "Deploying Espresso Osp"
+echo "Deploying and initializing Espresso SequencerInbox"
 # Change directory to orbit actions dir for the following commands.
 cd $ORBIT_ACTIONS_DIR
-# ** Essential migration step ** Forge script to deploy new OSP entry. We do this to later point the rollups challenge manager to the espresso integrated OSP.
-forge script --chain $PARENT_CHAIN_CHAIN_ID contracts/parent-chain/espresso-migration/DeployEspressoOsp.s.sol:DeployEspressoOsp --rpc-url $PARENT_CHAIN_RPC_URL --broadcast -vvvv
+# ** Essential migration step ** Forge script to deploy the new SequencerInbox. We do this to later point the rollups challenge manager to the espresso integrated OSP.
+forge script --chain $PARENT_CHAIN_CHAIN_ID contracts/parent-chain/espresso-migration/DeployAndInitEspressoSequencerInbox.s.sol:DeployAndInitEspressoSequencerInbox --rpc-url $PARENT_CHAIN_RPC_URL --broadcast -vvvv
 
 # Extract new_osp_entry address from run-latest.json
 #  * Essential migration sub step * These addresses are likely known addresses to operators in the event of a real migration after they have deployed the new OSP contracts, however, if operators create a script for the migration, this command is useful.
-NEW_OSP_ENTRY=$(cat broadcast/DeployEspressoOsp.s.sol/1337/run-latest.json | jq -r '.transactions[4].contractAddress'| cast to-checksum)
-
+NEW_ESPRESSO_SEQUENCER_INBOX_IMPL_ADDRESS=$(cat broadcast/DeployAndInitEspressoSequencerInbox.s.sol/1337/run-latest.json) #| jq -r '.transactions[4].contractAddress'| cast to-checksum)
 # Echo for debugging.
-echo "Deployed new OspEntry at $NEW_OSP_ENTRY"
+echo "Deployed new SequencerInbox at $NEW_ESPRESSO_SEQUENCER_INBOX_IMPL_ADDRESS"
 
 # Echo for debug
-echo "Deploying Espresso Osp migration action"
+echo "Deploying Espresso SequencerInbox migration action"
 
 # ** Essential migration step ** Forge script to deploy Espresso OSP migration action
-forge script --chain $PARENT_CHAIN_CHAIN_ID contracts/parent-chain/espresso-migration/DeployEspressoOspMigrationAction.s.sol --rpc-url $PARENT_CHAIN_RPC_URL --broadcast -vvvv
+forge script --chain $PARENT_CHAIN_CHAIN_ID contracts/parent-chain/espresso-migration/DeployEspressoSequencerMigrationAction.s.sol:DeployEspressoSequencerMigrationAction --rpc-url $PARENT_CHAIN_RPC_URL --broadcast -vvvv
 
 # Capture new OSP address
 # * Essential migration sub step ** Essential migration sub step * operators will be able to manually determine this address while running the upgrade, but this can be useful if they wish to make a script.
-OSP_MIGRATION_ACTION=$(cat broadcast/DeployEspressoOspMigrationAction.s.sol/1337/run-latest.json | jq -r '.transactions[0].contractAddress')
+SEQUENCER_MIGRATION_ACTION=$(cat broadcast/DeployEspressoSequencerMigrationAction.s.sol/1337/run-latest.json | jq -r '.transactions[0].contractAddress')
 
-echo "Deployed new OspMigrationAction at $OSP_MIGRATION_ACTION"
+echo "Deployed new OspMigrationAction at $SEQUENCER_MIGRATION_ACTION"
 
 # Use cast to call the upgradeExecutor and execute the L1 upgrade actions.This will point the challenge manager at the new OSP entry, as well as update the wasmModuleRoot for the rollup.
 # ** Essential migration step **
 
-cast send $PARENT_CHAIN_UPGRADE_EXECUTOR "execute(address, bytes)" $OSP_MIGRATION_ACTION $(cast calldata "perform()") --rpc-url $PARENT_CHAIN_RPC_URL --private-key $PRIVATE_KEY
+cast send $PARENT_CHAIN_UPGRADE_EXECUTOR "execute(address, bytes)" $SEQUENCER_MIGRATION_ACTION $(cast calldata "perform()") --rpc-url $PARENT_CHAIN_RPC_URL --private-key $PRIVATE_KEY
 
-echo "Executed OspMigrationAction via UpgradeExecutor"
+echo "Executed SequencerMigrationAction via UpgradeExecutor"
 
 # Get the number of confirmed nodes before the upgrade to ensure the staker is still working.
 NUM_CONFIRMED_NODES_BEFORE_UPGRADE=$(cast call --rpc-url $PARENT_CHAIN_RPC_URL $ROLLUP_ADDRESS 'latestConfirmed()(uint256)')
 # Shutdown nitro node
-
-# This is part of the migration but the mechanics of this can be left up to operators.
-# ** Essential migration step ** The previous sequencer that is not compatible with espresso must be shut down so that we can start a new sequencer node that can have it's ArbOS version updated to signify the upgrade has occurred.
-docker stop nitro-testnode-sequencer-1
 
 # Change directories to start nitro node in new docker container with espresso image
 cd $TESTNODE_DIR
