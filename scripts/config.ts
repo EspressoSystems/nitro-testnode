@@ -156,7 +156,7 @@ function writeGethGenesisConfig(argv: any) {
     `;
   fs.writeFileSync(
     path.join(consts.configpath, "geth_genesis.json"),
-    gethConfig
+    gethConfig,
   );
   const jwt = `0x98ea6e4f216f2fb4b69fff9b3a44842c38686ca685f3f55dc48c5d3fb1107be4`;
   fs.writeFileSync(path.join(consts.configpath, "jwt.hex"), jwt);
@@ -199,68 +199,39 @@ function writeConfigs(argv: any) {
           password: consts.l1passphrase,
           pathname: consts.l1keystore,
         },
-        "node": {
-            "staker": {
-                "dangerous": {
-                    "without-block-validator": false
-                },
-                "parent-chain-wallet": {
-                    "account": namedAddress("validator"),
-                    "password": consts.l1passphrase,
-                    "pathname": consts.l1keystore,
-                },
-                "disable-challenge": false,
-                "enable": false,
-                "staker-interval": "10s",
-                "make-assertion-interval": "10s",
-                "strategy": "MakeNodes",
-            },
-            "sequencer": false,
-            "dangerous": {
-                "no-sequencer-coordinator": false,
-                "disable-blob-reader": true,
-            },
-            "delayed-sequencer": {
-                "enable": false
-            },
-            "seq-coordinator": {
-                "enable": false,
-                "redis-url": argv.redisUrl,
-                "lockout-duration": "30s",
-                "lockout-spare": "1s",
-                "my-url": "",
-                "retry-interval": "0.5s",
-                "seq-num-duration": "24h0m0s",
-                "update-interval": "3s",
-            },
-            "batch-poster": {
-                "enable": false,
-                "redis-url": argv.redisUrl,
-                "max-delay": "30s",
-                "l1-block-bound": "ignore",
-                "parent-chain-wallet": {
-                    "account": namedAddress("sequencer"),
-                    "password": consts.l1passphrase,
-                    "pathname": consts.l1keystore,
-                },
-                "data-poster": {
-                    "redis-signer": {
-                        "signing-key": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-                    },
-                    "wait-for-l1-finality": false
-                }
-            },
-            "block-validator": {
-                "validation-server": {
-                    "url": argv.validationNodeUrl,
-                    "jwtsecret": valJwtSecret,
-                }
-            },
-            "celestia-cfg": {
-                "enable": true,
-                "url": "http://host.docker.internal:9876"
-            },
-            "da-preference": ["celestia"]
+        "disable-challenge": false,
+        enable: false,
+        "staker-interval": "10s",
+        "make-assertion-interval": "10s",
+        strategy: "MakeNodes",
+      },
+      sequencer: false,
+      dangerous: {
+        "no-sequencer-coordinator": false,
+        "disable-blob-reader": true,
+      },
+      "delayed-sequencer": {
+        enable: false,
+      },
+      "seq-coordinator": {
+        enable: false,
+        "redis-url": argv.redisUrl,
+        "lockout-duration": "30s",
+        "lockout-spare": "1s",
+        "my-url": "",
+        "retry-interval": "0.5s",
+        "seq-num-duration": "24h0m0s",
+        "update-interval": "3s",
+      },
+      "batch-poster": {
+        enable: false,
+        "redis-url": argv.redisUrl,
+        "max-delay": "30s",
+        "l1-block-bound": "ignore",
+        "parent-chain-wallet": {
+          account: namedAddress("sequencer"),
+          password: consts.l1passphrase,
+          pathname: consts.l1keystore,
         },
         "data-poster": {
           "redis-signer": {
@@ -275,7 +246,7 @@ function writeConfigs(argv: any) {
           url: argv.validationNodeUrl,
           jwtsecret: valJwtSecret,
         },
-        "dangerous": {"reset-block-validation": false},
+        dangerous: { "reset-block-validation": false },
       },
       feed: {
         input: {
@@ -393,11 +364,11 @@ function writeConfigs(argv: any) {
             jwtsecret: valJwtSecret,
             addr: "0.0.0.0",
           },
-        })
+        }),
       );
       fs.writeFileSync(
         path.join(consts.configpath, "validation_node_config.json"),
-        JSON.stringify(validationNodeConfig)
+        JSON.stringify(validationNodeConfig),
       );
       if (argv.espresso) {
         //if we are attempting to start a new espresso sequencer we should also give that validator a val_jwt file as it hasn't been written to the espresso-config.
@@ -408,7 +379,7 @@ function writeConfigs(argv: any) {
 
     fs.writeFileSync(
       path.join(consts.configpath, "sequencer_config.json"),
-      JSON.stringify(simpleConfig)
+      JSON.stringify(simpleConfig),
     );
   } else {
     let validatorConfig = JSON.parse(baseConfJSON);
@@ -425,14 +396,14 @@ function writeConfigs(argv: any) {
     let validconfJSON = JSON.stringify(validatorConfig);
     fs.writeFileSync(
       path.join(consts.configpath, "validator_config.json"),
-      validconfJSON
+      validconfJSON,
     );
 
     let unsafeStakerConfig = JSON.parse(validconfJSON);
     unsafeStakerConfig.node.staker.dangerous["without-block-validator"] = true;
     fs.writeFileSync(
       path.join(consts.configpath, "unsafe_staker_config.json"),
-      JSON.stringify(unsafeStakerConfig)
+      JSON.stringify(unsafeStakerConfig),
     );
 
     let sequencerConfig = JSON.parse(baseConfJSON);
@@ -459,12 +430,12 @@ function writeConfigs(argv: any) {
       };
       fs.writeFileSync(
         path.join(consts.configpath, "espresso_finality_sequencer_config.json"),
-        JSON.stringify(sequencerConfig)
+        JSON.stringify(sequencerConfig),
       );
     } else {
       fs.writeFileSync(
         path.join(consts.configpath, "sequencer_config.json"),
-        JSON.stringify(sequencerConfig)
+        JSON.stringify(sequencerConfig),
       );
     }
 
@@ -487,7 +458,7 @@ function writeConfigs(argv: any) {
     }
     fs.writeFileSync(
       path.join(consts.configpath, "poster_config.json"),
-      JSON.stringify(posterConfig)
+      JSON.stringify(posterConfig),
     );
   }
 
@@ -516,7 +487,7 @@ function writeConfigs(argv: any) {
   }
   fs.writeFileSync(
     path.join(consts.configpath, "l3node_config.json"),
-    JSON.stringify(l3Config)
+    JSON.stringify(l3Config),
   );
 
   let validationNodeConfig = JSON.parse(
@@ -538,11 +509,11 @@ function writeConfigs(argv: any) {
         jwtsecret: valJwtSecret,
         addr: "0.0.0.0",
       },
-    })
+    }),
   );
   fs.writeFileSync(
     path.join(consts.configpath, "validation_node_config.json"),
-    JSON.stringify(validationNodeConfig)
+    JSON.stringify(validationNodeConfig),
   );
 }
 
@@ -584,7 +555,7 @@ function writeL2ChainConfig(argv: any) {
   const l2ChainConfigJSON = JSON.stringify(l2ChainConfig);
   fs.writeFileSync(
     path.join(consts.configpath, "l2_chain_config.json"),
-    l2ChainConfigJSON
+    l2ChainConfigJSON,
   );
 }
 
@@ -626,13 +597,13 @@ function writeL3ChainConfig(argv: any) {
   const l3ChainConfigJSON = JSON.stringify(l3ChainConfig);
   fs.writeFileSync(
     path.join(consts.configpath, "l3_chain_config.json"),
-    l3ChainConfigJSON
+    l3ChainConfigJSON,
   );
 }
 
 function writeL2DASCommitteeConfig(argv: any) {
   const sequencerInboxAddr = ethers.utils.hexlify(
-    getChainInfo()[0]["rollup"]["sequencer-inbox"]
+    getChainInfo()[0]["rollup"]["sequencer-inbox"],
   );
   const l2DASCommitteeConfig = {
     "data-availability": {
@@ -659,7 +630,7 @@ function writeL2DASCommitteeConfig(argv: any) {
 
   fs.writeFileSync(
     path.join(consts.configpath, "l2_das_committee.json"),
-    l2DASCommitteeConfigJSON
+    l2DASCommitteeConfigJSON,
   );
 }
 
@@ -694,7 +665,7 @@ function writeL2DASMirrorConfig(argv: any, sequencerInboxAddr: string) {
 
   fs.writeFileSync(
     path.join(consts.configpath, "l2_das_mirror.json"),
-    l2DASMirrorConfigJSON
+    l2DASMirrorConfigJSON,
   );
 }
 
@@ -706,7 +677,7 @@ function writeL2DASKeysetConfig(argv: any) {
 
   fs.writeFileSync(
     path.join(consts.configpath, "l2_das_keyset.json"),
-    l2DASKeysetConfigJSON
+    l2DASKeysetConfigJSON,
   );
 }
 
@@ -729,19 +700,19 @@ function dasBackendsJsonConfig(argv: any) {
 }
 
 export const writeConfigCommand = {
-    command: "write-config",
-    describe: "writes config files",
-    builder: {
-        simple: {
-            boolean: true,
-            describe: "simple config (sequencer is also poster, validator)",
-            default: false,
-        },
+  command: "write-config",
+  describe: "writes config files",
+  builder: {
+    simple: {
+      boolean: true,
+      describe: "simple config (sequencer is also poster, validator)",
+      default: false,
     },
-    handler: (argv: any) => {
-        writeConfigs(argv)
-    }
-}
+  },
+  handler: (argv: any) => {
+    writeConfigs(argv);
+  },
+};
 
 export const writePrysmCommand = {
   command: "write-prysm-config",
@@ -795,7 +766,7 @@ export const writeL2DASMirrorConfigCommand = {
   describe: "writes daserver mirror config file",
   handler: (argv: any) => {
     const sequencerInboxAddr = ethers.utils.hexlify(
-      getChainInfo()[0]["rollup"]["sequencer-inbox"]
+      getChainInfo()[0]["rollup"]["sequencer-inbox"],
     );
     writeL2DASMirrorConfig(argv, sequencerInboxAddr);
   },
