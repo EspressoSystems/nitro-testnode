@@ -1,15 +1,18 @@
 FROM node:18-bullseye-slim
-ARG NITRO_CONTRACTS_BRANCH=celestia-integration
-ARG NITRO_CONTRACTS_REPO=https://github.com/EspressoSystems/nitro-contracts.git
+ENV NITRO_CONTRACTS_BRANCH=print-4844-reader-addr
+ENV NITRO_CONTRACTS_REPO=https://github.com/EspressoSystems/nitro-contracts.git
 RUN apt-get update && \
     apt-get install -y git docker.io python3 build-essential curl jq
 WORKDIR /workspace  
 RUN git clone --no-checkout ${NITRO_CONTRACTS_REPO} ./
-RUN git checkout ${NITRO_CONTRACTS_BRANCH}
+RUN git fetch
+RUN git stash
+RUN git checkout -b ${NITRO_CONTRACTS_BRANCH}
+RUN git pull origin ${NITRO_CONTRACTS_BRANCH}
 RUN curl -L https://foundry.paradigm.xyz | bash
 ENV PATH="${PATH}:/root/.foundry/bin"
 RUN foundryup
-RUN forge update lib/forge-std
+RUN forge update forge-std
 RUN touch scripts/config.ts
 RUN yarn install
 RUN yarn build:all

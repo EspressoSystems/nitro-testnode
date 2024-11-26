@@ -8,12 +8,11 @@ set -euo pipefail
 set -a # automatically export all variables
 set -x # print each command before executing it, for debugging
 
-
-
 # Find directory of this script, the project, and the orbit-actions submodule
 TEST_DIR="$(dirname $(readlink -f $0))"
 TESTNODE_DIR="$(dirname "$TEST_DIR")"
 ORBIT_ACTIONS_DIR="$TESTNODE_DIR/orbit-actions"
+NITRO_CONTRACTS_SCRIPTS_DIR="ORBIT_ACTIONS_DIR/lib/nitro-contracts/scripts"
 
 # Change to orbit actions directory, update the submodule, and install any dependencies for the purposes of the test.
 cd "$ORBIT_ACTIONS_DIR"
@@ -50,6 +49,8 @@ CHILD_CHAIN_UPGRADE_EXECUTOR_ADDRESS=$(cast call $L1_TOKEN_BRIDGE_CREATOR_ADDRES
 PRIVATE_KEY="$(docker compose run scripts print-private-key --account l2owner | tail -n 1 | tr -d '\r\n')"
 OWNER_ADDRESS="$(docker compose run scripts print-address --account l2owner | tail -n 1 | tr -d '\r\n')"
 
-DOCKER_RESULT= "$(docker compose run rollupcreator deploy-espresso-tee-verifier)"
+cd "$ORBIT_ACTIONS_DIR"
+forge script --chain $PARENT_CHAIN_CHAIN_ID ../espresso-tests/DeployMockVerifier.s.sol:DeployMockVerifier --rpc-url $PARENT_CHAIN_RPC_URL --broadcast -vvvv
+MOCK_TEE_VERIFIER_ADDRESS=$(cat broadcast/DeployMockVerifier.s.sol/1337/run-latest.json | jq -r '.transactions[0].contractAddress')
 
-echo $DOCKER_RESULT
+echo $MOCK_TEE_VERIFIER_ADDRESS
