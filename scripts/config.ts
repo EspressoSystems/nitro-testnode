@@ -292,15 +292,20 @@ function writeConfigs(argv: any) {
 
   if (argv.espresso) {
     let config = baseConfig as any;
-    config.node["block-validator"]["espresso"] = false;
-    config.node["block-validator"]["light-client-address"] = "";
+    if (!argv.migration){
+      config.node["block-validator"]["espresso"] = false;
+      config.node["block-validator"]["light-client-address"] = "";
+    }
     config.node["batch-poster"]["hotshot-url"] = "";
     config.node["batch-poster"]["light-client-address"] = "";
-    config.node["transaction-streamer"] = {
+    if (!argv.migration){
+      config.node["transaction-streamer"] = {
       "sovereign-sequencer-enabled": false,
       "hotshot-url": "",
       "espresso-namespace": 412346,
-    };
+      };
+    }
+    
   }
 
   baseConfig.node["data-availability"]["sequencer-inbox-address"] =
@@ -314,11 +319,12 @@ function writeConfigs(argv: any) {
     simpleConfig.node.staker["use-smart-contract-wallet"] = true;
     simpleConfig.node.staker.dangerous["without-block-validator"] = true;
     simpleConfig.node.sequencer = true;
+    console.log(simpleConfig.node.dangerous);
     simpleConfig.node.dangerous["no-sequencer-coordinator"] = true;
     simpleConfig.node["delayed-sequencer"].enable = true;
     simpleConfig.node["batch-poster"].enable = true;
     simpleConfig.node["batch-poster"]["redis-url"] = "";
-    if (argv.espresso) {
+    if (argv.espresso && !argv.migration) {
       simpleConfig.node["transaction-streamer"]["hotshot-url"] =
         argv.espressoUrl;
       simpleConfig.node["transaction-streamer"]["sovereign-sequencer-enabled"] =
@@ -334,9 +340,12 @@ function writeConfigs(argv: any) {
       simpleConfig.node["batch-poster"]["hotshot-url"] = argv.espressoUrl;
       simpleConfig.node["batch-poster"]["light-client-address"] =
         argv.lightClientAddress;
-      simpleConfig.node["block-validator"]["espresso"] = true;
-      simpleConfig.node["block-validator"]["light-client-address"] =
-        argv.lightClientAddress;
+      if (!argv.migration){
+        simpleConfig.node["block-validator"]["espresso"] = true;
+        simpleConfig.node["block-validator"]["light-client-address"] =
+          argv.lightClientAddress;
+
+      }
       simpleConfig.node["block-validator"]["dangerous"][
         "reset-block-validation"
       ] = true;
@@ -386,9 +395,12 @@ function writeConfigs(argv: any) {
     validatorConfig.node.staker.enable = true;
     validatorConfig.node.staker["use-smart-contract-wallet"] = true;
     if (argv.espresso) {
-      validatorConfig.node["block-validator"]["espresso"] = true;
-      validatorConfig.node["block-validator"]["light-client-address"] =
-        argv.lightClientAddress;
+      if (!argv.migration){
+        validatorConfig.node["block-validator"]["espresso"] = true;
+        validatorConfig.node["block-validator"]["light-client-address"] =
+          argv.lightClientAddress;
+
+      }
       validatorConfig.node["block-validator"]["dangerous"][
         "reset-block-validation"
       ] = true;
@@ -549,8 +561,7 @@ function writeL2ChainConfig(argv: any) {
   };
   if (argv.espresso) {
     let chainConfig = l2ChainConfig as any;
-    chainConfig.arbitrum["EnableEspresso"] = true;
-    chainConfig["espresso"] = true;
+    chainConfig.arbitrum["EspressoTEEVerifierAddress"] = "0x0";
   }
   const l2ChainConfigJSON = JSON.stringify(l2ChainConfig);
   fs.writeFileSync(
