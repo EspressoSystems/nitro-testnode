@@ -99,6 +99,9 @@ echo "Deployed ArbOSUpgradeAction at $ARBOS_UPGRADE_ACTION"
 
 # Change directories to start nitro node in new docker container with espresso image
 cd $TESTNODE_DIR
+
+docker stop nitro-testnode-sequencer-1
+docker wait nitro-testnode-sequencer-1
 # Start nitro node in new docker container with espresso image
 ./espresso-tests/create-espresso-integrated-nitro-node.bash
 # Use cast to call the upgradeExecutor and execute the L1 upgrade actions.This will point the challenge manager at the new OSP entry, as well as update the wasmModuleRoot for the rollup. ** Essential migration step ** cast send $PARENT_CHAIN_UPGRADE_EXECUTOR "execute(address, bytes)" $SEQUENCER_MIGRATION_ACTION $(cast calldata "perform()") --rpc-url $PARENT_CHAIN_RPC_URL --private-key $PRIVATE_KEY
@@ -133,17 +136,17 @@ cd $TEST_DIR
 jq -r '.arbitrum.EspressoTEEVerifierAddress |= $ESPRESSO_TEE_VERIFIER_ADDRESS' test-chain-config.json > sent-chain-config.json --arg ESPRESSO_TEE_VERIFIER_ADDRESS $ESPRESSO_TEE_VERIFIER_ADDRESS
 CHAIN_CONFIG=$(cat sent-chain-config.json) 
 # Set the chain config
-forge script --chain $CHILD_CHAIN_CHAIN_NAME contracts/child-chain/espresso-migration/SetChainConfig.s.sol:SetEspressoChainConfig  --rpc-url $INITIAL_CHILD_CHAIN_RPC_URL --broadcast -vvvv
+forge script --chain $CHILD_CHAIN_CHAIN_NAME contracts/child-chain/espresso-migration/SetChainConfig.s.sol:SetEspressoChainConfig  --rpc-url $SECOND_CHILD_CHAIN_RPC_URL --broadcast -vvvv
 cd ORBIT_ACTIONS_DIR
 # Check the upgrade happened
 
 # Grab the post upgrade ArbOS version.
-ARBOS_VERSION_AFTER_UPGRADE=$(cast call "0x0000000000000000000000000000000000000064" "arbOSVersion()(uint64)" --rpc-url $CHILD_CHAIN_RPC_URL)
+ARBOS_VERSION_AFTER_UPGRADE=$(cast call "0x0000000000000000000000000000000000000064" "arbOSVersion()(uint64)" --rpc-url $SECOND_CHILD_CHAIN_RPC_URL)
 # Wait to observe the ArbOS version update. (potentially add a timeout or max retry number before failing)
 while [ $ARBOS_VERSION_BEFORE_UPGRADE == $ARBOS_VERSION_AFTER_UPGRADE ]
 do
   sleep 5
-  ARBOS_VERSION_AFTER_UPGRADE=$(cast call "0x0000000000000000000000000000000000000064" "arbOSVersion()(uint64)" --rpc-url $CHILD_CHAIN_RPC_URL)
+  ARBOS_VERSION_AFTER_UPGRADE=$(cast call "0x0000000000000000000000000000000000000064" "arbOSVersion()(uint64)" --rpc-url $SECOND_CHILD_CHAIN_RPC_URL)
 done
 
 # We are upgrading the ArbOS version to 35 so the expect the return value to be 55 + 35 = 90
@@ -153,15 +156,15 @@ fi
 
 # Check for balance before transfer.
 # The following sequence is to check that transactions are still successfully being sequenced on the L2
-ORIGINAL_OWNER_BALANCE=$(cast balance $OWNER_ADDRESS -e --rpc-url $CHILD_CHAIN_RPC_URL)
+ORIGINAL_OWNER_BALANCE=$(cast balance $OWNER_ADDRESS -e --rpc-url $SECOND_CHILD_CHAIN_RPC_URL)
 
 # Send 1 eth as the owner
 RECIPIENT_ADDRESS=0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-BALANCE_ORIG=$(cast balance $RECIPIENT_ADDRESS -e --rpc-url $CHILD_CHAIN_RPC_URL)
-cast send $RECIPIENT_ADDRESS --value 1ether --rpc-url $CHILD_CHAIN_RPC_URL --private-key $PRIVATE_KEY
+BALANCE_ORIG=$(cast balance $RECIPIENT_ADDRESS -e --rpc-url $SECOND_CHILD_CHAIN_RPC_URL)
+cast send $RECIPIENT_ADDRESS --value 1ether --rpc-url $SECOND_CHILD_CHAIN_RPC_URL --private-key $PRIVATE_KEY
 
 # Get the new balance after the transfer.
-BALANCE_NEW=$(cast balance $RECIPIENT_ADDRESS -e --rpc-url $CHILD_CHAIN_RPC_URL)
+BALANCE_NEW=$(cast balance $RECIPIENT_ADDRESS -e --rpc-url $SECOND_CHILD_CHAIN_RPC_URL)
 
 # Assertion that balance should have changed.
 if [ $BALANCE_NEW == $BALANCE_ORIG ]; then
