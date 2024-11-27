@@ -103,7 +103,7 @@ cd $TESTNODE_DIR
 echo "Executed SequencerMigrationAction via UpgradeExecutor"
 
 # Get the number of confirmed nodes before the upgrade to ensure the staker is still working.
-NUM_CONFIRMED_NODES_BEFORE_UPGRADE=$(cast call --rpc-url $PARENT_CHAIN_RPC_URL $ROLLUjjP_ADDRESS 'latestConfirmed()(uint256)')
+NUM_CONFIRMED_NODES_BEFORE_UPGRADE=$(cast call --rpc-url $PARENT_CHAIN_RPC_URL $ROLLUP_ADDRESS 'latestConfirmed()(uint256)')
 
 
 # Wait for CHILD_CHAIN_RPC_URL to be available
@@ -125,9 +125,13 @@ ARBOS_VERSION_BEFORE_UPGRADE=$(cast call "0x000000000000000000000000000000000000
 # Use the Upgrde executor on the child chain to execute the ArbOS upgrade to signify that the node is now operating in espresso mode. This is essential for the migration.
 # ** Essential migration step ** This step can technically be done before all of the others as it is just scheduling the ArbOS upgrade. The unix timestamp at which the upgrade occurrs can be determined by operators, but for the purposes of the test we use 0 to upgrade immediately.
 cast send $CHILD_CHAIN_UPGRADE_EXECUTOR_ADDRESS "execute(address, bytes)" $ARBOS_UPGRADE_ACTION $(cast calldata "perform()") --rpc-url $SECOND_CHILD_CHAIN_RPC_URL --private-key $PRIVATE_KEY
+cd $TEST_DIR
+# write tee verifier address into chain config
+jq -r '.arbitrum.EspressoTEEVerifierAddress |= $ESPRESSO_TEE_VERIFIER_ADDRESS' test-chain-config.json > sent-chain-config.json --arg ESPRESSO_TEE_VERIFIER_ADDRESS $ESPRESSO_TEE_VERIFIER_ADDRESS
+CHAIN_CONFIG=$(cat sent-chain-config.json) 
 # Set the chain config
 forge script --chain $CHILD_CHAIN_CHAIN_NAME contracts/child-chain/espresso-migration/SetChainConfig.s.sol:SetEspressoChainConfig  --rpc-url $INITIAL_CHILD_CHAIN_RPC_URL --broadcast -vvvv
-
+cd ORBIT_ACTIONS_DIR
 # Check the upgrade happened
 
 # Grab the post upgrade ArbOS version.
