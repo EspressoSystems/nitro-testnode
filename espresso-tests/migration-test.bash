@@ -135,9 +135,10 @@ cd $TEST_DIR
 # write tee verifier address into chain config
 jq -r '.arbitrum.EspressoTEEVerifierAddress |= $ESPRESSO_TEE_VERIFIER_ADDRESS' test-chain-config.json > sent-chain-config.json --arg ESPRESSO_TEE_VERIFIER_ADDRESS $ESPRESSO_TEE_VERIFIER_ADDRESS
 CHAIN_CONFIG=$(cat sent-chain-config.json) 
+
+cd $ORBIT_ACTIONS_DIR
 # Set the chain config
 forge script --chain $CHILD_CHAIN_CHAIN_NAME contracts/child-chain/espresso-migration/SetChainConfig.s.sol:SetEspressoChainConfig  --rpc-url $SECOND_CHILD_CHAIN_RPC_URL --broadcast -vvvv
-cd ORBIT_ACTIONS_DIR
 # Check the upgrade happened
 
 # Grab the post upgrade ArbOS version.
