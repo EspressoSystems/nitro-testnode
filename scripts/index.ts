@@ -42,6 +42,7 @@ async function main() {
       lightClientAddress: { string: true, description: 'address of the light client contract', default: ''},
       enableEspressoFinalityNode: {boolean: true, description: 'enable finality node', default: false},
       simpleWithValidator: {boolean: true, description: 'start a simple node that validates', default: false},
+      migration: {boolean :true, description: 'write configs compatible with the migration test', default: false},
     })
     .command(bridgeFundsCommand)
     .command(bridgeToL3Command)
