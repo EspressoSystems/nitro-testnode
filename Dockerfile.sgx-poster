@@ -8,4 +8,11 @@ EXPOSE 8547
 EXPOSE 8548
 
 ENV AZTEC_SRS_PATH=/home/user/kzg10-aztec20-srs-1048584.bin
-ENTRYPOINT ["env", "HOME=/home/user", "/usr/local/bin/nitro", "--validation.wasm.enable-wasmroots-check=false", "--conf.file", "/config/poster_config.json"]
+ENV HOME=/home/user
+
+COPY --chown=user:user entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+USER user
+
+ENTRYPOINT ["/entrypoint.sh"]
