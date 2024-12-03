@@ -26,17 +26,17 @@ yarn
 cd "$TESTNODE_DIR"
 
 # Initialize a standard network not compatible with espresso to simulate a pre-upgrade orbit network e.g. not needed for the real migration
-./test-node.bash --simple --init-force --tokenbridge --detach --no-build-utils 
+./test-node.bash --simple --init-force --tokenbridge --detach --no-build-utils
 
 # Start espresso sequencer node for the purposes of the test e.g. not needed for the real migration.
 docker compose up espresso-dev-node --detach
 
 # Export environment variables in .env file
-# A similar env file should be supplied for whatever 
+# A similar env file should be supplied for whatever
 . "$TEST_DIR/.env"
 
 # Overwrite the ROLLUP_ADDRESS for this test, it might not be the same as the one in the .env file
-#* Essential migration sub step * This address (the rollup proxy address) is likely a known address to operators. 
+#* Essential migration sub step * This address (the rollup proxy address) is likely a known address to operators.
 ROLLUP_ADDRESS=$(docker compose run --entrypoint cat scripts /config/deployed_chain_info.json | jq -r '.[0].rollup.rollup' | tail -n 1 | tr -d '\r\n')
 
 # A convoluted way to get the address of the child chain upgrade executor, maybe there's a better way?
@@ -101,7 +101,7 @@ docker stop nitro-testnode-sequencer-1
 docker wait nitro-testnode-sequencer-1
 # Start nitro node in new docker container with espresso image
 ./espresso-tests/create-espresso-integrated-nitro-node.bash
-# Use cast to call the upgradeExecutor and execute the L1 upgrade actions.This will point the challenge manager at the new OSP entry, as well as update the wasmModuleRoot for the rollup. ** Essential migration step ** 
+# Use cast to call the upgradeExecutor and execute the L1 upgrade actions.This will point the challenge manager at the new OSP entry, as well as update the wasmModuleRoot for the rollup. ** Essential migration step **
 cast send $PARENT_CHAIN_UPGRADE_EXECUTOR "execute(address, bytes)" $SEQUENCER_MIGRATION_ACTION $(cast calldata "perform()") --rpc-url $PARENT_CHAIN_RPC_URL --private-key $PRIVATE_KEY
 
 echo "Executed SequencerMigrationAction via UpgradeExecutor"
@@ -132,7 +132,7 @@ cast send $CHILD_CHAIN_UPGRADE_EXECUTOR_ADDRESS "execute(address, bytes)" $ARBOS
 cd $TEST_DIR
 # write tee verifier address into chain config
 jq -r '.arbitrum.EspressoTEEVerifierAddress |= $ESPRESSO_TEE_VERIFIER_ADDRESS' test-chain-config.json > sent-chain-config.json --arg ESPRESSO_TEE_VERIFIER_ADDRESS $ESPRESSO_TEE_VERIFIER_ADDRESS
-CHAIN_CONFIG=$(cat sent-chain-config.json) 
+CHAIN_CONFIG=$(cat sent-chain-config.json)
 
 cast send $CHILD_CHAIN_UPGRADE_EXECUTOR_ADDRESS $(cast calldata "executeCall(address, bytes)" "0x0000000000000000000000000000000000000070" $(cast calldata "setChainConfig(string)" "$CHAIN_CONFIG")) --rpc-url $SECOND_CHILD_CHAIN_RPC_URL --private-key $PRIVATE_KEY
 # Set the chain config
