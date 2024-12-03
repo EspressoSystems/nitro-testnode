@@ -104,7 +104,8 @@ docker stop nitro-testnode-sequencer-1
 docker wait nitro-testnode-sequencer-1
 # Start nitro node in new docker container with espresso image
 ./espresso-tests/create-espresso-integrated-nitro-node.bash
-# Use cast to call the upgradeExecutor and execute the L1 upgrade actions.This will point the challenge manager at the new OSP entry, as well as update the wasmModuleRoot for the rollup. ** Essential migration step ** cast send $PARENT_CHAIN_UPGRADE_EXECUTOR "execute(address, bytes)" $SEQUENCER_MIGRATION_ACTION $(cast calldata "perform()") --rpc-url $PARENT_CHAIN_RPC_URL --private-key $PRIVATE_KEY
+# Use cast to call the upgradeExecutor and execute the L1 upgrade actions.This will point the challenge manager at the new OSP entry, as well as update the wasmModuleRoot for the rollup. ** Essential migration step ** 
+cast send $PARENT_CHAIN_UPGRADE_EXECUTOR "execute(address, bytes)" $SEQUENCER_MIGRATION_ACTION $(cast calldata "perform()") --rpc-url $PARENT_CHAIN_RPC_URL --private-key $PRIVATE_KEY
 
 echo "Executed SequencerMigrationAction via UpgradeExecutor"
 
@@ -136,9 +137,9 @@ cd $TEST_DIR
 jq -r '.arbitrum.EspressoTEEVerifierAddress |= $ESPRESSO_TEE_VERIFIER_ADDRESS' test-chain-config.json > sent-chain-config.json --arg ESPRESSO_TEE_VERIFIER_ADDRESS $ESPRESSO_TEE_VERIFIER_ADDRESS
 CHAIN_CONFIG=$(cat sent-chain-config.json) 
 
-cd $ORBIT_ACTIONS_DIR
+cast send $CHILD_CHAIN_UPGRADE_EXECUTOR_ADDRESS $(cast calldata "executeCall(address, bytes)" "0x0000000000000000000000000000000000000070" $(cast calldata "setChainConfig(string)" "$CHAIN_CONFIG")) --rpc-url $SECOND_CHILD_CHAIN_RPC_URL --private-key $PRIVATE_KEY
 # Set the chain config
-forge script --chain $CHILD_CHAIN_CHAIN_NAME contracts/child-chain/espresso-migration/SetChainConfig.s.sol:SetEspressoChainConfig  --rpc-url $SECOND_CHILD_CHAIN_RPC_URL --broadcast -vvvv
+
 # Check the upgrade happened
 
 # Grab the post upgrade ArbOS version.
@@ -185,4 +186,3 @@ echo "Confirmed nodes have progressed"
 # Echo to signal that test has been successful
 echo "Migration successfully completed!"
 
-docker compose down
