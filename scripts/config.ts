@@ -292,20 +292,8 @@ function writeConfigs(argv: any) {
 
   if (argv.espresso) {
     let config = baseConfig as any;
-    if (!argv.migration){
-      config.node["block-validator"]["espresso"] = false;
-      config.node["block-validator"]["light-client-address"] = "";
-    }
     config.node["batch-poster"]["hotshot-url"] = "";
     config.node["batch-poster"]["light-client-address"] = "";
-    if (!argv.migration){
-      config.node["transaction-streamer"] = {
-      "sovereign-sequencer-enabled": false,
-      "hotshot-url": "",
-      "espresso-namespace": 412346,
-      };
-    }
-    
   }
 
   baseConfig.node["data-availability"]["sequencer-inbox-address"] =
@@ -324,12 +312,6 @@ function writeConfigs(argv: any) {
     simpleConfig.node["delayed-sequencer"].enable = true;
     simpleConfig.node["batch-poster"].enable = true;
     simpleConfig.node["batch-poster"]["redis-url"] = "";
-    if (argv.espresso && !argv.migration) {
-      simpleConfig.node["transaction-streamer"]["hotshot-url"] =
-        argv.espressoUrl;
-      simpleConfig.node["transaction-streamer"]["sovereign-sequencer-enabled"] =
-        true;
-    }
     simpleConfig.execution["sequencer"].enable = true;
 
     if (argv.anytrust) {
@@ -340,12 +322,6 @@ function writeConfigs(argv: any) {
       simpleConfig.node["batch-poster"]["hotshot-url"] = argv.espressoUrl;
       simpleConfig.node["batch-poster"]["light-client-address"] =
         argv.lightClientAddress;
-      if (!argv.migration){
-        simpleConfig.node["block-validator"]["espresso"] = true;
-        simpleConfig.node["block-validator"]["light-client-address"] =
-          argv.lightClientAddress;
-
-      }
       simpleConfig.node["block-validator"]["dangerous"][
         "reset-block-validation"
       ] = true;
@@ -395,12 +371,6 @@ function writeConfigs(argv: any) {
     validatorConfig.node.staker.enable = true;
     validatorConfig.node.staker["use-smart-contract-wallet"] = true;
     if (argv.espresso) {
-      if (!argv.migration){
-        validatorConfig.node["block-validator"]["espresso"] = true;
-        validatorConfig.node["block-validator"]["light-client-address"] =
-          argv.lightClientAddress;
-
-      }
       validatorConfig.node["block-validator"]["dangerous"][
         "reset-block-validation"
       ] = true;
@@ -457,10 +427,6 @@ function writeConfigs(argv: any) {
       posterConfig.node["batch-poster"]["hotshot-url"] = argv.espressoUrl;
       posterConfig.node["batch-poster"]["light-client-address"] =
         argv.lightClientAddress;
-      posterConfig.node["transaction-streamer"]["hotshot-url"] =
-        argv.espressoUrl;
-      posterConfig.node["transaction-streamer"]["sovereign-sequencer-enabled"] =
-        true;
     } else {
       posterConfig.node["seq-coordinator"].enable = true;
     }
