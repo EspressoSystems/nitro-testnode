@@ -60,6 +60,8 @@ ESPRESSO_TEE_VERIFIER_ADDRESS=$(cat broadcast/DeployMockVerifier.s.sol/1337/run-
 echo "Mock TEE Address:"
 echo $ESPRESSO_TEE_VERIFIER_ADDRESS
 
+READER_ADDR=$(docker compose run --entrypoint sh rollupcreator -c "cat /config/reader_addr.json")
+
 # Echo for debug
 echo "Deploying and initializing Espresso SequencerInbox"
 # ** Essential migration step ** Forge script to deploy the new SequencerInbox. We do this to later point the rollups challenge manager to the espresso integrated OSP.
