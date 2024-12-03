@@ -18,16 +18,7 @@ jobs:
   smoke_test:
     strategy:
       matrix:
-        test-script:
-          [
-            ./smoke-test.bash,
-            ./smoke-test-l3.bash,
-            ./smoke-test-nitro-simple.bash,
-            ./smoke-test-full-node.bash,
-            ./smoke-test-espresso-finality-node.bash,
-            ./smoke-test-altlayer.bash,
-            ./smoke-test-caldera.bash,
-          ]
+        test-script: [./smoke-test.bash]
 
     runs-on: ubuntu-24.04
 

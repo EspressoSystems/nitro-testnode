@@ -394,7 +394,6 @@ function writeConfigs(argv: any) {
     sequencerConfig.node["delayed-sequencer"].enable = true;
 
     if (argv.espresso) {
-      sequencerConfig.execution.sequencer["enable-espresso-sovereign"] = true;
       sequencerConfig.node.feed.output.enable = true;
       sequencerConfig.node.dangerous["no-sequencer-coordinator"] = true;
     } else {
@@ -404,7 +403,6 @@ function writeConfigs(argv: any) {
     if (argv.espresso && argv.enableEspressoFinalityNode) {
       sequencerConfig.execution.sequencer["enable-espresso-finality-node"] =
         true;
-      sequencerConfig.execution.sequencer["enable-espresso-sovereign"] = false;
       sequencerConfig.execution.sequencer["espresso-finality-node-config"] = {
         "hotshot-url": argv.espressoUrl,
         "start-block": 0,
@@ -459,7 +457,6 @@ function writeConfigs(argv: any) {
   l3Config.node["batch-poster"].enable = true;
   l3Config.node["batch-poster"]["redis-url"] = "";
   if (argv.espresso) {
-    l3Config.execution.sequencer["enable-espresso-sovereign"] = true;
     l3Config.node.feed.output.enable = true;
     l3Config.node.dangerous["no-sequencer-coordinator"] = true;
   }
@@ -527,7 +524,8 @@ function writeL2ChainConfig(argv: any) {
   };
   if (argv.espresso) {
     let chainConfig = l2ChainConfig as any;
-    chainConfig.arbitrum["EspressoTEEVerifierAddress"] = "0x0";
+    chainConfig.arbitrum["EspressoTEEVerifierAddress"] =
+      "0x5eCF728ffC5C5E802091875f96281B5aeECf6C49";
   }
   const l2ChainConfigJSON = JSON.stringify(l2ChainConfig);
   fs.writeFileSync(

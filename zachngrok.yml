@@ -1,0 +1,19 @@
+version: 3
+agent:
+  authtoken: 2oj5ysWIVjDICxE89VX1boBXgvO_4YeVJniPUNqW1e2LNkFqx
+tunnels:
+  tunnel1:
+    addr: 127.0.0.1:8546
+    proto: http
+    schemes:
+      - http
+  tunnel2:
+    addr: 127.0.0.1:41000
+    proto: http
+    schemes:
+      - http
+  tunnel3:
+    addr: 127.0.0.1:9642
+    proto: http
+    schemes:
+      - http
