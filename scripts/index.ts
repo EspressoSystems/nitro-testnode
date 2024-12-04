@@ -41,6 +41,7 @@ async function main() {
       espressoUrl: { string: true, description: 'Espresso Sequencer url', default: 'http://espresso-dev-node:41000' },
       lightClientAddress: { string: true, description: 'address of the light client contract', default: ''},
       enableEspressoFinalityNode: {boolean: true, description: 'enable finality node', default: false},
+      simpleWithValidator: {boolean: true, description: 'start a simple node that validates', default: false},
     })
     .command(bridgeFundsCommand)
     .command(bridgeToL3Command)

@@ -15,8 +15,6 @@ services:
         bin/blockscout eval "Elixir.Explorer.ReleaseTasks.create_and_migrate()"
         node init/install.js postgres 5432
         bin/blockscout start
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     env_file:
       - ./blockscout/nitro.env
     environment:
@@ -444,8 +442,6 @@ services:
       timeout: 10s
       retries: 5
       start_period: 40s
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
 
   # Reads from sequencer feed, forwards transactions to sequencer
   full-node:

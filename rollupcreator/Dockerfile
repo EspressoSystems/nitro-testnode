@@ -8,6 +8,8 @@ RUN git clone --branch ${NITRO_CONTRACTS_BRANCH} --recurse-submodules ${NITRO_CO
 RUN curl -L https://foundry.paradigm.xyz | bash
 ENV PATH="${PATH}:/root/.foundry/bin"
 RUN foundryup
+RUN forge update lib/forge-std
+RUN git submodule update --init --recursive
 RUN touch scripts/config.ts
 RUN yarn install
 RUN yarn build:all
