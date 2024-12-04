@@ -178,9 +178,9 @@ services:
     image: espresso-integration-testnode
     entrypoint: /usr/local/bin/nitro
     ports:
-      - "127.0.0.1:8549:8547"
-      - "127.0.0.1:8550:8548"
-      - "127.0.0.1:9643:9642"
+      - "127.0.0.1:8547:8547"
+      - "127.0.0.1:8548:8548"
+      - "127.0.0.1:9642:9642"
     volumes:
       - "seqdata:/home/user/.arbitrum/local/nitro"
       - "l1keystore:/home/user/l1keystore"
