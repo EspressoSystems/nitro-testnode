@@ -12,7 +12,7 @@ on:
 
 jobs:
   build_and_run:
-    runs-on: ubuntu-8
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         pos: [pos, no-pos]
