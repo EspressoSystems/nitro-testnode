@@ -9,6 +9,8 @@ RUN git checkout ${NITRO_CONTRACTS_BRANCH}
 RUN curl -L https://foundry.paradigm.xyz | bash
 ENV PATH="${PATH}:/root/.foundry/bin"
 RUN foundryup
+RUN forge update lib/forge-std
+RUN git submodule update --init --recursive
 RUN touch scripts/config.ts
 RUN yarn install
 RUN yarn build:all
