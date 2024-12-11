@@ -246,7 +246,7 @@ function writeConfigs(argv: any) {
           url: argv.validationNodeUrl,
           jwtsecret: valJwtSecret,
         },
-        "dangerous": {"reset-block-validation": false},
+        dangerous: { "reset-block-validation": false },
       },
       feed: {
         input: {
@@ -292,15 +292,8 @@ function writeConfigs(argv: any) {
 
   if (argv.espresso) {
     let config = baseConfig as any;
-    config.node["block-validator"]["espresso"] = false;
-    config.node["block-validator"]["light-client-address"] = "";
     config.node["batch-poster"]["hotshot-url"] = "";
     config.node["batch-poster"]["light-client-address"] = "";
-    config.node["transaction-streamer"] = {
-      "sovereign-sequencer-enabled": false,
-      "hotshot-url": "",
-      "espresso-namespace": 412346,
-    };
   }
 
   baseConfig.node["data-availability"]["sequencer-inbox-address"] =
@@ -318,12 +311,6 @@ function writeConfigs(argv: any) {
     simpleConfig.node["delayed-sequencer"].enable = true;
     simpleConfig.node["batch-poster"].enable = true;
     simpleConfig.node["batch-poster"]["redis-url"] = "";
-    if (argv.espresso) {
-      simpleConfig.node["transaction-streamer"]["hotshot-url"] =
-        argv.espressoUrl;
-      simpleConfig.node["transaction-streamer"]["sovereign-sequencer-enabled"] =
-        true;
-    }
     simpleConfig.execution["sequencer"].enable = true;
 
     if (argv.anytrust) {
@@ -333,9 +320,6 @@ function writeConfigs(argv: any) {
       simpleConfig.node.feed.output.enable = true;
       simpleConfig.node["batch-poster"]["hotshot-url"] = argv.espressoUrl;
       simpleConfig.node["batch-poster"]["light-client-address"] =
-        argv.lightClientAddress;
-      simpleConfig.node["block-validator"]["espresso"] = true;
-      simpleConfig.node["block-validator"]["light-client-address"] =
         argv.lightClientAddress;
       simpleConfig.node["block-validator"]["dangerous"][
         "reset-block-validation"
@@ -386,9 +370,6 @@ function writeConfigs(argv: any) {
     validatorConfig.node.staker.enable = true;
     validatorConfig.node.staker["use-smart-contract-wallet"] = true;
     if (argv.espresso) {
-      validatorConfig.node["block-validator"]["espresso"] = true;
-      validatorConfig.node["block-validator"]["light-client-address"] =
-        argv.lightClientAddress;
       validatorConfig.node["block-validator"]["dangerous"][
         "reset-block-validation"
       ] = true;
@@ -412,7 +393,6 @@ function writeConfigs(argv: any) {
     sequencerConfig.node["delayed-sequencer"].enable = true;
 
     if (argv.espresso) {
-      sequencerConfig.execution.sequencer["enable-espresso-sovereign"] = true;
       sequencerConfig.node.feed.output.enable = true;
       sequencerConfig.node.dangerous["no-sequencer-coordinator"] = true;
     } else {
@@ -422,7 +402,6 @@ function writeConfigs(argv: any) {
     if (argv.espresso && argv.enableEspressoFinalityNode) {
       sequencerConfig.execution.sequencer["enable-espresso-finality-node"] =
         true;
-      sequencerConfig.execution.sequencer["enable-espresso-sovereign"] = false;
       sequencerConfig.execution.sequencer["espresso-finality-node-config"] = {
         "hotshot-url": argv.espressoUrl,
         "start-block": 0,
@@ -445,10 +424,6 @@ function writeConfigs(argv: any) {
       posterConfig.node["batch-poster"]["hotshot-url"] = argv.espressoUrl;
       posterConfig.node["batch-poster"]["light-client-address"] =
         argv.lightClientAddress;
-      posterConfig.node["transaction-streamer"]["hotshot-url"] =
-        argv.espressoUrl;
-      posterConfig.node["transaction-streamer"]["sovereign-sequencer-enabled"] =
-        true;
     } else {
       posterConfig.node["seq-coordinator"].enable = true;
     }
@@ -481,7 +456,6 @@ function writeConfigs(argv: any) {
   l3Config.node["batch-poster"].enable = true;
   l3Config.node["batch-poster"]["redis-url"] = "";
   if (argv.espresso) {
-    l3Config.execution.sequencer["enable-espresso-sovereign"] = true;
     l3Config.node.feed.output.enable = true;
     l3Config.node.dangerous["no-sequencer-coordinator"] = true;
   }
@@ -549,8 +523,8 @@ function writeL2ChainConfig(argv: any) {
   };
   if (argv.espresso) {
     let chainConfig = l2ChainConfig as any;
-    chainConfig.arbitrum["EnableEspresso"] = true;
-    chainConfig["espresso"] = true;
+    chainConfig.arbitrum["EspressoTEEVerifierAddress"] =
+      "0x5eCF728ffC5C5E802091875f96281B5aeECf6C49";
   }
   const l2ChainConfigJSON = JSON.stringify(l2ChainConfig);
   fs.writeFileSync(
