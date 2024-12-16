@@ -294,6 +294,7 @@ function writeConfigs(argv: any) {
     let config = baseConfig as any;
     config.node["batch-poster"]["hotshot-url"] = "";
     config.node["batch-poster"]["light-client-address"] = "";
+    config.node["batch-poster"]["espresso-tee-verifier-address"] = "";
   }
 
   baseConfig.node["data-availability"]["sequencer-inbox-address"] =
@@ -321,6 +322,7 @@ function writeConfigs(argv: any) {
       simpleConfig.node["batch-poster"]["hotshot-url"] = argv.espressoUrl;
       simpleConfig.node["batch-poster"]["light-client-address"] =
         argv.lightClientAddress;
+      simpleConfig.node["batch-poster"]["espresso-tee-verifier-address"] = '0xa0ee7a142d267c1f36714e4a8f75612f20a79480' //TODO: take an argument with a defualt value
       simpleConfig.node["block-validator"]["dangerous"][
         "reset-block-validation"
       ] = true;
