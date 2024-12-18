@@ -523,8 +523,7 @@ function writeL2ChainConfig(argv: any) {
   };
   if (argv.espresso) {
     let chainConfig = l2ChainConfig as any;
-    chainConfig.arbitrum["EnableEspresso"] = true;
-    chainConfig["espresso"] = true;
+    chainConfig.arbitrum["EspressoTEEVerifierAddress"]= "0x5F1f60F24be95C7cfC430bfcf0001D4701BE1231"
   }
   const l2ChainConfigJSON = JSON.stringify(l2ChainConfig);
   fs.writeFileSync(
