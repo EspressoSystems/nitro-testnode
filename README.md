@@ -90,6 +90,6 @@ While not a named account, 0x3f1eae7d46d88f08fc2f8ed27fcb2ab183eb2d0e is funded 
 
 Discord - [Arbitrum](https://discord.com/invite/5KE54JwyTs)
 
-Twitter: [Arbitrum](https://twitter.com/arbitrum)
+X: [Arbitrum](https://twitter.com/arbitrum)
 
 
