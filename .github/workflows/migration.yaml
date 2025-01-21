@@ -35,10 +35,9 @@ jobs:
           authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
           extraPullNames: nix-community
           skipPush: ${{ github.actor == 'dependabot[bot]' }}
-          
-      - name: Migration Test
-        run: |
-          nix develop
-          espresso-tests/migration-test.bash
-        timeout-minutes: 45
 
+      - name: Migration Test 
+        run: |
+          nix develop $DEVSHELL --accept-flake-config --option sandbox relaxed \
+          -c espresso-tests/migration-test.bash
+        timeout-minutes: 45
