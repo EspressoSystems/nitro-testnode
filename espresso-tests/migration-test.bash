@@ -67,7 +67,7 @@ forge script --chain $PARENT_CHAIN_CHAIN_ID ../espresso-tests/DeployAndInitEspre
 
 # Extract new_osp_entry address from run-latest.json
 #  * Essential migration sub step * These addresses are likely known addresses to operators in the event of a real migration after they have deployed the new OSP contracts, however, if operators create a script for the migration, this command is useful.
-NEW_SEQUENCER_INBOX_IMPL_ADDRESS=$(cat broadcast/DeployAndInitEspressoSequencerInbox.s.sol/1337/run-latest.json | jq -r '.transactions[0].contractAddress'| cast to-checksum)
+NEW_SEQUENCER_INBOX_IMPL_ADDRESS=$(cat broadcast/DeployAndInitEspressoSequencerInboxTest.s.sol/1337/run-latest.json | jq -r '.transactions[0].contractAddress'| cast to-checksum)
 # Echo for debugging.
 echo "Deployed new SequencerInbox at $NEW_SEQUENCER_INBOX_IMPL_ADDRESS"
 
