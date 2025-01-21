@@ -38,6 +38,6 @@ jobs:
 
       - name: Migration Test 
         run: |
-          nix develop $DEVSHELL --accept-flake-config --option sandbox relaxed \
+          nix develop --accept-flake-config --option sandbox relaxed \
           -c espresso-tests/migration-test.bash
         timeout-minutes: 45
