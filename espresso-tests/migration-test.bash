@@ -89,7 +89,7 @@ ENV_FILE="$TEST_DIR/.env"
 export COMPOSE_IGNORE_ORPHANS=true
 
 info Ensuring docker compose project is stopped
-run docker compose down --remove-orphans
+run docker compose down -v --remove-orphans
 
 # Change to orbit actions directory, update the submodule, and install any dependencies for the purposes of the test.
 cd "$ORBIT_ACTIONS_DIR"
