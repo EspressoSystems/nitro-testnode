@@ -246,7 +246,7 @@ CHAIN_CONFIG=$(cat sent-chain-config.json)
 run cast send $CHILD_CHAIN_UPGRADE_EXECUTOR_ADDRESS $(cast calldata "executeCall(address, bytes)" "0x0000000000000000000000000000000000000070" $(cast calldata "setChainConfig(string)" "$CHAIN_CONFIG")) --rpc-url $CHILD_CHAIN_RPC_URL --private-key $PRIVATE_KEY
 # Set the chain config
 
-# Check the upgrade happened
+info Check the ArbOS upgrade happened
 
 # Grab the post upgrade ArbOS version.
 ARBOS_VERSION_AFTER_UPGRADE=$(cast call "0x0000000000000000000000000000000000000064" "arbOSVersion()(uint64)" --rpc-url $CHILD_CHAIN_RPC_URL)
@@ -277,7 +277,9 @@ fi
 # Echo successful balance update
 echo "Balance of $RECIPIENT_ADDRESS changed from $BALANCE_ORIG to $BALANCE_NEW"
 
-# Check that the staker is making progress after the upgrade
+info Check that the staker is making progress after the upgrade
+echo
+
 START=$SECONDS
 echo "Waiting for confirmed nodes."
 while [ "$NUM_CONFIRMED_NODES_BEFORE_UPGRADE" == "$(cast call --rpc-url $PARENT_CHAIN_RPC_URL $ROLLUP_ADDRESS 'latestConfirmed()(uint256)')" ]; do
