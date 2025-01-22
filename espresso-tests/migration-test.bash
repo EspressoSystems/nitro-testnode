@@ -36,16 +36,16 @@ function emph {
 
 # Display only the last line of piped input, continuously updating
 function fmt {
-    # Leave output unchanged in DEBUG mode
-    if [ "$DEBUG" = "true" ]; then
-      cat
-      return
-    fi
-    # rewrite the last line to avoid noisy output
-    while read -r line; do
-      tput cr; tput el; echo -n "$line";
-    done
-    echo
+  # Leave output unchanged in DEBUG mode
+  if [ "$DEBUG" = "true" ]; then
+    cat
+    return
+  fi
+  # rewrite the last line to avoid noisy output
+  while read -r line; do
+    tput cr; tput el; echo -n "$line";
+  done
+  echo
 }
 
 # Show something with a comment in front, to distinguish it from console output.
@@ -57,8 +57,23 @@ function info {
 trap "exit" INT TERM
 trap cleanup EXIT
 function cleanup {
-  rm -vf "$TESTNODE_LOG_FILE"
-  rm -vf "$ESPRESSO_DEVNODE_LOG_FILE"
+  exit_code=$?
+  if [ $exit_code -ne 0 ]; then
+    echo
+    echo "An error occurred."
+    if [ -s "$ESPRESSO_DEVNODE_LOG_FILE" ]; then
+      echo "Espresso dev node logs:"
+      cat "$ESPRESSO_DEVNODE_LOG_FILE"
+      exit $exit_code
+    elif [ -s "$TESTNODE_LOG_FILE" ]; then
+      echo "Nitro testnode logs:"
+      cat "$TESTNODE_LOG_FILE"
+      exit $exit_code
+    fi
+  else
+    rm -vf "$TESTNODE_LOG_FILE"
+    rm -vf "$ESPRESSO_DEVNODE_LOG_FILE"
+  fi
 }
 
 # Find directory of this script, the project, and the orbit-actions submodule
@@ -93,23 +108,23 @@ cd "$TESTNODE_DIR"
 info Deploying a vanilla Nitro stack locally, to be migrated to Espresso later.
 emph ./test-node.bash --simple --init-force --tokenbridge --detach --no-build-utils
 if [ "$DEBUG" = "true" ]; then
-    ./test-node.bash --simple --init-force --tokenbridge --detach --no-build-utils
+  ./test-node.bash --simple --init-force --tokenbridge --detach --no-build-utils
 else
-    info "This command starts up an entire Nitro stack. It takes a long time."
-    info "Run \`tail -f $TESTNODE_LOG_FILE\` to see logs, if necessary."
-    echo
-    ./test-node.bash --simple --init-force --tokenbridge --detach --no-build-utils > "$TESTNODE_LOG_FILE" 2>&1
+  info "This command starts up an entire Nitro stack. It takes a long time."
+  info "Run \`tail -f $TESTNODE_LOG_FILE\` to see logs, if necessary."
+  echo
+  ./test-node.bash --simple --init-force --tokenbridge --detach --no-build-utils > "$TESTNODE_LOG_FILE" 2>&1
 fi
 
 # Start espresso sequencer node for the purposes of the test e.g. not needed for the real migration.
 info "Starting a local Espresso confirmation layer development node"
 emph docker compose up espresso-dev-node --detach
 if [ "$DEBUG" = "true" ]; then
-    docker compose up espresso-dev-node --detach
+  docker compose up espresso-dev-node --detach
 else
-    info "Run \`tail -f $ESPRESSO_DEVNODE_LOG_FILE\` to see logs, if necessary."
-    echo
-    docker compose up espresso-dev-node --detach > "$ESPRESSO_DEVNODE_LOG_FILE" 2>&1
+  info "Run \`tail -f $ESPRESSO_DEVNODE_LOG_FILE\` to see logs, if necessary."
+  echo
+  docker compose up espresso-dev-node --detach > "$ESPRESSO_DEVNODE_LOG_FILE" 2>&1
 fi
 
 info "Load environment variables in $ENV_FILE"
@@ -123,7 +138,7 @@ cat "$TEST_DIR/.env" | sed 's/^/    /'
 echo
 
 function trim-last {
-   tail -n 1 | tr -d '\r\n'
+  tail -n 1 | tr -d '\r\n'
 
 }
 function get-addr {
