@@ -43,7 +43,9 @@ function fmt {
   fi
   # rewrite the last line to avoid noisy output
   while read -r line; do
-    tput cr; tput el; echo -n "$line";
+    tput cr
+    tput el
+    echo "$line" | cut -c -"$(tput cols)" | tr -d '\r\n'
   done
   echo
 }
@@ -83,6 +85,11 @@ ESPRESSO_DEVNODE_LOG_FILE=$(mktemp -t espresso-dev-node-logs-XXXXXXXX)
 TESTNODE_DIR="$(dirname "$TEST_DIR")"
 ORBIT_ACTIONS_DIR="$TESTNODE_DIR/orbit-actions"
 ENV_FILE="$TEST_DIR/.env"
+# Hide docker compose warnings about orphaned containers.
+export COMPOSE_IGNORE_ORPHANS=true
+
+info Ensuring docker compose project is stopped
+run docker compose down --remove-orphans
 
 # Change to orbit actions directory, update the submodule, and install any dependencies for the purposes of the test.
 cd "$ORBIT_ACTIONS_DIR"
@@ -144,7 +151,7 @@ function trim-last {
 function get-addr {
   local file="$1"
   local path="$2"
-  docker compose run --entrypoint cat scripts $file 2>/dev/null | jq -r "$path" | trim-last
+  docker compose run --entrypoint cat scripts $file | jq -r "$path" | trim-last
 }
 
 # Overwrite the ROLLUP_ADDRESS for this test, it might not be the same as the one in the .env file
@@ -174,8 +181,8 @@ OWNER_ADDRESS="$(docker compose run scripts print-address --account l2owner 2>/d
 declare -p OWNER_ADDRESS
 
 cd $ORBIT_ACTIONS_DIR
-info "Deploying mock espresso tee verifier"
-forge script --chain $PARENT_CHAIN_CHAIN_ID ../espresso-tests/DeployMockVerifier.s.sol:DeployMockVerifier --rpc-url $PARENT_CHAIN_RPC_URL --broadcast -vvvv
+info "Deploying mock espresso TEE verifier"
+run forge script --chain $PARENT_CHAIN_CHAIN_ID ../espresso-tests/DeployMockVerifier.s.sol:DeployMockVerifier --rpc-url $PARENT_CHAIN_RPC_URL --broadcast -vvvv
 
 ESPRESSO_TEE_VERIFIER_ADDRESS=$(cat broadcast/DeployMockVerifier.s.sol/1337/run-latest.json | jq -r '.transactions[0].contractAddress' | cast to-checksum)
 declare -p ESPRESSO_TEE_VERIFIER_ADDRESS
@@ -183,7 +190,7 @@ declare -p ESPRESSO_TEE_VERIFIER_ADDRESS
 # Echo for debug
 info "Deploying and initializing Espresso SequencerInbox"
 # ** Essential migration step ** Forge script to deploy the new SequencerInbox. We do this to later point the rollups challenge manager to the espresso integrated OSP.
-forge script --chain $PARENT_CHAIN_CHAIN_ID ../espresso-tests/DeployAndInitEspressoSequencerInboxForTest.s.sol:DeployAndInitEspressoSequencerInbox --rpc-url $PARENT_CHAIN_RPC_URL --broadcast -vvvv --skip-simulation
+run forge script --chain $PARENT_CHAIN_CHAIN_ID ../espresso-tests/DeployAndInitEspressoSequencerInboxForTest.s.sol:DeployAndInitEspressoSequencerInbox --rpc-url $PARENT_CHAIN_RPC_URL --broadcast -vvvv --skip-simulation
 
 #  * Essential migration sub step * These addresses are likely known addresses to operators in the event of a real migration after they have deployed the new OSP contracts, however, if operators create a script for the migration, this command is useful.
 NEW_SEQUENCER_INBOX_IMPL_ADDRESS=$(cat broadcast/DeployAndInitEspressoSequencerInboxForTest.s.sol/1337/run-latest.json | jq -r '.receipts[0].contractAddress'| cast to-checksum)
@@ -308,4 +315,4 @@ echo "Confirmed nodes have progressed"
 # Echo to signal that test has been successful
 echo "Migration successfully completed!"
 
-docker compose down
+docker compose down --remove-orphans
