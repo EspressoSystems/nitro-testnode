@@ -151,7 +151,7 @@ declare -p CHILD_CHAIN_UPGRADE_EXECUTOR_ADDRESS
 # Export l2 owner private key and address
 # These commands are exclusive to the test.
 # * Essential migration sub step * These addresses are likely known addresses to operators in the event of a real migration
-PRIVATE_KEY="$(docker compose run scripts print-private-key --account l2owner 2>dev/null | trim-last)"
+PRIVATE_KEY="$(docker compose run scripts print-private-key --account l2owner 2>/dev/null | trim-last)"
 # This is a private key used for testing, save to print
 declare -p PRIVATE_KEY
 
