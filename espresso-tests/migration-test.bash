@@ -6,68 +6,157 @@ fail(){
 
 set -euo pipefail
 set -a # automatically export all variables
-set -x # print each command before executing it, for debugging
+# set -x # print each command before executing it, for debugging
 
+# CI is "true" in the CI
+CI="${CI:-false}"
 
+# Output debug information on CI
+DEBUG="${DEBUG:-false}"
+if [ "$CI" = "true" ]; then
+  set -x
+  DEBUG=true
+fi
+
+# Show the command we are running, then run it. Due to piping this spawns a
+# subshell so does not work for command like `cd` or `source`.
+function run {
+  echo -e "\033[34m>>> $*\033[0m"
+  "$@" 2>&1 | fmt
+}
+
+function cd {
+  emph "cd $*"
+  builtin cd "$@"
+}
+
+function emph {
+  echo -e "\033[34m>>> $*\033[0m\n"
+}
+
+# Display only the last line of piped input, continuously updating
+function fmt {
+    # Leave output unchanged in DEBUG mode
+    if [ "$DEBUG" = "true" ]; then
+      cat
+      return
+    fi
+    # rewrite the last line to avoid noisy output
+    while read -r line; do
+      tput cr; tput el; echo -n "$line";
+    done
+    echo
+}
+
+# Remove log files on exit
+trap "exit" INT TERM
+trap cleanup EXIT
+function cleanup {
+  rm -vf "$TESTNODE_LOG_FILE"
+  rm -vf "$ESPRESSO_DEVNODE_LOG_FILE"
+}
 
 # Find directory of this script, the project, and the orbit-actions submodule
 TEST_DIR="$(dirname $(readlink -f $0))"
+TESTNODE_LOG_FILE=$(mktemp -t nitro-test-node-logs-XXXXXXXX)
+ESPRESSO_DEVNODE_LOG_FILE=$(mktemp -t espresso-dev-node-logs-XXXXXXXX)
 TESTNODE_DIR="$(dirname "$TEST_DIR")"
 ORBIT_ACTIONS_DIR="$TESTNODE_DIR/orbit-actions"
 
 # Change to orbit actions directory, update the submodule, and install any dependencies for the purposes of the test.
 cd "$ORBIT_ACTIONS_DIR"
 
-git submodule update --init
-forge update
-yarn
+run git submodule update --init --recursive
+
+run yarn
+
+# ensure we can compile the contracts
+run forge build
 
 # Change to the top level directory for the purposes of the test.
 cd "$TESTNODE_DIR"
 
+# NOTE: the test-node.bash script (or potentially docker compose) does not work
+# well with the `fmt` utility function and hangs at the end. I don't know why.
+# Furthermore the long warning lines don't work with the `fmt` function but I
+# can't work out a way to be able to filter the lines (e. g. grep -v WARN) and
+# still have the output show up.
+
 # Initialize a standard network not compatible with espresso to simulate a pre-upgrade orbit network e.g. not needed for the real migration
-./test-node.bash --simple --init-force --tokenbridge --detach --no-build-utils
+emph ./test-node.bash --simple --init-force --tokenbridge --detach --no-build-utils
+if [ "$DEBUG" = "true" ]; then
+    ./test-node.bash --simple --init-force --tokenbridge --detach --no-build-utils
+else
+    echo "This command starts up an entire Nitro stack. It takes a long time."
+    echo "Run \`tail -f $TESTNODE_LOG_FILE\` to see logs, if necessary."
+    ./test-node.bash --simple --init-force --tokenbridge --detach --no-build-utils > "$TESTNODE_LOG_FILE" 2>&1
+fi
 
 # Start espresso sequencer node for the purposes of the test e.g. not needed for the real migration.
-docker compose up espresso-dev-node --detach
+emph docker compose up espresso-dev-node --detach
+if [ "$DEBUG" = "true" ]; then
+    docker compose up espresso-dev-node --detach
+else
+    echo "Run \`tail -f $ESPRESSO_DEVNODE_LOG_FILE\` to see logs, if necessary."
+    docker compose up espresso-dev-node --detach > "$ESPRESSO_DEVNODE_LOG_FILE" 2>&1
+fi
 
 # Export environment variables in .env file
 # A similar env file should be supplied for whatever
+emph . "$TEST_DIR/.env"
 . "$TEST_DIR/.env"
+echo
+echo Loaded env vars:
+echo
+cat "$TEST_DIR/.env" | sed 's/^/    /'
+echo
 
 # Overwrite the ROLLUP_ADDRESS for this test, it might not be the same as the one in the .env file
 #* Essential migration sub step * This address (the rollup proxy address) is likely a known address to operators.
 ROLLUP_ADDRESS=$(docker compose run --entrypoint cat scripts /config/deployed_chain_info.json | jq -r '.[0].rollup.rollup' | tail -n 1 | tr -d '\r\n')
+declare -p ROLLUP_ADDRESS
 
 # A convoluted way to get the address of the child chain upgrade executor, maybe there's a better way?
 # These steps below are just for the purposes of the test. In a real deployment operators will likely already know their child-chain's upgrade executor address, and it should be included in a .env file for the migration run.
 INBOX_ADDRESS=$(docker compose run --entrypoint cat scripts /config/deployed_chain_info.json | jq -r '.[0].rollup.inbox' | tail -n 1 | tr -d '\r\n')
+declare -p INBOX_ADDRESS
+
 L1_TOKEN_BRIDGE_CREATOR_ADDRESS=$(docker compose run --entrypoint cat scripts /tokenbridge-data/network.json | jq -r '.l1TokenBridgeCreator' | tail -n 1 | tr -d '\r\n')
+declare -p L1_TOKEN_BRIDGE_CREATOR_ADDRESS
+
 CHILD_CHAIN_UPGRADE_EXECUTOR_ADDRESS=$(cast call $L1_TOKEN_BRIDGE_CREATOR_ADDRESS 'inboxToL2Deployment(address)(address,address,address,address,address,address,address,address,address)' $INBOX_ADDRESS | tail -n 2 | head -n 1 | tr -d '\r\n')
+declare -p CHILD_CHAIN_UPGRADE_EXECUTOR_ADDRESS
 
 # Export l2 owner private key and address
 # These commands are exclusive to the test.
 # * Essential migration sub step * These addresses are likely known addresses to operators in the event of a real migration
 PRIVATE_KEY="$(docker compose run scripts print-private-key --account l2owner | tail -n 1 | tr -d '\r\n')"
+# This is a private key used for testing, save to print
+declare -p PRIVATE_KEY
+
 OWNER_ADDRESS="$(docker compose run scripts print-address --account l2owner | tail -n 1 | tr -d '\r\n')"
+declare -p OWNER_ADDRESS
 
 cd $ORBIT_ACTIONS_DIR
-forge update
 echo "Deploying mock espresso tee verifier"
 forge script --chain $PARENT_CHAIN_CHAIN_ID ../espresso-tests/DeployMockVerifier.s.sol:DeployMockVerifier --rpc-url $PARENT_CHAIN_RPC_URL --broadcast -vvvv
 
 ESPRESSO_TEE_VERIFIER_ADDRESS=$(cat broadcast/DeployMockVerifier.s.sol/1337/run-latest.json | jq -r '.transactions[0].contractAddress' | cast to-checksum)
+declare -p ESPRESSO_TEE_VERIFIER_ADDRESS
+
 echo "Mock TEE Address:"
 echo $ESPRESSO_TEE_VERIFIER_ADDRESS
+declare -p ESPRESSO_TEE_VERIFIER_ADDRESS
 
 # Echo for debug
 echo "Deploying and initializing Espresso SequencerInbox"
 # ** Essential migration step ** Forge script to deploy the new SequencerInbox. We do this to later point the rollups challenge manager to the espresso integrated OSP.
-forge script --chain $PARENT_CHAIN_CHAIN_ID ../espresso-tests/DeployAndInitEspressoSequencerInboxTest.s.sol:DeployAndInitEspressoSequencerInboxTest --rpc-url $PARENT_CHAIN_RPC_URL --broadcast -vvvv --skip-simulation
+forge script --chain $PARENT_CHAIN_CHAIN_ID ../espresso-tests/DeployAndInitEspressoSequencerInboxForTest.s.sol:DeployAndInitEspressoSequencerInbox --rpc-url $PARENT_CHAIN_RPC_URL --broadcast -vvvv --skip-simulation
 
-# Extract new_osp_entry address from run-latest.json
 #  * Essential migration sub step * These addresses are likely known addresses to operators in the event of a real migration after they have deployed the new OSP contracts, however, if operators create a script for the migration, this command is useful.
-NEW_SEQUENCER_INBOX_IMPL_ADDRESS=$(cat broadcast/DeployAndInitEspressoSequencerInboxTest.s.sol/1337/run-latest.json | jq -r '.transactions[0].contractAddress'| cast to-checksum)
+NEW_SEQUENCER_INBOX_IMPL_ADDRESS=$(cat broadcast/DeployAndInitEspressoSequencerInboxForTest.s.sol/1337/run-latest.json | jq -r '.receipts[0].contractAddress'| cast to-checksum)
+declare -p NEW_SEQUENCER_INBOX_IMPL_ADDRESS
+
 # Echo for debugging.
 echo "Deployed new SequencerInbox at $NEW_SEQUENCER_INBOX_IMPL_ADDRESS"
 
@@ -75,21 +164,23 @@ echo "Deployed new SequencerInbox at $NEW_SEQUENCER_INBOX_IMPL_ADDRESS"
 echo "Deploying Espresso SequencerInbox migration action"
 
 # ** Essential migration step ** Forge script to deploy Espresso OSP migration action
-forge script --chain $PARENT_CHAIN_CHAIN_ID contracts/parent-chain/espresso-migration/DeployEspressoSequencerMigrationAction.s.sol:DeployEspressoSequencerMigrationAction --rpc-url $PARENT_CHAIN_RPC_URL --broadcast -vvvv
+run forge script --chain $PARENT_CHAIN_CHAIN_ID contracts/parent-chain/espresso-migration/DeployEspressoSequencerMigrationAction.s.sol:DeployEspressoSequencerMigrationAction --rpc-url $PARENT_CHAIN_RPC_URL --broadcast -vvvv
 
 # Capture new OSP address
 # * Essential migration sub step ** Essential migration sub step * operators will be able to manually determine this address while running the upgrade, but this can be useful if they wish to make a script.
 SEQUENCER_MIGRATION_ACTION=$(cat broadcast/DeployEspressoSequencerMigrationAction.s.sol/1337/run-latest.json | jq -r '.transactions[0].contractAddress' | cast to-checksum)
+declare -p SEQUENCER_MIGRATION_ACTION
 
 echo "Deployed new EspressoSequencerMigrationAction at $SEQUENCER_MIGRATION_ACTION"
 
 echo "Deploying ArbOS Upgrade action"
 # Forge script to deploy the Espresso ArbOS upgrade action.
 # ** Essential migration step ** the ArbOS upgrade signifies that the chain is now espresso compatible.
-forge script --chain $CHILD_CHAIN_CHAIN_NAME contracts/child-chain/espresso-migration/DeployArbOSUpgradeAction.s.sol:DeployArbOSUpgradeAction  --rpc-url $CHILD_CHAIN_RPC_URL --broadcast -vvvv
+run forge script --chain $CHILD_CHAIN_CHAIN_NAME contracts/child-chain/espresso-migration/DeployArbOSUpgradeAction.s.sol:DeployArbOSUpgradeAction  --rpc-url $CHILD_CHAIN_RPC_URL --broadcast -vvvv
 
 # Get the address of the newly deployed upgrade action.
 ARBOS_UPGRADE_ACTION=$(cat broadcast/DeployArbOSUpgradeAction.s.sol/412346/run-latest.json | jq -r '.transactions[0].contractAddress')
+declare -p ARBOS_UPGRADE_ACTION
 
 # Echo information for debugging.
 echo "Deployed ArbOSUpgradeAction at $ARBOS_UPGRADE_ACTION"
@@ -173,10 +264,13 @@ fi
 echo "Balance of $RECIPIENT_ADDRESS changed from $BALANCE_ORIG to $BALANCE_NEW"
 
 # Check that the staker is making progress after the upgrade
+START=$SECONDS
+echo "Waiting for confirmed nodes."
 while [ "$NUM_CONFIRMED_NODES_BEFORE_UPGRADE" == "$(cast call --rpc-url $PARENT_CHAIN_RPC_URL $ROLLUP_ADDRESS 'latestConfirmed()(uint256)')" ]; do
-  echo "Waiting for confirmed nodes ..."
   sleep 5
+  echo "Waited $(( SECONDS - START )) seconds for confirmed nodes."
 done
+
 # Echo to confirm that stakers are behaving normally.
 echo "Confirmed nodes have progressed"
 
