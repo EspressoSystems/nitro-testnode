@@ -19,4 +19,4 @@ docker compose run scripts-espresso write-config --simple --simpleWithValidator 
 # do whatever other espresso setup is needed.
 
 # run Espresso integrated nitro node for sequencing.
-docker compose up sequencer-on-espresso
+docker compose up sequencer-on-espresso --detach
