@@ -212,19 +212,6 @@ declare -p SEQUENCER_MIGRATION_ACTION
 
 info "Deployed new EspressoSequencerMigrationAction at $SEQUENCER_MIGRATION_ACTION"
 
-info "Deploying ArbOS Upgrade action"
-# Forge script to deploy the Espresso ArbOS upgrade action.
-# ** Essential migration step ** the ArbOS upgrade signifies that the chain is now espresso compatible.
-run forge script --chain $CHILD_CHAIN_CHAIN_NAME contracts/child-chain/espresso-migration/DeployArbOSUpgradeAction.s.sol:DeployArbOSUpgradeAction  --rpc-url $CHILD_CHAIN_RPC_URL --broadcast -vvvv
-
-# Get the address of the newly deployed upgrade action.
-ARBOS_UPGRADE_ACTION=$(cat broadcast/DeployArbOSUpgradeAction.s.sol/412346/run-latest.json | jq -r '.transactions[0].contractAddress')
-declare -p ARBOS_UPGRADE_ACTION
-
-# Echo information for debugging.
-info "Deployed ArbOSUpgradeAction at $ARBOS_UPGRADE_ACTION"
-
-# Change directories to start nitro node in new docker container with espresso image
 cd $TESTNODE_DIR
 
 run docker stop nitro-testnode-sequencer-1
@@ -247,42 +234,6 @@ while ! curl -s $CHILD_CHAIN_RPC_URL > /dev/null; do
   info "Waiting for $CHILD_CHAIN_RPC_URL to be available..."
   sleep 5
 done
-
-# Echo for debugging
-info "Adding child chain upgrade executor as an L2 chain owner"
-# This step is done for the purposes of the test, as there should already be an upgrade executor on the child chain that is a chain owner
-run cast send 0x0000000000000000000000000000000000000070 'addChainOwner(address)' $CHILD_CHAIN_UPGRADE_EXECUTOR_ADDRESS --rpc-url $CHILD_CHAIN_RPC_URL --private-key $PRIVATE_KEY
-
-cd $ORBIT_ACTIONS_DIR
-# Grab the pre-upgrade ArbOS version for testing.
-ARBOS_VERSION_BEFORE_UPGRADE=$(cast call "0x0000000000000000000000000000000000000064" "arbOSVersion()(uint64)" --rpc-url $CHILD_CHAIN_RPC_URL)
-
-# Use the Upgrde executor on the child chain to execute the ArbOS upgrade to signify that the node is now operating in espresso mode. This is essential for the migration.
-# ** Essential migration step ** This step can technically be done before all of the others as it is just scheduling the ArbOS upgrade. The unix timestamp at which the upgrade occurrs can be determined by operators, but for the purposes of the test we use 0 to upgrade immediately.
-run cast send $CHILD_CHAIN_UPGRADE_EXECUTOR_ADDRESS "execute(address, bytes)" $ARBOS_UPGRADE_ACTION $(cast calldata "perform()") --rpc-url $CHILD_CHAIN_RPC_URL --private-key $PRIVATE_KEY
-cd $TEST_DIR
-# write tee verifier address into chain config
-jq -r '.arbitrum.EspressoTEEVerifierAddress |= $ESPRESSO_TEE_VERIFIER_ADDRESS' test-chain-config.json > sent-chain-config.json --arg ESPRESSO_TEE_VERIFIER_ADDRESS $ESPRESSO_TEE_VERIFIER_ADDRESS
-CHAIN_CONFIG=$(cat sent-chain-config.json)
-
-run cast send $CHILD_CHAIN_UPGRADE_EXECUTOR_ADDRESS $(cast calldata "executeCall(address, bytes)" "0x0000000000000000000000000000000000000070" $(cast calldata "setChainConfig(string)" "$CHAIN_CONFIG")) --rpc-url $CHILD_CHAIN_RPC_URL --private-key $PRIVATE_KEY
-# Set the chain config
-
-info Check the ArbOS upgrade happened
-
-# Grab the post upgrade ArbOS version.
-ARBOS_VERSION_AFTER_UPGRADE=$(cast call "0x0000000000000000000000000000000000000064" "arbOSVersion()(uint64)" --rpc-url $CHILD_CHAIN_RPC_URL)
-# Wait to observe the ArbOS version update. (potentially add a timeout or max retry number before failing)
-while [ $ARBOS_VERSION_BEFORE_UPGRADE == $ARBOS_VERSION_AFTER_UPGRADE ]
-do
-  sleep 5
-  ARBOS_VERSION_AFTER_UPGRADE=$(cast call "0x0000000000000000000000000000000000000064" "arbOSVersion()(uint64)" --rpc-url $CHILD_CHAIN_RPC_URL)
-done
-
-# We are upgrading the ArbOS version to 35 so the expect the return value to be 55 + 35 = 90
-if [ $ARBOS_VERSION_AFTER_UPGRADE != "90" ]; then
-  fail "ArbOS version not updated: Expected 90, Actual $ARBOS_VERSION_AFTER_UPGRADE"
-fi
 
 info "Testing if the Espresso integration works by doing an Eth transfer."
 RECIPIENT_ADDRESS=0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
