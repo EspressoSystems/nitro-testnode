@@ -9,7 +9,7 @@ import "nitro-contracts/bridge/ISequencerInbox.sol";
 /// with the espresso confirmation layer
 /// @dev BATCH_POSTER_ADDRS should be a comma delimited list that includes addresses. This list will give batch posting affordances to those addresses
 ///        For chains using the Espresso TEE integration, this will be the address of your new batch poster, if you decide to change it.
-contract DeployAndInitEspressoSequencerInboxTest is Script {
+contract DeployAndInitEspressoSequencerInbox is Script {
     function run() external {
         bool isMigrationTest = vm.envBool("IS_MIGRATION_TEST");
         // Grab addresses from env

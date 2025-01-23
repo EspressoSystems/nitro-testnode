@@ -29,6 +29,7 @@
           packages = with pkgs; [
             bashInteractive
             jq
+            jnv # interactive JSON filter, useful to search forge broadcast files
             nodejs
             yarn
             openssl # used by test-node.bash

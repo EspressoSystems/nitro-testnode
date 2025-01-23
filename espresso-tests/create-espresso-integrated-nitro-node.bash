@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-set -x # print each command before executing it, for debugging
+# set -x # print each command before executing it, for debugging
 
 ESPRESSO_VERSION=ghcr.io/espressosystems/nitro-espresso-integration/nitro-node-dev:integration
 lightClientAddr=0xb6eb235fa509e3206f959761d11e3777e16d0e98
@@ -18,5 +18,5 @@ docker compose run scripts-espresso write-config --simple --simpleWithValidator 
 
 # do whatever other espresso setup is needed.
 
-# run esprsso-integrated nitro node for sequencing.
+# run Espresso integrated nitro node for sequencing.
 docker compose up sequencer-on-espresso --detach
