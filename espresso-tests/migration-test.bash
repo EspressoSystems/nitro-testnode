@@ -315,4 +315,4 @@ echo "Confirmed nodes have progressed"
 # Echo to signal that test has been successful
 echo "Migration successfully completed!"
 
-docker compose down --remove-orphans
+run docker compose down -v --remove-orphans
