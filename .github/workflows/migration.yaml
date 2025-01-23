@@ -40,4 +40,4 @@ jobs:
         run: |
           nix develop --accept-flake-config --option sandbox relaxed \
           -c espresso-tests/migration-test.bash
-        timeout-minutes: 60
+        timeout-minutes: 45
