@@ -411,37 +411,26 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
 
   espresso-dev-node:
-    # TODO: revert to `:main` tag once we are compatible with the marketplace builder
-    image: ghcr.io/espressosystems/espresso-sequencer/espresso-dev-node:20240919-dev-node-legacy-builder
+    image: ghcr.io/espressosystems/espresso-sequencer/espresso-dev-node:main
     ports:
       - "$ESPRESSO_SEQUENCER_API_PORT:$ESPRESSO_SEQUENCER_API_PORT"
       - "$ESPRESSO_BUILDER_PORT:$ESPRESSO_BUILDER_PORT"
       - "$ESPRESSO_DEV_NODE_PORT:$ESPRESSO_DEV_NODE_PORT"
     environment:
-      - ESPRESSO_SEQUENCER_L1_PROVIDER
-      - ESPRESSO_SEQUENCER_ETH_MNEMONIC
-      - ESPRESSO_DEPLOYER_ACCOUNT_INDEX
-      - ESPRESSO_SEQUENCER_API_PORT
       - ESPRESSO_BUILDER_PORT
+      - ESPRESSO_DEPLOYER_ACCOUNT_INDEX
       - ESPRESSO_DEV_NODE_PORT
+      - ESPRESSO_SEQUENCER_API_PORT
+      - ESPRESSO_SEQUENCER_ETH_MNEMONIC
+      - ESPRESSO_SEQUENCER_L1_PROVIDER
+      - ESPRESSO_SEQUENCER_DATABASE_MAX_CONNECTIONS=25
+      - ESPRESSO_SEQUENCER_STORAGE_PATH=/data/espresso
       - RUST_LOG=info
       - RUST_LOG_FORMAT
-      - ESPRESSO_DEPLOYER_ALT_CHAIN_PROVIDERS
-      - ESPRESSO_DEPLOYER_ALT_MNEMONICS
-      - ESPRESSO_SEQUENCER_DEPLOYER_ALT_INDICES
-    depends_on:
-      - geth
-      - sequencer
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "curl -fL http://localhost:$ESPRESSO_DEV_NODE_PORT || exit 1",
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 40s
+    volumes:
+      - espresso_storage:/data/espresso
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   # Reads from sequencer feed, forwards transactions to sequencer
   full-node:
@@ -534,3 +523,4 @@ volumes:
   das-committee-a-data:
   das-committee-b-data:
   das-mirror-data:
+  espresso_storage:
