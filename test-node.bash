@@ -10,7 +10,7 @@ BLOCKSCOUT_VERSION=offchainlabs/blockscout:v1.1.0-0e716c8
 DEFAULT_NITRO_CONTRACTS_VERSION="99c07a7db2fcce75b751c5a2bd4936e898cda065"
 DEFAULT_TOKEN_BRIDGE_VERSION="v1.2.2"
 
-ESPRESSO_VERSION=ghcr.io/espressosystems/nitro-espresso-integration/nitro-node-dev:integration
+ESPRESSO_VERSION=ghcr.io/espressosystems/nitro-espresso-integration/nitro-node-dev:latest
 
 # Set default versions if not overriden by provided env vars
 : ${NITRO_CONTRACTS_REPO:=$DEFAULT_NITRO_CONTRACTS_REPO}
@@ -48,7 +48,7 @@ tokenbridge=false
 l3node=false
 consensusclient=false
 redundantsequencers=0
-lightClientAddr=0xb7fc0e52ec06f125f3afeba199248c79f71c2e3a
+lightClientAddr=0xb6eb235fa509e3206f959761d11e3777e16d0e98
 lightClientAddrForL3=0x5e36aa9caaf5f708fca5c04d2d4c776a62b2b258
 enableEspressoFinalityNode=false
 espresso=false
