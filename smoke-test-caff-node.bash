@@ -15,8 +15,8 @@ listen_to_sequencer_feed() {
 
 ./test-node.bash --espresso --latest-espresso-image --validate --tokenbridge --init-force --detach --espresso-finality-node
 
-# Start the espresso finality node
-docker compose up -d sequencer-espresso-finality --wait --detach 
+# Start the caff node
+docker compose up -d caff-node --wait --detach
 
 # Sending L2 transaction
 ./test-node.bash script send-l2 --ethamount 100 --to user_l2user --wait

@@ -69,7 +69,14 @@ function writeGethGenesisConfig(argv: any) {
                 "shanghaiTime": 0,
                 "cancunTime": 1706778826,
                 "terminalTotalDifficulty": 0,
-                "terminalTotalDifficultyPassed": true
+                "terminalTotalDifficultyPassed": true,
+                "blobSchedule": {
+                    "cancun": {
+                        "target": 3,
+                        "max": 6,
+                        "baseFeeUpdateFraction": 3338477
+                    }
+                }
         },
         "difficulty": "0",
         "extradata": "0x00000000000000000000000000000000000000000000000000000000000000003f1Eae7D46d88F08fc2F8ed27FCb2AB183EB2d0E0B0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
@@ -400,15 +407,15 @@ function writeConfigs(argv: any) {
     }
 
     if (argv.espresso && argv.enableEspressoFinalityNode) {
-      sequencerConfig.execution.sequencer["enable-espresso-finality-node"] =
+      sequencerConfig.execution.sequencer["enable-caff-node"] =
         true;
-      sequencerConfig.execution.sequencer["espresso-finality-node-config"] = {
+      sequencerConfig.execution.sequencer["caff-node-config"] = {
         "hotshot-url": argv.espressoUrl,
         "start-block": 0,
         namespace: 412346,
       };
       fs.writeFileSync(
-        path.join(consts.configpath, "espresso_finality_sequencer_config.json"),
+        path.join(consts.configpath, "caff_sequencer_config.json"),
         JSON.stringify(sequencerConfig)
       );
     } else {
