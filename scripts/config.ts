@@ -407,15 +407,15 @@ function writeConfigs(argv: any) {
     }
 
     if (argv.espresso && argv.enableEspressoFinalityNode) {
-      sequencerConfig.execution.sequencer["enable-espresso-finality-node"] =
+      sequencerConfig.execution.sequencer["enable-caff-node"] =
         true;
-      sequencerConfig.execution.sequencer["espresso-finality-node-config"] = {
+      sequencerConfig.execution.sequencer["caff-node-config"] = {
         "hotshot-url": argv.espressoUrl,
         "start-block": 0,
         namespace: 412346,
       };
       fs.writeFileSync(
-        path.join(consts.configpath, "espresso_finality_sequencer_config.json"),
+        path.join(consts.configpath, "caff_sequencer_config.json"),
         JSON.stringify(sequencerConfig)
       );
     } else {
