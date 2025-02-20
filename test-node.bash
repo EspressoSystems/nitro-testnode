@@ -125,8 +125,8 @@ while [[ $# -gt 0 ]]; do
             l2_espresso=true
             shift
             ;;
-        --espresso-finality-node)
-            enableEspressoFinalityNode=true
+        --caff-node)
+            enableCaffNode=true
             shift
             ;;
         --latest-espresso-image)
@@ -301,7 +301,7 @@ while [[ $# -gt 0 ]]; do
             echo --no-tokenbridge  don\'t build or launch tokenbridge
             echo --no-run          does not launch nodes \(useful with build or init\)
             echo --no-simple       run a full configuration with separate sequencer/batch-poster/validator/relayer
-            echo --enable-finality-node enable espresso finality node
+            echo --enable-caff-node enable espresso caff node
             echo --build-dev-nitro     rebuild dev nitro docker image
             echo --no-build-dev-nitro  don\'t rebuild dev nitro docker image
             echo --build-dev-blockscout     rebuild dev blockscout docker image
@@ -558,9 +558,9 @@ if $force_init; then
     else
         echo == Writing configs
         docker compose run scripts write-config  $anytrustNodeConfigLine --espresso $l2_espresso --lightClientAddress $lightClientAddr
-        if $enableEspressoFinalityNode; then
+        if $enableCaffNode; then
             echo == Writing configs for finality node
-            docker compose run scripts write-config  $anytrustNodeConfigLine  --espresso $l2_espresso  --enableEspressoFinalityNode --lightClientAddress $lightClientAddr
+            docker compose run scripts write-config  $anytrustNodeConfigLine  --espresso $l2_espresso  --enableCaffNode --lightClientAddress $lightClientAddr
         fi
         echo == Initializing redis
         docker compose up --wait redis

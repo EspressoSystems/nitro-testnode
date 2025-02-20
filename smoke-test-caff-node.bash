@@ -1,29 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-listen_to_sequencer_feed() {
-    #  Listen to the sequencer feed and check if the sender address is detected
-    while read -r message; do
-        # Check if the message contains the specific sender address
-        if [[ "$message" == *"\"sender\":\"0xdd6bd74674c356345db88c354491c7d3173c6806\""* ]]; then
-            echo "Sender address detected"
-            break
-        fi
-    done < <(wscat -c ws://127.0.0.1:9642) # sequencer feed
-}
+
 
 user=user_l2user
 url="http://host.docker.internal:8550"
 
-./test-node.bash --espresso --latest-espresso-image --validate --tokenbridge --init-force --detach --espresso-finality-node
+./test-node.bash --espresso --latest-espresso-image --validate --tokenbridge --init-force --detach --caff-node
 
 # Start the caff node
 docker compose up -d caff-node --wait --detach
 
 echo "Sending L2 transaction through caff node"
 ./test-node.bash script send-l2 --ethamount 10 --to $user --wait
-
-listen_to_sequencer_feed
 
 # Sending L2 transaction
 ./test-node.bash script send-l2 --ethamount 10 --to $user --wait
@@ -34,7 +23,8 @@ listen_to_sequencer_feed
 userAddress=$(docker compose run scripts print-address --account $user | tail -n 1 | tr -d '\r\n')
 
 while true; do
-    balance=$(cast balance $userAddress --rpc-url http://127.0.0.1:8949)
+    # Check if the balance on Caff node is greater than 0
+    balance=$(cast balance $userAddress --rpc-url http://127.0.0.1:8550)
     if [ ${#balance} -gt 0 ]; then
         break
     fi

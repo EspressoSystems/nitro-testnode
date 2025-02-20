@@ -407,12 +407,12 @@ function writeConfigs(argv: any) {
     }
 
     if (argv.espresso && argv.enableEspressoFinalityNode) {
-      sequencerConfig.execution.sequencer["enable-caff-node"] =
-        true;
+      sequencerConfig.node["parent-chain-reader"].enable = false;
+      sequencerConfig.execution.sequencer["enable-caff-node"] = true;
       sequencerConfig.execution.sequencer["caff-node-config"] = {
         "hot-shot-urls": [argv.espressoUrl],
         "next-hotshot-block": 1,
-        "namespace": 412346,
+        namespace: 412346,
         "parent-chain-node-url": argv.l1url,
         "sequencer-url": "http://sequencer:8547",
       };
@@ -532,7 +532,8 @@ function writeL2ChainConfig(argv: any) {
   };
   if (argv.espresso) {
     let chainConfig = l2ChainConfig as any;
-    chainConfig.arbitrum["EspressoTEEVerifierAddress"]= "0x5F1f60F24be95C7cfC430bfcf0001D4701BE1231"
+    chainConfig.arbitrum["EspressoTEEVerifierAddress"] =
+      "0x5F1f60F24be95C7cfC430bfcf0001D4701BE1231";
   }
   const l2ChainConfigJSON = JSON.stringify(l2ChainConfig);
   fs.writeFileSync(
