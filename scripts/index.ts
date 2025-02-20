@@ -40,7 +40,7 @@ async function main() {
       espresso: { boolean: true, description: 'use Espresso Sequencer for sequencing and DA', default: false },
       espressoUrl: { string: true, description: 'Espresso Sequencer url', default: 'http://espresso-dev-node:41000' },
       lightClientAddress: { string: true, description: 'address of the light client contract', default: ''},
-      enableEspressoFinalityNode: {boolean: true, description: 'enable finality node', default: false},
+      enableCaffNode: {boolean: true, description: 'enable caff node', default: false},
       simpleWithValidator: {boolean: true, description: 'start a simple node that validates', default: false},
     })
     .command(bridgeFundsCommand)

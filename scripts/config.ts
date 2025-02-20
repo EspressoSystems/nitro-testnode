@@ -406,7 +406,7 @@ function writeConfigs(argv: any) {
       sequencerConfig.node["seq-coordinator"].enable = true;
     }
 
-    if (argv.espresso && argv.enableEspressoFinalityNode) {
+    if (argv.espresso && argv.enableCaffNode) {
       sequencerConfig.node["parent-chain-reader"].enable = false;
       sequencerConfig.execution.sequencer["enable-caff-node"] = true;
       sequencerConfig.execution.sequencer["caff-node-config"] = {
