@@ -25,7 +25,8 @@ userAddress=$(docker compose run scripts print-address --account $user | tail -n
 while true; do
     # Check if the balance on Caff node is greater than 0
     balance=$(cast balance $userAddress --rpc-url http://127.0.0.1:8550)
-    if [ ${#balance} -gt 0 ]; then
+    # Using bc here because it supports bigint
+    if [ "$(echo "$balance > 0" | bc)" -eq 1 ]; then
         break
     fi
     sleep 1
