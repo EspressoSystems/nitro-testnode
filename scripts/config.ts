@@ -212,6 +212,9 @@ function writeConfigs(argv: any) {
         "make-assertion-interval": "10s",
         strategy: "MakeNodes",
       },
+      "parent-chain-reader": {
+        enable: true,
+      },
       sequencer: false,
       dangerous: {
         "no-sequencer-coordinator": false,
@@ -415,6 +418,8 @@ function writeConfigs(argv: any) {
         namespace: 412346,
         "parent-chain-node-url": argv.l1url,
         "sequencer-url": "http://sequencer:8547",
+        "hotshot-polling-interval": "250ms",
+        "retry-time": "2s",
       };
       fs.writeFileSync(
         path.join(consts.configpath, "caff_sequencer_config.json"),

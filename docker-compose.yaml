@@ -192,7 +192,7 @@ services:
     entrypoint: /usr/local/bin/nitro
     ports:
       - "127.0.0.1:8550:8547"
-      - "127.0.0.1:8551:8548"
+      - "127.0.0.1:8552:8548"
       - "127.0.0.1:9645:9642"
     volumes:
       - "seqdata_espresso_finality:/home/user/.arbitrum/local/nitro"
