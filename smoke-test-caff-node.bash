@@ -20,13 +20,13 @@ url="http://host.docker.internal:8550"
 # Start the caff node
 docker compose up -d caff-node --wait --detach
 
-# Sending L2 transaction through caff node
-./test-node.bash script send-l2 --ethamount 10 --to $user --l2url $url --wait
+echo "Sending L2 transaction through caff node"
+./test-node.bash script send-l2 --ethamount 10 --to $user --wait
 
 listen_to_sequencer_feed
 
 # Sending L2 transaction
-./test-node.bash script send-l2 --ethamount 10 --to $user --l2url $url --wait
+./test-node.bash script send-l2 --ethamount 10 --to $user --wait
 
 ./test-node.bash script print-address --account $user
 

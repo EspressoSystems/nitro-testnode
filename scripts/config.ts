@@ -411,9 +411,10 @@ function writeConfigs(argv: any) {
         true;
       sequencerConfig.execution.sequencer["caff-node-config"] = {
         "hot-shot-urls": [argv.espressoUrl],
-        "next-hotshot-block": 0,
+        "next-hotshot-block": 1,
         "namespace": 412346,
         "parent-chain-node-url": argv.l1url,
+        "sequencer-url": "http://sequencer:8547",
       };
       fs.writeFileSync(
         path.join(consts.configpath, "caff_sequencer_config.json"),
