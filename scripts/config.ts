@@ -413,13 +413,14 @@ function writeConfigs(argv: any) {
       sequencerConfig.node["parent-chain-reader"].enable = false;
       sequencerConfig.execution.sequencer["enable-caff-node"] = true;
       sequencerConfig.execution.sequencer["caff-node-config"] = {
-        "hot-shot-urls": [argv.espressoUrl],
+        "hotshot-urls": [argv.espressoUrl],
         "next-hotshot-block": 1,
         namespace: 412346,
         "parent-chain-node-url": argv.l1url,
         "sequencer-url": argv.l2url,
         "hotshot-polling-interval": "250ms",
         "retry-time": "2s",
+        "espresso-tee-verifier-addr": argv.espressoTeeVerifierAddr,
       };
       fs.writeFileSync(
         path.join(consts.configpath, "caff_sequencer_config.json"),
