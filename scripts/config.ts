@@ -212,6 +212,9 @@ function writeConfigs(argv: any) {
         "make-assertion-interval": "10s",
         strategy: "MakeNodes",
       },
+      "parent-chain-reader": {
+        enable: true,
+      },
       sequencer: false,
       dangerous: {
         "no-sequencer-coordinator": false,
@@ -406,13 +409,17 @@ function writeConfigs(argv: any) {
       sequencerConfig.node["seq-coordinator"].enable = true;
     }
 
-    if (argv.espresso && argv.enableEspressoFinalityNode) {
-      sequencerConfig.execution.sequencer["enable-caff-node"] =
-        true;
+    if (argv.espresso && argv.enableCaffNode) {
+      sequencerConfig.node["parent-chain-reader"].enable = false;
+      sequencerConfig.execution.sequencer["enable-caff-node"] = true;
       sequencerConfig.execution.sequencer["caff-node-config"] = {
-        "hotshot-url": argv.espressoUrl,
-        "start-block": 0,
+        "hot-shot-urls": [argv.espressoUrl],
+        "next-hotshot-block": 1,
         namespace: 412346,
+        "parent-chain-node-url": argv.l1url,
+        "sequencer-url": argv.l2url,
+        "hotshot-polling-interval": "250ms",
+        "retry-time": "2s",
       };
       fs.writeFileSync(
         path.join(consts.configpath, "caff_sequencer_config.json"),
@@ -531,7 +538,7 @@ function writeL2ChainConfig(argv: any) {
   if (argv.espresso) {
     let chainConfig = l2ChainConfig as any;
     chainConfig.arbitrum["EspressoTEEVerifierAddress"] =
-      "0x5eCF728ffC5C5E802091875f96281B5aeECf6C49";
+      "0x5F1f60F24be95C7cfC430bfcf0001D4701BE1231";
   }
   const l2ChainConfigJSON = JSON.stringify(l2ChainConfig);
   fs.writeFileSync(
