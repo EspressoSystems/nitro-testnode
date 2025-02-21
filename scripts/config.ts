@@ -417,7 +417,7 @@ function writeConfigs(argv: any) {
         "next-hotshot-block": 1,
         namespace: 412346,
         "parent-chain-node-url": argv.l1url,
-        "sequencer-url": "http://sequencer:8547",
+        "sequencer-url": argv.l2url,
         "hotshot-polling-interval": "250ms",
         "retry-time": "2s",
       };
