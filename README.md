@@ -68,6 +68,25 @@ For help and further scripts, see:
 ./test-node.bash script --help
 ```
 
+### Running the smoke tests for the Caffeinated node
+
+1. Clone the repository.
+```bash
+git clone git@github.com:EspressoSystems/nitro-testnode.git
+cd nitro-testnode
+git submodule update --init
+```
+2. Create a Github Personal Access Token (PAT) following [Creating a personal access token (classic)](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-personal-access-token-classic).
+3. Provide Docker with the PAT.
+```bash
+> export CR_PAT=<your PAT>
+> echo $CR_PAT | docker login ghcr.io -u USERNAME --password-stdin
+```
+4. Run the smoke tests. 
+```bash
+> ./smoke-test-caff-node.bash
+```
+
 ## Named accounts
 
 ```bash
