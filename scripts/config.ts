@@ -69,7 +69,14 @@ function writeGethGenesisConfig(argv: any) {
                 "shanghaiTime": 0,
                 "cancunTime": 1706778826,
                 "terminalTotalDifficulty": 0,
-                "terminalTotalDifficultyPassed": true
+                "terminalTotalDifficultyPassed": true,
+                "blobSchedule": {
+                    "cancun": {
+                        "target": 3,
+                        "max": 6,
+                        "baseFeeUpdateFraction": 3338477
+                    }
+                }
         },
         "difficulty": "0",
         "extradata": "0x00000000000000000000000000000000000000000000000000000000000000003f1Eae7D46d88F08fc2F8ed27FCb2AB183EB2d0E0B0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
@@ -204,6 +211,9 @@ function writeConfigs(argv: any) {
         "staker-interval": "10s",
         "make-assertion-interval": "10s",
         strategy: "MakeNodes",
+      },
+      "parent-chain-reader": {
+        enable: true,
       },
       sequencer: false,
       dangerous: {
@@ -399,16 +409,22 @@ function writeConfigs(argv: any) {
       sequencerConfig.node["seq-coordinator"].enable = true;
     }
 
-    if (argv.espresso && argv.enableEspressoFinalityNode) {
-      sequencerConfig.execution.sequencer["enable-espresso-finality-node"] =
-        true;
-      sequencerConfig.execution.sequencer["espresso-finality-node-config"] = {
-        "hotshot-url": argv.espressoUrl,
-        "start-block": 0,
+    if (argv.espresso && argv.enableCaffNode) {
+      sequencerConfig.node.sequencer = false
+      sequencerConfig.node["delayed-sequencer"].enable = false;
+      sequencerConfig.node["parent-chain-reader"].enable = false;
+      sequencerConfig.execution.sequencer["enable-caff-node"] = true;
+      sequencerConfig.execution.sequencer["caff-node-config"] = {
+        "hotshot-urls": [argv.espressoUrl],
+        "next-hotshot-block": 1,
         namespace: 412346,
+        "parent-chain-node-url": argv.l1url,
+        "hotshot-polling-interval": "250ms",
+        "retry-time": "2s",
+        "espresso-tee-verifier-addr": "0xb562622f2D76F355D673560CB88c1dF6088702f1",
       };
       fs.writeFileSync(
-        path.join(consts.configpath, "espresso_finality_sequencer_config.json"),
+        path.join(consts.configpath, "caff_sequencer_config.json"),
         JSON.stringify(sequencerConfig)
       );
     } else {
@@ -524,7 +540,7 @@ function writeL2ChainConfig(argv: any) {
   if (argv.espresso) {
     let chainConfig = l2ChainConfig as any;
     chainConfig.arbitrum["EspressoTEEVerifierAddress"] =
-      "0x5eCF728ffC5C5E802091875f96281B5aeECf6C49";
+      "0xb562622f2D76F355D673560CB88c1dF6088702f1";
   }
   const l2ChainConfigJSON = JSON.stringify(l2ChainConfig);
   fs.writeFileSync(

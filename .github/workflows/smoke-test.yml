@@ -18,7 +18,11 @@ jobs:
   smoke_test:
     strategy:
       matrix:
-        test-script: [./smoke-test.bash]
+        test-script:
+          [
+            ./smoke-test.bash,
+            ./smoke-test-caff-node.bash,
+          ]
 
     runs-on: ubuntu-24.04
 
