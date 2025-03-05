@@ -12,5 +12,4 @@ caff_url="ws://caff-node:8548"
 # Start the caff node
 docker compose up -d caff-node --wait --detach
 
-echo "\n\n\n"
 echo "**** Caff node launched successfully. ***"
