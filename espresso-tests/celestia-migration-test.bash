@@ -26,7 +26,7 @@ yarn
 cd "$TESTNODE_DIR"
 
 # Initialize a standard network not compatible with espresso to simulate a pre-upgrade orbit network e.g. not needed for the real migration
-./test-node.bash --simple --init-force --detach --no-build-utils
+./test-node.bash --init-force --espresso --latest-espresso-image --detach --no-build-utils
 
 # Start espresso sequencer node for the purposes of the test e.g. not needed for the real migration.
 docker compose up espresso-dev-node --detach
@@ -74,12 +74,18 @@ echo "Deployed Celestia migration action at $UPGRADE_ACTION_ADDRESS"
 # Change directories to start nitro node in new docker container with espresso image
 cd $TESTNODE_DIR
 
-docker stop nitro-testnode-sequencer-1
-docker wait nitro-testnode-sequencer-1
-# Start nitro node in new docker container with espresso image
-./espresso-tests/create-espresso-integrated-nitro-node.bash
 # Use cast to call the upgradeExecutor and execute the L1 upgrade actions.This will point the challenge manager at the new OSP entry, as well as update the wasmModuleRoot for the rollup. ** Essential migration step **
 cd $ORBIT_ACTIONS_DIR
+
+echo $PRIVATE_KEY
+echo $OWNER_ADDRESS
+echo $PARENT_CHAIN_CHAIN_ID
+echo $PARENT_CHAIN_RPC_URL
+echo $INBOX_ADDRESS
+echo $PROXY_ADMIN_ADDRESS
+echo $UPGRADE_ACTION_ADDRESS
+echo $PARENT_UPGRADE_EXECUTOR_ADDRESS
+echo $ESPRESSO_TEE_VERIFIER_ADDRESS
 
 forge script --chain $PARENT_CHAIN_CHAIN_ID scripts/foundry/contract-upgrades/celestia-2.1.3/ExecuteCelestiaNitroContracts2Point1Point3Upgrade.s.sol:ExecuteNitroContracts2Point1Point3UpgradeScript --rpc-url $PARENT_CHAIN_RPC_URL --broadcast -vvvv --sender $OWNER_ADDRESS --private-key $PRIVATE_KEY
 
