@@ -26,7 +26,7 @@ yarn
 cd "$TESTNODE_DIR"
 
 # Initialize a standard network not compatible with espresso to simulate a pre-upgrade orbit network e.g. not needed for the real migration
-./test-node.bash --simple --init-force --tokenbridge --detach --no-build-utils
+./test-node.bash --simple --init-force --detach --no-build-utils
 
 # Start espresso sequencer node for the purposes of the test e.g. not needed for the real migration.
 docker compose up espresso-dev-node --detach
@@ -37,39 +37,39 @@ docker compose up espresso-dev-node --detach
 
 # Overwrite the ROLLUP_ADDRESS for this test, it might not be the same as the one in the .env file
 #* Essential migration sub step * This address (the rollup proxy address) is likely a known address to operators.
-ROLLUP_ADDRESS=$(docker compose run --entrypoint cat scripts /config/deployed_chain_info.json | jq -r '.[0].rollup.rollup' | tail -n 1 | tr -d '\r\n')
+export ROLLUP_ADDRESS=$(docker compose run --entrypoint cat scripts /config/deployed_chain_info.json | jq -r '.[0].rollup.rollup' | tail -n 1 | tr -d '\r\n')
 
 # A convoluted way to get the address of the child chain upgrade executor, maybe there's a better way?
 # These steps below are just for the purposes of the test. In a real deployment operators will likely already know their child-chain's upgrade executor address, and it should be included in a .env file for the migration run.
-INBOX_ADDRESS=$(docker compose run --entrypoint cat scripts /config/deployed_chain_info.json | jq -r '.[0].rollup.inbox' | tail -n 1 | tr -d '\r\n')
-L1_TOKEN_BRIDGE_CREATOR_ADDRESS=$(docker compose run --entrypoint cat scripts /tokenbridge-data/network.json | jq -r '.l1TokenBridgeCreator' | tail -n 1 | tr -d '\r\n')
-CHILD_CHAIN_UPGRADE_EXECUTOR_ADDRESS=$(cast call $L1_TOKEN_BRIDGE_CREATOR_ADDRESS 'inboxToL2Deployment(address)(address,address,address,address,address,address,address,address,address)' $INBOX_ADDRESS | tail -n 2 | head -n 1 | tr -d '\r\n')
+export INBOX_ADDRESS=$(docker compose run --entrypoint cat scripts /config/deployed_chain_info.json | jq -r '.[0].rollup.inbox' | tail -n 1 | tr -d '\r\n')
+# L1_TOKEN_BRIDGE_CREATOR_ADDRESS=$(docker compose run --entrypoint cat scripts /tokenbridge-data/network.json | jq -r '.l1TokenBridgeCreator' | tail -n 1 | tr -d '\r\n')
+# CHILD_CHAIN_UPGRADE_EXECUTOR_ADDRESS=$(cast call $L1_TOKEN_BRIDGE_CREATOR_ADDRESS 'inboxToL2Deployment(address)(address,address,address,address,address,address,address,address,address)' $INBOX_ADDRESS | tail -n 2 | head -n 1 | tr -d '\r\n')
 
 # Export l2 owner private key and address
 # These commands are exclusive to the test.
 # * Essential migration sub step * These addresses are likely known addresses to operators in the event of a real migration
-PRIVATE_KEY="$(docker compose run scripts print-private-key --account l2owner | tail -n 1 | tr -d '\r\n')"
-OWNER_ADDRESS="$(docker compose run scripts print-address --account l2owner | tail -n 1 | tr -d '\r\n')"
+export PRIVATE_KEY="$(docker compose run scripts print-private-key --account l2owner | tail -n 1 | tr -d '\r\n')"
+export OWNER_ADDRESS="$(docker compose run scripts print-address --account l2owner | tail -n 1 | tr -d '\r\n')"
 
 cd $ORBIT_ACTIONS_DIR
 forge update
 echo "Deploying mock espresso tee verifier"
 forge script --chain $PARENT_CHAIN_CHAIN_ID ../espresso-tests/DeployMockVerifier.s.sol:DeployMockVerifier --rpc-url $PARENT_CHAIN_RPC_URL --broadcast -vvvv
 
-ESPRESSO_TEE_VERIFIER_ADDRESS=$(cat broadcast/DeployMockVerifier.s.sol/1337/run-latest.json | jq -r '.transactions[0].contractAddress' | cast to-checksum)
+export ESPRESSO_TEE_VERIFIER_ADDRESS=$(cat broadcast/DeployMockVerifier.s.sol/1337/run-latest.json | jq -r '.transactions[0].contractAddress' | cast to-checksum)
 echo "Mock TEE Address:"
 echo $ESPRESSO_TEE_VERIFIER_ADDRESS
 
 # Echo for debug
 echo "Deploying and initializing Espresso SequencerInbox"
 # ** Essential migration step ** Forge script to deploy the new SequencerInbox. We do this to later point the rollups challenge manager to the espresso integrated OSP.
-forge script --chain $PARENT_CHAIN_CHAIN_ID scripts/foundry/contract-upgrades/celestia-2.1.3/DeployCelestiaNitroContracts2Point1Point3UpgradeAction.s.sol:DeployCelestiaNitroContracts2Point1Point3UpgradeAction rpc-url $PARENT_CHAIN_RPC_URL --broadcast -vvvv
+forge script --chain $PARENT_CHAIN_CHAIN_ID scripts/foundry/contract-upgrades/celestia-2.1.3/DeployCelestiaNitroContracts2Point1Point3UpgradeAction.s.sol:DeployCelestiaNitroContracts2Point1Point3UpgradeActionScript --rpc-url $PARENT_CHAIN_RPC_URL --broadcast -vvvv --sender $OWNER_ADDRESS --private-key $PRIVATE_KEY
 
 # Extract new_osp_entry address from run-latest.json
 #  * Essential migration sub step * These addresses are likely known addresses to operators in the event of a real migration after they have deployed the new OSP contracts, however, if operators create a script for the migration, this command is useful.
-CELESTIA_MIGRATION_ACTION=$(cat broadcast/DeployCelestiaNitroContracts2Point1Point3UpgradeAction.s.sol/1337/run-latest.json | jq -r '.transactions[0].contractAddress'| cast to-checksum)
+export UPGRADE_ACTION_ADDRESS=$(cat broadcast/DeployCelestiaNitroContracts2Point1Point3UpgradeAction.s.sol/1337/run-latest.json | jq -r '.transactions[0].contractAddress'| cast to-checksum)
 # Echo for debugging.
-echo "Deployed Celestia migration action at $CELESTIA_MIGRATION_ACTION"
+echo "Deployed Celestia migration action at $UPGRADE_ACTION_ADDRESS"
 
 # Change directories to start nitro node in new docker container with espresso image
 cd $TESTNODE_DIR
@@ -79,7 +79,11 @@ docker wait nitro-testnode-sequencer-1
 # Start nitro node in new docker container with espresso image
 ./espresso-tests/create-espresso-integrated-nitro-node.bash
 # Use cast to call the upgradeExecutor and execute the L1 upgrade actions.This will point the challenge manager at the new OSP entry, as well as update the wasmModuleRoot for the rollup. ** Essential migration step **
-cast send $PARENT_CHAIN_UPGRADE_EXECUTOR "execute(address, bytes)" $CELESTIA_MIGRATION_ACTION $(cast calldata "perform()") --rpc-url $PARENT_CHAIN_RPC_URL --private-key $PRIVATE_KEY
+cd $ORBIT_ACTIONS_DIR
+
+forge script --chain $PARENT_CHAIN_CHAIN_ID scripts/foundry/contract-upgrades/celestia-2.1.3/ExecuteCelestiaNitroContracts2Point1Point3Upgrade.s.sol:ExecuteNitroContracts2Point1Point3UpgradeScript --rpc-url $PARENT_CHAIN_RPC_URL --broadcast -vvvv --sender $OWNER_ADDRESS --private-key $PRIVATE_KEY
+
+# cast send $PARENT_CHAIN_UPGRADE_EXECUTOR "execute(address, bytes)" $CELESTIA_MIGRATION_ACTION $(cast calldata "perform(address, address, address)" $ROLLUP_ADDRESS $INBOX $PROXY_ADMIN_ADDRESS ) --rpc-url $PARENT_CHAIN_RPC_URL --private-key $PRIVATE_KEY
 
 echo "Executed SequencerMigrationAction via UpgradeExecutor"
 
@@ -97,7 +101,7 @@ done
 # Echo for debugging
 echo "Adding child chain upgrade executor as an L2 chain owner"
 # This step is done for the purposes of the test, as there should already be an upgrade executor on the child chain that is a chain owner
-cast send 0x0000000000000000000000000000000000000070 'addChainOwner(address)' $CHILD_CHAIN_UPGRADE_EXECUTOR_ADDRESS --rpc-url $CHILD_CHAIN_RPC_URL --private-key $PRIVATE_KEY
+# cast send 0x0000000000000000000000000000000000000070 'addChainOwner(address)' $CHILD_CHAIN_UPGRADE_EXECUTOR_ADDRESS --rpc-url $CHILD_CHAIN_RPC_URL --private-key $PRIVATE_KEY
 
 cd $ORBIT_ACTIONS_DIR
 # Check for balance before transfer.
