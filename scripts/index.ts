@@ -42,6 +42,7 @@ async function main() {
       lightClientAddress: { string: true, description: 'address of the light client contract', default: ''},
       enableCaffNode: {boolean: true, description: 'enable caff node', default: false},
       simpleWithValidator: {boolean: true, description: 'start a simple node that validates', default: false},
+      batchPosterMemoryDb: {boolean: true, description: 'enable batch poster memory db', default: false},
     })
     .command(bridgeFundsCommand)
     .command(bridgeToL3Command)

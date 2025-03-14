@@ -258,6 +258,11 @@ function writeConfigs(argv: any) {
         },
         dangerous: { "reset-block-validation": false },
       },
+      "message-pruner": {
+        enable: false,
+        "prune-interval": "10s",
+        "min-batches-left": 1,
+      },
       feed: {
         input: {
           url: [], // websocket urls
@@ -440,6 +445,12 @@ function writeConfigs(argv: any) {
       posterConfig.node["batch-poster"]["hotshot-url"] = argv.espressoUrl;
       posterConfig.node["batch-poster"]["light-client-address"] =
         argv.lightClientAddress;
+      if (argv.batchPosterMemoryDb) {
+        posterConfig.node["message-pruner"]["enable"] = true;
+        // I know here is confusing. The chain name will be set to the data directory.
+        // Using an empty string to ask the db engine to use memory database.
+        posterConfig["persistent"]["chain"] = "";
+      }
     } else {
       posterConfig.node["seq-coordinator"].enable = true;
     }

@@ -10,7 +10,7 @@ BLOCKSCOUT_VERSION=offchainlabs/blockscout:v1.1.0-0e716c8
 DEFAULT_NITRO_CONTRACTS_VERSION="99c07a7db2fcce75b751c5a2bd4936e898cda065"
 DEFAULT_TOKEN_BRIDGE_VERSION="v1.2.2"
 
-ESPRESSO_VERSION=ghcr.io/espressosystems/nitro-espresso-integration/nitro-node-dev:integration
+ESPRESSO_VERSION=ghcr.io/espressosystems/nitro-espresso-integration/nitro-node-dev:jh-memory-db
 
 # Set default versions if not overriden by provided env vars
 : ${NITRO_CONTRACTS_REPO:=$DEFAULT_NITRO_CONTRACTS_REPO}
@@ -75,6 +75,8 @@ build_utils=false
 force_build_utils=false
 build_node_images=false
 
+batch_poster_memory_db=false
+
 while [[ $# -gt 0 ]]; do
     case $1 in
         --init)
@@ -131,6 +133,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --latest-espresso-image)
             latest_espresso_image=true
+            shift
+            ;;
+        --batch-poster-memory-db)
+            batch_poster_memory_db=true
             shift
             ;;
         --build)
@@ -557,10 +563,10 @@ if $force_init; then
 
     else
         echo == Writing configs
-        docker compose run scripts write-config  $anytrustNodeConfigLine --espresso $l2_espresso --lightClientAddress $lightClientAddr
+        docker compose run scripts write-config  $anytrustNodeConfigLine --espresso $l2_espresso --lightClientAddress $lightClientAddr --batchPosterMemoryDb $batch_poster_memory_db
         if $enableCaffNode; then
             echo == Writing configs for finality node
-            docker compose run scripts write-config  $anytrustNodeConfigLine  --espresso $l2_espresso  --enableCaffNode --lightClientAddress $lightClientAddr
+            docker compose run scripts write-config  $anytrustNodeConfigLine  --espresso $l2_espresso  --enableCaffNode --lightClientAddress $lightClientAddr --batchPosterMemoryDb $batch_poster_memory_db
         fi
         echo == Initializing redis
         docker compose up --wait redis
