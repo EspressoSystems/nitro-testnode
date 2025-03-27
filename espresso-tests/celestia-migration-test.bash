@@ -33,7 +33,7 @@ docker compose up espresso-dev-node --detach
 
 # Export environment variables in .env file
 # A similar env file should be supplied for whatever
-. "$TEST_DIR/.env"
+. "$TEST_DIR/.env-celestia"
 
 # Overwrite the ROLLUP_ADDRESS for this test, it might not be the same as the one in the .env file
 #* Essential migration sub step * This address (the rollup proxy address) is likely a known address to operators.
@@ -60,6 +60,7 @@ export ESPRESSO_TEE_VERIFIER_ADDRESS=$(cat broadcast/DeployMockVerifier.s.sol/13
 echo "Mock TEE Address:"
 echo $ESPRESSO_TEE_VERIFIER_ADDRESS
 
+cast send 0x0000000000000000000000000000000000000070 'addChainOwner(address)' $PARENT_UPGRADE_EXECUTOR_ADDRESS --rpc-url $CHILD_CHAIN_RPC_URL --private-key $PRIVATE_KEY
 # Echo for debug
 echo "Deploying and initializing Espresso SequencerInbox"
 # ** Essential migration step ** Forge script to deploy the new SequencerInbox. We do this to later point the rollups challenge manager to the espresso integrated OSP.
@@ -67,7 +68,7 @@ forge script --chain $PARENT_CHAIN_CHAIN_ID scripts/foundry/contract-upgrades/ce
 
 # Extract new_osp_entry address from run-latest.json
 #  * Essential migration sub step * These addresses are likely known addresses to operators in the event of a real migration after they have deployed the new OSP contracts, however, if operators create a script for the migration, this command is useful.
-export UPGRADE_ACTION_ADDRESS=$(cat broadcast/DeployCelestiaNitroContracts2Point1Point3UpgradeAction.s.sol/1337/run-latest.json | jq -r '.transactions[0].contractAddress'| cast to-checksum)
+export UPGRADE_ACTION_ADDRESS=$(cat broadcast/DeployCelestiaNitroContracts2Point1Point3UpgradeAction.s.sol/1337/run-latest.json | jq -r '.transactions[-1].contractAddress'| cast to-checksum)
 # Echo for debugging.
 echo "Deployed Celestia migration action at $UPGRADE_ACTION_ADDRESS"
 
