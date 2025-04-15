@@ -96,7 +96,6 @@ services:
       - --output-ssz=/consensus/genesis.ssz
       - --chain-config-file=/config/prysm.yaml
       - --geth-genesis-json-in=/config/geth_genesis.json
-      - --geth-genesis-json-out=/config/geth_genesis.json
     volumes:
       - "consensus:/consensus"
       - "config:/config"
@@ -414,7 +413,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
 
   espresso-dev-node:
-    image: ghcr.io/espressosystems/espresso-sequencer/espresso-dev-node:main
+    image: ghcr.io/espressosystems/espresso-sequencer/espresso-dev-node:20250412-dev-node-pos-preview
     ports:
       - "$ESPRESSO_SEQUENCER_API_PORT:$ESPRESSO_SEQUENCER_API_PORT"
       - "$ESPRESSO_BUILDER_PORT:$ESPRESSO_BUILDER_PORT"

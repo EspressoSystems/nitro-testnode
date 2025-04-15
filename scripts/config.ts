@@ -10,6 +10,8 @@ function writePrysmConfig(argv: any) {
 CONFIG_NAME: interop
 PRESET_BASE: interop
 
+FULU_FORK_VERSION: 0x20000095
+
 # Genesis
 GENESIS_FORK_VERSION: 0x20000089
 
@@ -72,6 +74,11 @@ function writeGethGenesisConfig(argv: any) {
                 "terminalTotalDifficultyPassed": true,
                 "blobSchedule": {
                     "cancun": {
+                        "target": 3,
+                        "max": 6,
+                        "baseFeeUpdateFraction": 3338477
+                    },
+                     "prague": {
                         "target": 3,
                         "max": 6,
                         "baseFeeUpdateFraction": 3338477
@@ -191,6 +198,9 @@ function writeConfigs(argv: any) {
       connection: {
         url: argv.l1url,
       },
+      "blob-client": {
+        "beacon-url": argv.consensusurl,
+      },
     },
     chain: {
       id: 412346,
@@ -243,6 +253,7 @@ function writeConfigs(argv: any) {
           password: consts.l1passphrase,
           pathname: consts.l1keystore,
         },
+        "post-4844-blobs": true,
         "data-poster": {
           "redis-signer": {
             "signing-key":
@@ -410,7 +421,7 @@ function writeConfigs(argv: any) {
     }
 
     if (argv.espresso && argv.enableCaffNode) {
-      sequencerConfig.node.sequencer = false
+      sequencerConfig.node.sequencer = false;
       sequencerConfig.node["delayed-sequencer"].enable = false;
       sequencerConfig.node["parent-chain-reader"].enable = false;
       sequencerConfig.execution.sequencer["enable-caff-node"] = true;
@@ -421,7 +432,8 @@ function writeConfigs(argv: any) {
         "parent-chain-node-url": argv.l1url,
         "hotshot-polling-interval": "250ms",
         "retry-time": "2s",
-        "espresso-tee-verifier-addr": "0xb562622f2D76F355D673560CB88c1dF6088702f1",
+        "espresso-tee-verifier-addr":
+          "0xb562622f2D76F355D673560CB88c1dF6088702f1",
       };
       fs.writeFileSync(
         path.join(consts.configpath, "caff_sequencer_config.json"),
