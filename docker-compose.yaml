@@ -414,7 +414,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
 
   espresso-dev-node:
-    image: ghcr.io/espressosystems/espresso-sequencer/espresso-dev-node:main
+    image: ghcr.io/espressosystems/espresso-sequencer/espresso-dev-node:20250412-dev-node-pos-preview
     ports:
       - "$ESPRESSO_SEQUENCER_API_PORT:$ESPRESSO_SEQUENCER_API_PORT"
       - "$ESPRESSO_BUILDER_PORT:$ESPRESSO_BUILDER_PORT"
@@ -434,6 +434,13 @@ services:
       - espresso_storage:/data/espresso
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fL http://localhost:41000/v0/status/block-height || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
 
   # Reads from sequencer feed, forwards transactions to sequencer
   full-node:
