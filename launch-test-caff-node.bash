@@ -5,7 +5,7 @@ set -euo pipefail
 # It is used by the Hyperlane Integration PoC (see https://github.com/EspressoSystems/hyperlane-integration-poc) project.
 
 user=user_l2user
-caff_url="ws://caff-node:8548"
+caff_url="ws://127.0.0.1:8552"
 
 ./test-node.bash --espresso --latest-espresso-image --validate --tokenbridge --init-force --detach --caff-node
 
