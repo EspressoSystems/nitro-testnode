@@ -433,6 +433,12 @@ services:
       - espresso_storage:/data/espresso
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fL http://localhost:41000 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
 
   # Reads from sequencer feed, forwards transactions to sequencer
   full-node:
