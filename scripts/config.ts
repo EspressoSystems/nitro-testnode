@@ -254,6 +254,7 @@ function writeConfigs(argv: any) {
           pathname: consts.l1keystore,
         },
         "post-4844-blobs": true,
+        "ignore-blob-price": true,
         "data-poster": {
           "redis-signer": {
             "signing-key":
