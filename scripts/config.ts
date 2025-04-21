@@ -410,19 +410,24 @@ function writeConfigs(argv: any) {
     }
 
     if (argv.espresso && argv.enableCaffNode) {
-      sequencerConfig.node.sequencer = false
+      sequencerConfig.node.sequencer = false;
+      sequencerConfig.execution["sequencer"].enable = false;
       sequencerConfig.node["delayed-sequencer"].enable = false;
       sequencerConfig.node["parent-chain-reader"].enable = false;
       sequencerConfig.execution.sequencer["enable-caff-node"] = true;
       sequencerConfig.execution.sequencer["caff-node-config"] = {
         "hotshot-urls": [argv.espressoUrl],
+        "fallback-urls": [argv.espressoUrl],
         "next-hotshot-block": 1,
         namespace: 412346,
         "parent-chain-node-url": argv.l1url,
         "hotshot-polling-interval": "250ms",
         "retry-time": "2s",
-        "espresso-tee-verifier-addr": "0xb562622f2D76F355D673560CB88c1dF6088702f1",
+        "espresso-tee-verifier-addr":
+          "0xb562622f2D76F355D673560CB88c1dF6088702f1",
       };
+
+      sequencerConfig.execution["forwarding-target"] = "ws://sequencer:8548";
       fs.writeFileSync(
         path.join(consts.configpath, "caff_sequencer_config.json"),
         JSON.stringify(sequencerConfig)
