@@ -479,6 +479,10 @@ function writeConfigs(argv: any) {
   if (argv.espresso) {
     l3Config.node.feed.output.enable = true;
     l3Config.node.dangerous["no-sequencer-coordinator"] = true;
+    l3Config.node.feed.input.url.push("ws://sequencer:9642");
+    l3Config.node["batch-poster"]["hotshot-url"] = argv.espressoUrl;
+    l3Config.node["batch-poster"]["light-client-address"] =
+      argv.lightClientAddress;
   }
   fs.writeFileSync(
     path.join(consts.configpath, "l3node_config.json"),
