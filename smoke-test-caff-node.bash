@@ -3,10 +3,10 @@ set -euo pipefail
 
 
 
-user=l2owner
+user=user_l2user
 caff_url="ws://caff-node:8548"
 
-./test-node.bash --espresso --latest-espresso-image --validate   --detach --caff-node
+./test-node.bash --espresso --latest-espresso-image --validate --tokenbridge --init-force   --detach --caff-node
 
 # Start the caff node
 docker compose up -d caff-node --wait --detach
