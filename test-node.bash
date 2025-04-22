@@ -317,7 +317,7 @@ done
 
 if $espresso; then
     NITRO_CONTRACTS_REPO=https://github.com/EspressoSystems/nitro-contracts.git
-    NITRO_CONTRACTS_BRANCH=v2.1.1-beta.0-cff556b
+    NITRO_CONTRACTS_BRANCH=v2.1.3-98026d1
     export NITRO_CONTRACTS_REPO
     export NITRO_CONTRACTS_BRANCH
     echo "Running espresso mode"
@@ -374,16 +374,7 @@ if $blockscout; then
 fi
 
 if $espresso; then
-    if $l3node; then
-        # If we run the `l3node` with enabling espresso mode, then the
-        # l2 node will run without `espresso` mode.
-        l2_espresso=false
-    fi
-    if $build_node_images && $l2_espresso; then
-        INITIAL_SEQ_NODES="$INITIAL_SEQ_NODES espresso-dev-node"
-    else
-        NODES="$NODES espresso-dev-node"
-    fi
+    NODES="$NODES espresso-dev-node"
 
 fi
 
@@ -568,7 +559,10 @@ if $force_init; then
     fi
 
     echo == Funding l2 funnel and dev key
-    docker compose up --wait $INITIAL_SEQ_NODES
+    docker compose up --wait $INITIAL_SEQ_NODES || {
+        echo "Failed to start $INITIAL_SEQ_NODES. Attempting to restart..."
+        docker compose restart $INITIAL_SEQ_NODES
+    }
     docker compose run scripts bridge-funds --ethamount 100000 --wait
     docker compose run scripts send-l2 --ethamount 10000 --to espresso-sequencer --wait
     docker compose run scripts send-l2 --ethamount 100 --to l2owner --wait
