@@ -288,7 +288,7 @@ function writeConfigs(argv: any) {
     },
     persistent: {
       chain: "local",
-      "db-engine": "leveldb",
+      "db-engine": "pebble",
     },
     ws: {
       addr: "0.0.0.0",
