@@ -45,7 +45,7 @@ services:
       - "127.0.0.1:6379:6379"
 
   geth:
-    image: ethereum/client-go:latest
+    image: ethereum/client-go:stable
     ports:
       - "127.0.0.1:8545:8545"
       - "127.0.0.1:8551:8551"
@@ -168,6 +168,12 @@ services:
     command: --conf.file /config/sequencer_config.json --node.feed.output.enable --node.feed.output.port 9642  --http.api net,web3,eth,txpool,debug --node.seq-coordinator.my-url  ws://sequencer:8548 --graphql.enable --graphql.vhosts * --graphql.corsdomain *
     depends_on:
       - geth
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fL http://localhost:8547 || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
 
   sequencer-on-espresso:
     pid: host # allow debugging
@@ -203,8 +209,6 @@ services:
     depends_on:
       - geth
       - espresso-dev-node
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
 
   sequencer_b:
     pid: host # allow debugging
@@ -401,7 +405,6 @@ services:
   rollupcreator:
     depends_on:
       - geth
-      - sequencer
     pid: host
     build:
       context: rollupcreator/
@@ -414,7 +417,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
 
   espresso-dev-node:
-    image: ghcr.io/espressosystems/espresso-sequencer/espresso-dev-node:main
+    image: ghcr.io/espressosystems/espresso-sequencer/espresso-dev-node:20250410-dev-node-pos-preview
     ports:
       - "$ESPRESSO_SEQUENCER_API_PORT:$ESPRESSO_SEQUENCER_API_PORT"
       - "$ESPRESSO_BUILDER_PORT:$ESPRESSO_BUILDER_PORT"
@@ -427,6 +430,7 @@ services:
       - ESPRESSO_SEQUENCER_ETH_MNEMONIC
       - ESPRESSO_SEQUENCER_L1_PROVIDER
       - ESPRESSO_SEQUENCER_DATABASE_MAX_CONNECTIONS=25
+      - ESPRESSO_DEV_NODE_EPOCH_HEIGHT
       - ESPRESSO_SEQUENCER_STORAGE_PATH=/data/espresso
       - RUST_LOG=info
       - RUST_LOG_FORMAT
@@ -434,6 +438,16 @@ services:
       - espresso_storage:/data/espresso
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fL http://localhost:41000/v0/status/block-height || exit 1",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
 
   # Reads from sequencer feed, forwards transactions to sequencer
   full-node:
