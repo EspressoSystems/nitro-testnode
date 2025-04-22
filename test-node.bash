@@ -379,12 +379,8 @@ if $blockscout; then
 fi
 
 if $espresso; then
-    if $l3node; then
-        # If we run the `l3node` with enabling espresso mode, then the
-        # l2 node will run without `espresso` mode.
-        l2_espresso=false
-    fi
     NODES="$NODES espresso-dev-node"
+
 fi
 
 if $dev_nitro && $build_dev_nitro; then

@@ -422,7 +422,8 @@ function writeConfigs(argv: any) {
         namespace: 412346,
         "hotshot-polling-interval": "250ms",
         "retry-time": "2s",
-        "espresso-tee-verifier-addr": "0xb562622f2D76F355D673560CB88c1dF6088702f1",
+        "espresso-tee-verifier-addr":
+          "0xb562622f2D76F355D673560CB88c1dF6088702f1",
       };
 
       sequencerConfig.execution["forwarding-target"] = "ws://sequencer:8548";
