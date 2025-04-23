@@ -279,6 +279,16 @@ function writeConfigs(argv: any) {
         "parent-chain-node-url": argv.l1url,
         "sequencer-inbox-address": "not_set",
       },
+      "espresso-caff-node": {
+        enable: false,
+        "hotshot-urls": [],
+        "fallback-urls": [],
+        "next-hotshot-block": 1,
+        namespace: 412346,
+        "hotshot-polling-interval": "250ms",
+        "retry-time": "2s",
+        "espresso-tee-verifier-addr": "0xb562622f2D76F355D673560CB88c1dF6088702f1",
+      },
     },
     execution: {
       sequencer: {
@@ -414,18 +424,10 @@ function writeConfigs(argv: any) {
       sequencerConfig.execution["sequencer"].enable = false;
       sequencerConfig.node["delayed-sequencer"].enable = false;
       sequencerConfig.node["parent-chain-reader"].enable = false;
-      sequencerConfig.execution.sequencer["enable-caff-node"] = true;
-      sequencerConfig.execution.sequencer["caff-node-config"] = {
-        "hotshot-urls": [argv.espressoUrl],
-        "fallback-urls": [argv.espressoUrl],
-        "next-hotshot-block": 1,
-        namespace: 412346,
-        "parent-chain-node-url": argv.l1url,
-        "hotshot-polling-interval": "250ms",
-        "retry-time": "2s",
-        "espresso-tee-verifier-addr":
-          "0xb562622f2D76F355D673560CB88c1dF6088702f1",
-      };
+
+      sequencerConfig.node["espresso-caff-node"].enable = true;
+      sequencerConfig.node["espresso-caff-node"]["hotshot-urls"] = [argv.espressoUrl];
+      sequencerConfig.node["espresso-caff-node"]["fallback-urls"] = [argv.espressoUrl];
 
       sequencerConfig.execution["forwarding-target"] = "ws://sequencer:8548";
       fs.writeFileSync(
