@@ -374,8 +374,12 @@ if $blockscout; then
 fi
 
 if $espresso; then
+    if $l3node; then
+        # If we run the `l3node` with enabling espresso mode, then the
+        # l2 node will run without `espresso` mode.
+        l2_espresso=false
+    fi
     NODES="$NODES espresso-dev-node"
-
 fi
 
 if $dev_nitro && $build_dev_nitro; then
@@ -620,7 +624,10 @@ if $force_init; then
         docker compose run --entrypoint sh rollupcreator -c "jq [.[]] /config/deployed_l3_chain_info.json > /config/l3_chain_info.json"
 
         echo == Funding l3 funnel and dev key
-        docker compose up --wait l3node sequencer
+        docker compose up --wait l3node sequencer || {
+            echo "Failed to start l3node or sequencer. Attempting to restart..."
+            docker compose restart l3node sequencer
+        }
 
         if $l3_token_bridge; then
             echo == Deploying L2-L3 token bridge
