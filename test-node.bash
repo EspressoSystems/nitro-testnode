@@ -317,7 +317,7 @@ done
 
 if $espresso; then
     NITRO_CONTRACTS_REPO=https://github.com/EspressoSystems/nitro-contracts.git
-    NITRO_CONTRACTS_BRANCH=celestia-integration
+    NITRO_CONTRACTS_BRANCH=v2.1.3-celestia-1b04973
     export NITRO_CONTRACTS_REPO
     export NITRO_CONTRACTS_BRANCH
     echo "Running espresso mode"
@@ -379,12 +379,7 @@ if $espresso; then
         # l2 node will run without `espresso` mode.
         l2_espresso=false
     fi
-    if $build_node_images && $l2_espresso; then
-        INITIAL_SEQ_NODES="$INITIAL_SEQ_NODES espresso-dev-node"
-    else
-        NODES="$NODES espresso-dev-node"
-    fi
-
+    NODES="$NODES espresso-dev-node"
 fi
 
 if $dev_nitro && $build_dev_nitro; then
@@ -568,7 +563,10 @@ if $force_init; then
     fi
 
     echo == Funding l2 funnel and dev key
-    docker compose up --wait $INITIAL_SEQ_NODES
+    docker compose up --wait $INITIAL_SEQ_NODES || {
+        echo "Failed to start $INITIAL_SEQ_NODES. Attempting to restart..."
+        docker compose restart $INITIAL_SEQ_NODES
+    }
     docker compose run scripts bridge-funds --ethamount 100000 --wait
     docker compose run scripts send-l2 --ethamount 10000 --to espresso-sequencer --wait
     docker compose run scripts send-l2 --ethamount 100 --to l2owner --wait
@@ -626,7 +624,10 @@ if $force_init; then
         docker compose run --entrypoint sh rollupcreator -c "jq [.[]] /config/deployed_l3_chain_info.json > /config/l3_chain_info.json"
 
         echo == Funding l3 funnel and dev key
-        docker compose up --wait l3node sequencer
+        docker compose up --wait l3node sequencer || {
+            echo "Failed to start l3node or sequencer. Attempting to restart..."
+            docker compose restart l3node sequencer
+        }
 
         if $l3_token_bridge; then
             echo == Deploying L2-L3 token bridge
