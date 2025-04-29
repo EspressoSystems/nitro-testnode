@@ -627,6 +627,10 @@ if $force_init; then
         docker compose up --wait l3node sequencer || {
             echo "Failed to start l3node or sequencer. Attempting to restart..."
             docker compose restart l3node sequencer
+            docker compose up --wait l3node sequencer || {
+                echo "Failed to start containers after restart"
+                exit 1
+            }
         }
 
         if $l3_token_bridge; then
