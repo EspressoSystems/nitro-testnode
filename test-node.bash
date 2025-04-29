@@ -623,9 +623,11 @@ if $force_init; then
         docker compose run -e DEPLOYER_PRIVKEY=$l3ownerkey -e PARENT_CHAIN_RPC="http://sequencer:8547" -e PARENT_CHAIN_ID=412346 -e CHILD_CHAIN_NAME="orbit-dev-test" -e MAX_DATA_SIZE=104857 -e OWNER_ADDRESS=$l3owneraddress -e WASM_MODULE_ROOT=$wasmroot -e SEQUENCER_ADDRESS=$l3sequenceraddress -e AUTHORIZE_VALIDATORS=10 -e CHILD_CHAIN_CONFIG_PATH="/config/l3_chain_config.json" -e CHAIN_DEPLOYMENT_INFO="/config/l3deployment.json" -e CHILD_CHAIN_INFO="/config/deployed_l3_chain_info.json" -e LIGHT_CLIENT_ADDR=$lightClientAddrForL3 $EXTRA_L3_DEPLOY_FLAG rollupcreator create-rollup-testnode
         docker compose run --entrypoint sh rollupcreator -c "jq [.[]] /config/deployed_l3_chain_info.json > /config/l3_chain_info.json"
 
-        echo == Funding l3 funnel and dev key
+        echo == Funding l3 funnel and dev key testing
         MAX_RETRIES=3
         RETRY_COUNT=0
+        echo $RETRY_COUNT
+
 
         while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
             if docker compose up --wait l3node sequencer; then
