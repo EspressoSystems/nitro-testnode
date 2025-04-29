@@ -4,4 +4,4 @@
 [submodule "orbit-actions"]
 	path = orbit-actions
 	url = https://github.com/EspressoSystems/orbit-actions.git
-	branch = integration
+	branch = blobs-support-integration
