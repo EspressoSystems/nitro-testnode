@@ -633,16 +633,9 @@ if $force_init; then
             echo "Attempt $((RETRY_COUNT + 1)) of $MAX_RETRIES..."
     
             # Run docker compose and capture exit status
-            docker compose up --wait --wait-timeout 600 l3node sequencer
-            EXIT_STATUS=$?
-            echo "exit code: $EXIT_CODE"
-            if [ $EXIT_STATUS -eq 0 ]; then
-                echo "Containers started successfully"
-                break
-            else
+            docker compose up --wait l3node sequencer || {
+                
                 ((RETRY_COUNT++))
-                echo "Attempt $RETRY_COUNT failed. Restarting..."
-        
                 # Debugging: Show health status before restart
                 echo "Current container states:"
                 docker ps -a --format "table {{.Names}}\t{{.Status}}\t{{.State}}"
@@ -651,12 +644,13 @@ if $force_init; then
                 echo "Health check details for l3node:"
                 docker inspect --format='{{json .State.Health}}' nitro-testnode-l3node-1 | jq
         
-                # Show last 50 lines of logs
                 echo "Container logs (last 50 lines):"
-                docker logs --tail 50 nitro-testnode-l3node-1
-        
-                docker compose restart l3node sequencer
-            fi
+                docker logs --tail 200 nitro-testnode-l3node-1
+                if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+                    echo "Failed to start l3node or sequencer. Attempting to restart..."
+                    docker compose restart l3node sequencer
+                fi
+            }
         done
 
         if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
@@ -671,7 +665,7 @@ if $force_init; then
             docker inspect nitro-testnode-l3node-1 | jq '.[].State.Health'
     
             echo "3. Last 100 lines of logs:"
-            docker logs --tail 100 nitro-testnode-l3node-1
+            docker logs --tail 200 nitro-testnode-l3node-1
     
             echo "4. Docker events (last 20):"
             docker events --since 5m --until 0 | tail -n 20
