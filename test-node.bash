@@ -566,6 +566,7 @@ if $force_init; then
     docker compose up --wait $INITIAL_SEQ_NODES || {
         echo "Failed to start $INITIAL_SEQ_NODES. Attempting to restart..."
         docker compose restart $INITIAL_SEQ_NODES
+        sleep 10
     }
     docker compose run scripts bridge-funds --ethamount 100000 --wait
     docker compose run scripts send-l2 --ethamount 10000 --to espresso-sequencer --wait
@@ -628,50 +629,61 @@ if $force_init; then
         RETRY_COUNT=0
         echo $RETRY_COUNT
 
-
-        while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-            echo "Attempt $((RETRY_COUNT + 1)) of $MAX_RETRIES..."
-    
-            # Run docker compose and capture exit status
-            docker compose up --wait l3node sequencer || {
-                
-                ((RETRY_COUNT++))
-                # Debugging: Show health status before restart
-                echo "Current container states:"
-                docker ps -a --format "table {{.Names}}\t{{.Status}}\t{{.State}}"
-        
-                # Get detailed health check output
-                echo "Health check details for l3node:"
-                docker inspect --format='{{json .State.Health}}' nitro-testnode-l3node-1 | jq
-        
-                echo "Container logs (last 50 lines):"
-                docker logs --tail 200 nitro-testnode-l3node-1
-                if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
-                    echo "Failed to start l3node or sequencer. Attempting to restart..."
-                    docker compose restart l3node sequencer
-                fi
-            }
-        done
-
-        if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
-            echo "Failed to start containers after $MAX_RETRIES attempts"
-    
-            # Final debugging output
-            echo "=== FINAL DEBUGGING INFORMATION ==="
-            echo "1. Full container status:"
-            docker ps -a
-    
-            echo "2. Detailed health check:"
-            docker inspect nitro-testnode-l3node-1 | jq '.[].State.Health'
-    
-            echo "3. Last 100 lines of logs:"
+        docker compose up --wait l3node sequencer || {
+            # Debugging: Show health status before restart
+            echo "Current container states:"
+            docker ps -a --format "table {{.Names}}\t{{.Status}}\t{{.State}}"
+            # Get detailed health check output
+            echo "Health check details for l3node:"
+            docker inspect --format='{{json .State.Health}}' nitro-testnode-l3node-1 | jq
+            echo "Container logs (last 50 lines):"
             docker logs --tail 200 nitro-testnode-l3node-1
+            docker compose restart l3node sequencer
+        }
+
+
+        # while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+        #     echo "Attempt $((RETRY_COUNT + 1)) of $MAX_RETRIES..."
     
-            echo "4. Docker events (last 20):"
-            docker events --since 5m --until 0 | tail -n 20
+        #     # Run docker compose and capture exit status
+        #     docker compose up --wait l3node sequencer || {
+                
+        #         # Debugging: Show health status before restart
+        #         echo "Current container states:"
+        #         docker ps -a --format "table {{.Names}}\t{{.Status}}\t{{.State}}"
+        
+        #         # Get detailed health check output
+        #         echo "Health check details for l3node:"
+        #         docker inspect --format='{{json .State.Health}}' nitro-testnode-l3node-1 | jq
+        
+        #         echo "Container logs (last 50 lines):"
+        #         docker logs --tail 200 nitro-testnode-l3node-1
+        #         if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+        #             echo "Failed to start l3node or sequencer. Attempting to restart..."
+        #             docker compose restart l3node sequencer
+        #         fi
+        #     }
+        # done
+
+        # if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+        #     echo "Failed to start containers after $MAX_RETRIES attempts"
     
-            exit 1
-        fi
+        #     # Final debugging output
+        #     echo "=== FINAL DEBUGGING INFORMATION ==="
+        #     echo "1. Full container status:"
+        #     docker ps -a
+    
+        #     echo "2. Detailed health check:"
+        #     docker inspect nitro-testnode-l3node-1 | jq '.[].State.Health'
+    
+        #     echo "3. Last 100 lines of logs:"
+        #     docker logs --tail 200 nitro-testnode-l3node-1
+    
+        #     echo "4. Docker events (last 20):"
+        #     docker events --since 5m --until 0 | tail -n 20
+    
+        #     exit 1
+        # fi
 
         if $l3_token_bridge; then
             echo == Deploying L2-L3 token bridge

@@ -288,7 +288,7 @@ function writeConfigs(argv: any) {
     },
     persistent: {
       chain: "local",
-      "db-engine": "localdb",
+      "db-engine": "leveldb",
     },
     ws: {
       addr: "0.0.0.0",

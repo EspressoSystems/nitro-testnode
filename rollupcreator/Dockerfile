@@ -1,4 +1,4 @@
-FROM node:18-bullseye-slim
+FROM node:18-bookworm-slim
 ARG NITRO_CONTRACTS_BRANCH=celestia-integration
 ARG NITRO_CONTRACTS_REPO=https://github.com/EspressoSystems/nitro-contracts.git
 RUN apt-get update && \
