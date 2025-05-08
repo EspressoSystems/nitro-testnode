@@ -172,15 +172,15 @@ function writeGethGenesisConfig(argv: any) {
 }
 
 type ChainInfo = {
-  [key: string]: any;
+    [key: string]: any;
 };
 
 // Define a function to return ChainInfo
 function getChainInfo(): ChainInfo {
-  const filePath = path.join(consts.configpath, "l2_chain_info.json");
-  const fileContents = fs.readFileSync(filePath).toString();
-  const chainInfo: ChainInfo = JSON.parse(fileContents);
-  return chainInfo;
+    const filePath = path.join(consts.configpath, "l2_chain_info.json");
+    const fileContents = fs.readFileSync(filePath).toString();
+    const chainInfo: ChainInfo = JSON.parse(fileContents);
+    return chainInfo;
 }
 
 function writeConfigs(argv: any) {
