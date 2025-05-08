@@ -688,13 +688,6 @@ if $force_init; then
         echo == Deploy CacheManager on L3
         docker compose run -e CHILD_CHAIN_RPC="http://l3node:3347" -e CHAIN_OWNER_PRIVKEY=$l3ownerkey rollupcreator deploy-cachemanager-testnode
 
-        if $l3_token_bridge; then
-            # set L3 UpgradeExecutor, deployed by token bridge creator in previous step, to be the L3 chain owner. L3owner (EOA) and alias of L2 UpgradeExectuor have the executor role on the L3 UpgradeExecutor
-            echo == Set L3 UpgradeExecutor to be chain owner
-            tokenBridgeCreator=`docker compose run --entrypoint sh tokenbridge -c "cat l2l3_network.json" | jq -r '.l1TokenBridgeCreator'`
-            docker compose run scripts transfer-l3-chain-ownership --creator $tokenBridgeCreator
-        fi
-
     fi
 fi
 
