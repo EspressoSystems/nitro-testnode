@@ -417,7 +417,6 @@ function writeConfigs(argv: any) {
       sequencerConfig.node["espresso-caff-node"] = {
         enable: true,
         "hotshot-urls": [argv.espressoUrl],
-        "fallback-urls": [argv.espressoUrl],
         "next-hotshot-block": 1,
         namespace: 412346,
         "hotshot-polling-interval": "250ms",
