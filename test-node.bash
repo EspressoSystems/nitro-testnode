@@ -63,6 +63,7 @@ l1chainid=1337
 simple=true
 simple_with_validator=false
 l2anytrust=false
+local_celestia=true
 
 # Use the dev versions of nitro/blockscout
 dev_nitro=false
@@ -275,6 +276,10 @@ while [[ $# -gt 0 ]]; do
             simple=false
             shift
             ;;
+        --celestia-testnet)
+            local_celestia=false
+            shift
+            ;;
         *)
             echo Usage: $0 \[OPTIONS..]
             echo        $0 script [SCRIPT-ARGS]
@@ -450,6 +455,28 @@ if $force_init; then
     if [ `echo $leftoverVolumes | wc -w` -gt 0 ]; then
         docker volume rm $leftoverVolumes
     fi
+
+    if $local_celestia; then
+        echo == Starting Celestia Client ==
+        docker compose up --wait localestia
+
+        echo == Starting Celestia DA Server ==
+        docker compose up --wait celestia-server
+    else
+        echo == Starting Celestia Client ==
+        docker compose up --wait celestia
+
+        # sleep 10s to allow the node to initialize
+        sleep 10s
+
+        AUTH_TOKEN=$(docker exec celestia celestia light auth admin --p2p.network mocha)
+        echo "Got auth token from celestia node: $AUTH_TOKEN"
+
+        echo == Starting Celestia DA Server ==
+        CELESTIA_AUTH_TOKEN="$AUTH_TOKEN"  docker compose up --wait celestia-server-mocha
+    fi
+
+
 
     echo == Generating l1 keys
     docker compose run scripts write-accounts
@@ -641,6 +668,12 @@ if $force_init; then
             fi
             docker compose run -e PARENT_WETH_OVERRIDE=$l2Weth -e ROLLUP_OWNER_KEY=$l3ownerkey -e ROLLUP_ADDRESS=$rollupAddress -e PARENT_RPC=http://sequencer:8547 -e PARENT_KEY=$deployer_key  -e CHILD_RPC=http://l3node:3347 -e CHILD_KEY=$deployer_key tokenbridge deploy:local:token-bridge
             docker compose run --entrypoint sh tokenbridge -c "cat network.json && cp network.json l2l3_network.json"
+
+            # set L3 UpgradeExecutor, deployed by token bridge creator in previous step, to be the L3 chain owner. L3owner (EOA) and alias of L2 UpgradeExectuor have the executor role on the L3 UpgradeExecutor
+            echo == Set L3 UpgradeExecutor to be chain owner
+            tokenBridgeCreator=`docker compose run --entrypoint sh tokenbridge -c "cat l2l3_network.json" | jq -r '.l1TokenBridgeCreator'`
+            docker compose run scripts transfer-l3-chain-ownership --creator $tokenBridgeCreator
+            echo
         fi
 
         echo == Fund L3 accounts
@@ -654,13 +687,6 @@ if $force_init; then
 
         echo == Deploy CacheManager on L3
         docker compose run -e CHILD_CHAIN_RPC="http://l3node:3347" -e CHAIN_OWNER_PRIVKEY=$l3ownerkey rollupcreator deploy-cachemanager-testnode
-
-        if $l3_token_bridge; then
-            # set L3 UpgradeExecutor, deployed by token bridge creator in previous step, to be the L3 chain owner. L3owner (EOA) and alias of L2 UpgradeExectuor have the executor role on the L3 UpgradeExecutor
-            echo == Set L3 UpgradeExecutor to be chain owner
-            tokenBridgeCreator=`docker compose run --entrypoint sh tokenbridge -c "cat l2l3_network.json" | jq -r '.l1TokenBridgeCreator'`
-            docker compose run scripts transfer-l3-chain-ownership --creator $tokenBridgeCreator
-        fi
 
     fi
 fi
