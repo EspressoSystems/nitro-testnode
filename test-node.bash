@@ -7,7 +7,7 @@ NITRO_NODE_VERSION=offchainlabs/nitro-node:v3.2.1-d81324d-dev
 BLOCKSCOUT_VERSION=offchainlabs/blockscout:v1.1.0-0e716c8
 
 # This commit matches v2.1.0 release of nitro-contracts, with additional support to set arb owner through upgrade executor
-DEFAULT_NITRO_CONTRACTS_VERSION="99c07a7db2fcce75b751c5a2bd4936e898cda065"
+DEFAULT_NITRO_CONTRACTS_VERSION="8e5836b8c39657d27a6c7ef69e658720b34b6fb8"
 DEFAULT_TOKEN_BRIDGE_VERSION="v1.2.2"
 
 ESPRESSO_VERSION=ghcr.io/espressosystems/nitro-espresso-integration/nitro-node-dev:celestia-integration
@@ -61,8 +61,8 @@ batchposters=1
 devprivkey=b6b15c8cb491557369f3c7d2c287b053eb229daa9c22138887752191c9520659
 l1chainid=1337
 simple=true
-simple_with_validator=false
 l2anytrust=false
+local_celestia=true
 
 # Use the dev versions of nitro/blockscout
 dev_nitro=false
@@ -275,6 +275,10 @@ while [[ $# -gt 0 ]]; do
             simple=false
             shift
             ;;
+        --celestia-testnet)
+            local_celestia=false
+            shift
+            ;;
         *)
             echo Usage: $0 \[OPTIONS..]
             echo        $0 script [SCRIPT-ARGS]
@@ -450,6 +454,28 @@ if $force_init; then
     if [ `echo $leftoverVolumes | wc -w` -gt 0 ]; then
         docker volume rm $leftoverVolumes
     fi
+
+    if $local_celestia; then
+        echo == Starting Celestia Client ==
+        docker compose up --wait localestia
+
+        echo == Starting Celestia DA Server ==
+        docker compose up --wait celestia-server
+    else
+        echo == Starting Celestia Client ==
+        docker compose up --wait celestia
+
+        # sleep 10s to allow the node to initialize
+        sleep 10s
+
+        AUTH_TOKEN=$(docker exec celestia celestia light auth admin --p2p.network mocha)
+        echo "Got auth token from celestia node: $AUTH_TOKEN"
+
+        echo == Starting Celestia DA Server ==
+        CELESTIA_AUTH_TOKEN="$AUTH_TOKEN"  docker compose up --wait celestia-server-mocha
+    fi
+
+
 
     echo == Generating l1 keys
     docker compose run scripts write-accounts
