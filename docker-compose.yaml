@@ -47,7 +47,6 @@ services:
   localestia:
     image: ghcr.io/celestiaorg/localestia:v0.1.2
     container_name: 'local-celestia'
-    platform: linux/amd64
     environment:
       - REDIS_URL=redis://redis:6379
       - LISTEN_ADDR=0.0.0.0:26658
@@ -88,7 +87,6 @@ services:
   celestia-server:
     image: ghcr.io/celestiaorg/nitro-das-celestia:v0.4.3
     container_name: celestia-server
-    platform: linux/amd64
     entrypoint: ["/bin/celestia-server", "--rpc-addr", "0.0.0.0", "--rpc-port", "26657", "--celestia.auth-token", "",  "--celestia.namespace-id", "000008e5f679bf7116cb", "--celestia.rpc", "http://localestia:26658"]
     ports:
       - "1317:1317"
