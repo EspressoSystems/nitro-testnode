@@ -34,6 +34,16 @@ jobs:
         with:
           submodules: recursive
 
+      - name: free disk space
+        uses: jlumbroso/free-disk-space@main
+        with:
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: false
+          docker-images: false
+          swap-storage: true
+
       # Install wscat for finality node smoke test to listen to sequencer feed
       - name: Set up Node.js
         uses: actions/setup-node@v3
