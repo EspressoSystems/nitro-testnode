@@ -439,7 +439,11 @@ function writeConfigs(argv: any) {
 
     let posterConfig = JSON.parse(baseConfJSON);
     if (argv.espresso) {
-      posterConfig.node.feed.input.url.push("ws://sequencer:9642");
+      if (argv.mockSequencer) {
+        posterConfig.node.feed.input.url.push("ws://mock-sequencer:9642");
+      } else {
+        posterConfig.node.feed.input.url.push("ws://sequencer:9642");
+      }
       posterConfig.node["batch-poster"]["hotshot-urls"] = [argv.espressoUrl];
       posterConfig.node["batch-poster"]["light-client-address"] =
         argv.lightClientAddress;
