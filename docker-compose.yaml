@@ -417,7 +417,7 @@ services:
       - "validator-data:/home/user/.arbitrum/local/nitro"
       - "l1keystore:/home/user/l1keystore"
       - "config:/config"
-    command: --conf.file /config/validator_config.json --http.port 8547 --http.api net,web3,arb,debug --ws.port 8548
+    command: --conf.file /config/validator_config.json --http.port 8547 --http.api net,web3,arb,debug,eth --ws.port 8548
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:

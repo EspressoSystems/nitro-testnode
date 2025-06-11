@@ -32,6 +32,7 @@ export class MockSequencer {
 
     private processAndBroadcast(data: WebSocket.Data) {
         this.count++;
+        console.log("get message", this.count)
         if (this.skipNext) {
             this.skipNext = false;
             return;
