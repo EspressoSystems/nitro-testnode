@@ -10,7 +10,11 @@ BLOCKSCOUT_VERSION=offchainlabs/blockscout:v1.1.0-0e716c8
 DEFAULT_NITRO_CONTRACTS_VERSION="99c07a7db2fcce75b751c5a2bd4936e898cda065"
 DEFAULT_TOKEN_BRIDGE_VERSION="v1.2.2"
 
+<<<<<<< Updated upstream
 ESPRESSO_VERSION=ghcr.io/espressosystems/nitro-espresso-integration/nitro-node-dev:celestia-feat-stateless-batcher
+=======
+ESPRESSO_VERSION=ghcr.io/espressosystems/nitro-espresso-integration/nitro-node:add-logs-force-inclusion-checker
+>>>>>>> Stashed changes
 
 # Set default versions if not overriden by provided env vars
 : ${NITRO_CONTRACTS_REPO:=$DEFAULT_NITRO_CONTRACTS_REPO}
@@ -322,7 +326,11 @@ done
 
 if $espresso; then
     NITRO_CONTRACTS_REPO=https://github.com/EspressoSystems/nitro-contracts.git
+<<<<<<< Updated upstream
     NITRO_CONTRACTS_BRANCH=celestia-feat-stateless-batcher
+=======
+    NITRO_CONTRACTS_BRANCH=v2.1.3-celestia-409085b
+>>>>>>> Stashed changes
     export NITRO_CONTRACTS_REPO
     export NITRO_CONTRACTS_BRANCH
     echo "Running espresso mode"
@@ -385,6 +393,10 @@ if $espresso; then
         l2_espresso=false
     fi
     NODES="$NODES espresso-dev-node"
+fi
+
+if $enableCaffNode; then
+  NODES="$NODES caff-node"
 fi
 
 if $dev_nitro && $build_dev_nitro; then

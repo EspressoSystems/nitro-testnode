@@ -1,0 +1,49 @@
+name: Espresso Tests
+run-name: CI triggered from @${{ github.actor }} of ${{ github.head_ref }}
+
+on:
+  workflow_dispatch:
+  merge_group:
+  push:
+  schedule:
+    #      Run at the end of every day
+    - cron: "0 0 * * *"
+
+# Cancel in-progress jobs except for integration branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !contains(github.ref, 'integration/')}}
+
+jobs:
+  espresso_tests:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v30
+
+      - name: Enable Cachix
+        uses: cachix/cachix-action@v15
+        continue-on-error: true
+        with:
+          name: espresso-systems-private
+          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
+          extraPullNames: nix-community
+          skipPush: ${{ github.actor == 'dependabot[bot]' }}
+
+      - name: Migration Test
+        run: |
+          nix develop --accept-flake-config --option sandbox relaxed \
+          -c espresso-tests/migration-test.bash
+        timeout-minutes: 45
+
+      - Name: Force Inclusion Test
+        run: |
+          nix develop --accept-flake-config --option sandbox relaxed \
+          -c espresso-tests/force-inclusion-test.bash
+        timeout-minutes: 45
