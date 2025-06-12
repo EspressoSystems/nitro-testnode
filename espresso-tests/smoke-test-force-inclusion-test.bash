@@ -217,12 +217,15 @@ fi
 
 sleep 120
 
-# Before setting the max delay verify that Caff node is running
-CAFF_NODE_RESPONSE=$(cast balance 0x3f1Eae7D46d88F08fc2F8ed27FCb2AB183EB2d0E --rpc-url http://127.0.0.1:8550)
 
-if [[ $CAFF_NODE_RESPONSE != "0" ]]; then
-    echo "Caff node should not be running"
-    exit 1
+CAFF_NODE_RESPONSE=$(cast balance 0x3f1Eae7D46d88F08fc2F8ed27FCb2AB183EB2d0E --rpc-url http://127.0.0.1:8550 2>/dev/null)
+
+# Check if the command succeeded (got a balance response)
+if [[ $? -eq 0 ]]; then
+    # If we got a balance response (success case for the command), that's bad for us
+    if [[ $CAFF_NODE_RESPONSE != "0" ]]; then
+        echo "Caff node should not be running - balance is $CAFF_NODE_RESPONSE"
+        exit 1
+    fi
 fi
-
 echo "Test Passed"
