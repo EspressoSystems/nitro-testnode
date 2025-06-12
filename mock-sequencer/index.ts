@@ -1,35 +1,40 @@
-import { MockSequencer } from './wss';
-import express from 'express';
-import {HTTP_PORT} from './consts';
+import { MockSequencer } from './wss'
+import express from 'express'
+import { HTTP_PORT } from './consts'
 
 const sequencer = new MockSequencer()
 
-const app = express();
-app.use(express.json());
+const app = express()
+app.use(express.json())
 
-app.get('/skip-next', (req, res) => {
+app.get('/skip-next', (_req, res) => {
   const count = sequencer.getCurrentCount()
-  sequencer.setSkipNext(true)
-  res.json(count);
-});
+  sequencer.setSkipNext()
+  res.json(count)
+})
 
-app.get('/send-in-random', (req, res) => {
+app.get('/send-in-random', (_req, res) => {
   const count = sequencer.getCurrentCount()
-  sequencer.setSendInRandom(true)
-  res.json(count);
-});
+  sequencer.setSendInRandom()
+  res.json(count)
+})
 
-app.get('/send-oversized', (req, res) => {
+app.get('/send-oversized', (_req, res) => {
   const count = sequencer.getCurrentCount()
-  sequencer.setSendOversized(true)
-  res.json(count);
-});
+  sequencer.setSendOversized()
+  res.json(count)
+})
 
-app.get('/current-count', (req, res) => {
+app.get('/block-number', (_req, res) => {
   const count = sequencer.getCurrentCount()
-  res.json(count);
-});
+  res.json(count)
+})
+
+app.get('/reset', (_req, res) => {
+  sequencer.reset()
+  res.json(sequencer.getCurrentCount())
+})
 
 app.listen(HTTP_PORT, () => {
-  console.log(`MockSequencer HTTP server listening on http://localhost:${HTTP_PORT}`);
-});
+  console.log(`MockSequencer HTTP server listening on http://localhost:${HTTP_PORT}`)
+})

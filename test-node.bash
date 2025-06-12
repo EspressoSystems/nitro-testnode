@@ -533,10 +533,11 @@ if $force_init; then
 
     if $l2anytrust; then
         echo "== Writing l2 chain config (anytrust enabled)"
-        docker compose run scripts --l2owner $l2ownerAddress  write-l2-chain-config --anytrust --espresso $l2_espresso --mock-sequencer $espresso_mock_sequencer
+        docker compose run scripts --l2owner $l2ownerAddress  write-l2-chain-config --anytrust --espresso $l2_espresso --mockSequencer $espresso_mock_sequencer
     else
         echo == Writing l2 chain config
-        docker compose run scripts --l2owner $l2ownerAddress  write-l2-chain-config --espresso $l2_espresso --mock-sequencer $espresso_mock_sequencer
+        echo "espresso: $l2_espresso, mockSequencer: $espresso_mock_sequencer"
+        docker compose run scripts --l2owner $l2ownerAddress  write-l2-chain-config --espresso $l2_espresso --mockSequencer $espresso_mock_sequencer
     fi
 
     sequenceraddress=`docker compose run scripts print-address --account sequencer | tail -n 1 | tr -d '\r\n'`
@@ -587,10 +588,10 @@ if $force_init; then
 
     else
         echo == Writing configs
-        docker compose run scripts write-config  $anytrustNodeConfigLine --espresso $l2_espresso --lightClientAddress $lightClientAddr
+        docker compose run scripts write-config  $anytrustNodeConfigLine --espresso $l2_espresso --lightClientAddress $lightClientAddr --mockSequencer $espresso_mock_sequencer
         if $enableCaffNode; then
             echo == Writing configs for finality node
-            docker compose run scripts write-config  $anytrustNodeConfigLine  --espresso $l2_espresso  --enableCaffNode --lightClientAddress $lightClientAddr
+            docker compose run scripts write-config  $anytrustNodeConfigLine  --espresso $l2_espresso  --enableCaffNode --lightClientAddress $lightClientAddr --mockSequencer $espresso_mock_sequencer
         fi
         echo == Initializing redis
         docker compose up --wait redis

@@ -258,6 +258,7 @@ services:
       - "127.0.0.1:9643:9642"
     depends_on:
       - sequencer
+      - espresso-dev-node
 
   sequencer-on-espresso:
     pid: host # allow debugging

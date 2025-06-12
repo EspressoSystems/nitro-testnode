@@ -495,45 +495,6 @@ export const sendL2Command = {
   },
 };
 
-export const keepSendingL2Command = {
-  command: "keep-sending-l2",
-  describe: "keeps sending funds between l2 accounts",
-  builder: {
-    ethamount: {
-      string: true,
-      describe: "amount to transfer (in eth)",
-      default: "10",
-    },
-    from: {
-      string: true,
-      describe: "account (see general help)",
-      default: "funnel",
-    },
-    to: {
-      string: true,
-      describe: "address (see general help)",
-      default: "funnel",
-    },
-    wait: {
-      boolean: true,
-      describe: "wait for transaction to complete",
-      default: false,
-    },
-    data: { string: true, describe: "data" },
-    interval: { number: true, describe: "interval between transactions (ms)", default: 1000 * 10 },
-    times: { number: true, describe: "times to repeat", default: 10000 },
-  },
-  handler: async (argv: any) => {
-    argv.provider = new ethers.providers.WebSocketProvider(argv.l2url);
-
-    for (let i = 0; i < argv.times; i++) {
-      await sendTransaction(argv, 0);
-      await new Promise(f => setTimeout(f, argv.interval));
-    }
-    argv.provider.destroy();
-  },
-};
-
 export const sendL3Command = {
   command: "send-l3",
   describe: "sends funds between l3 accounts",

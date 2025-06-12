@@ -22,7 +22,6 @@ import {
   setValidKeysetCommand,
   waitForSyncCommand,
   transferL3ChainOwnershipCommand,
-  keepSendingL2Command,
 } from "./ethcommands";
 
 async function main() {
@@ -70,7 +69,6 @@ async function main() {
     .command(redisReadCommand)
     .command(redisInitCommand)
     .command(waitForSyncCommand)
-    .command(keepSendingL2Command)
     .strict()
     .demandCommand(1, "a command must be specified")
     .epilogue(namedAccountHelpString)
