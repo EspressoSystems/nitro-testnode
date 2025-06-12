@@ -226,10 +226,3 @@ if [[ $CAFF_NODE_RESPONSE != "0" ]]; then
 fi
 
 echo "Test Passed"
-
-
-
-
-
-
-
