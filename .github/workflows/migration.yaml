@@ -1,4 +1,4 @@
-name: Migration Test
+name: Espresso Tests
 run-name: CI triggered from @${{ github.actor }} of ${{ github.head_ref }}
 
 on:
@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: ${{ !contains(github.ref, 'integration/')}}
 
 jobs:
-  migration_test:
+  espresso_tests:
     runs-on: ubuntu-24.04
 
     steps:
@@ -36,8 +36,14 @@ jobs:
           extraPullNames: nix-community
           skipPush: ${{ github.actor == 'dependabot[bot]' }}
 
-      - name: Migration Test 
+      - name: Migration Test
         run: |
           nix develop --accept-flake-config --option sandbox relaxed \
           -c espresso-tests/migration-test.bash
+        timeout-minutes: 45
+
+      - Name: Force Inclusion Test
+        run: |
+          nix develop --accept-flake-config --option sandbox relaxed \
+          -c espresso-tests/force-inclusion-test.bash
         timeout-minutes: 45
