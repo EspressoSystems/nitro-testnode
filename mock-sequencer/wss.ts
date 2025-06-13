@@ -1,4 +1,5 @@
 import { LOCAL_WS_PORT, REMOTE_WS_URL } from './consts'
+import { BroadcastMessage, SequencerMessage } from './types'
 import WebSocket, { Server as WebSocketServer } from 'ws'
 
 export class MockSequencer {
@@ -43,7 +44,6 @@ export class MockSequencer {
         const str = typeof data === 'string' ? data : data.toString();
         const messages = JSON.parse(str) as BroadcastMessage;
         if (!messages.messages) {
-            console.log(messages)
             return this.broadcastToClients(data)
         }
         const newMessages: SequencerMessage[] = []
@@ -136,35 +136,4 @@ export class MockSequencer {
     private skipNext: number | null = null
     private sendInRandom = false
     private sendOversized: number | null = null
-}
-
-export interface BroadcastMessage {
-    version: number
-    messages?: SequencerMessage[]
-}
-
-export interface SequencerMessage {
-    sequenceNumber: number
-    message: SequencerMessageDetail
-    blockHash: string
-    signature: string | null
-}
-
-export interface SequencerMessageDetail {
-    message: L2Message
-    delayedMessagesRead: number
-}
-
-export interface L2Message {
-    header: L1IncomingMessageHeader
-    l2Msg: string
-}
-
-export interface L1IncomingMessageHeader {
-    kind: number
-    sender: string
-    blockNumber: number
-    timestamp: number
-    requestId: string | null
-    baseFeeL1: string | null
 }
