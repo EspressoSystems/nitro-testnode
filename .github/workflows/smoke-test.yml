@@ -18,12 +18,14 @@ jobs:
   smoke_test:
     strategy:
       matrix:
-        test-script: [
+        test-script:
+          [
             ./smoke-test.bash,
             ./smoke-test-l3.bash,
             ./smoke-test-nitro-simple.bash,
             ./smoke-test-full-node.bash,
             ./smoke-test-caff-node.bash,
+            ./espresso-tests/smoke-test-force-inclusion-test.bash,
           ]
 
     runs-on: ubuntu-24.04

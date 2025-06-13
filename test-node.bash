@@ -387,6 +387,10 @@ if $espresso; then
     NODES="$NODES espresso-dev-node"
 fi
 
+if $enableCaffNode; then
+  NODES="$NODES caff-node"
+fi
+
 if $dev_nitro && $build_dev_nitro; then
   echo == Building Nitro
   if ! [ -n "${NITRO_SRC+set}" ]; then

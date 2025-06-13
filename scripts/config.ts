@@ -172,15 +172,15 @@ function writeGethGenesisConfig(argv: any) {
 }
 
 type ChainInfo = {
-    [key: string]: any;
+  [key: string]: any;
 };
 
 // Define a function to return ChainInfo
 function getChainInfo(): ChainInfo {
-    const filePath = path.join(consts.configpath, "l2_chain_info.json");
-    const fileContents = fs.readFileSync(filePath).toString();
-    const chainInfo: ChainInfo = JSON.parse(fileContents);
-    return chainInfo;
+  const filePath = path.join(consts.configpath, "l2_chain_info.json");
+  const fileContents = fs.readFileSync(filePath).toString();
+  const chainInfo: ChainInfo = JSON.parse(fileContents);
+  return chainInfo;
 }
 
 function writeConfigs(argv: any) {
@@ -413,16 +413,25 @@ function writeConfigs(argv: any) {
       sequencerConfig.node.sequencer = false;
       sequencerConfig.execution["sequencer"].enable = false;
       sequencerConfig.node["delayed-sequencer"].enable = false;
-      sequencerConfig.node["parent-chain-reader"].enable = false;
+      sequencerConfig.node["parent-chain-reader"].enable = true;
       sequencerConfig.node["espresso-caff-node"] = {
         enable: true,
-        "hotshot-urls": [argv.espressoUrl],
+        "hotshot-urls": [argv.espressoUrl, argv.espressoUrl],
         "next-hotshot-block": 1,
         namespace: 412346,
         "hotshot-polling-interval": "250ms",
         "retry-time": "2s",
-        "legacy-sgx-verifier-addr": "0xb562622f2D76F355D673560CB88c1dF6088702f1",
+        "legacy-sgx-verifier-addr":
+          "0xb562622f2D76F355D673560CB88c1dF6088702f1",
         "batch-poster-addr": "0xe2148eE53c0755215Df69b2616E552154EdC584f",
+        "wait-for-finalization": false,
+        "wait-for-confirmations": true,
+        "blocks-to-read": 6,
+        "force-inclusion-checker": {
+          "block-threshold-tolerance": 1,
+          "second-threshold-tolerance": 1,
+          "polling-interval": "250ms",
+        },
       };
 
       sequencerConfig.execution["forwarding-target"] = "ws://sequencer:8548";
@@ -443,6 +452,7 @@ function writeConfigs(argv: any) {
       posterConfig.node["batch-poster"]["hotshot-urls"] = [argv.espressoUrl];
       posterConfig.node["batch-poster"]["light-client-address"] =
         argv.lightClientAddress;
+      posterConfig.node["batch-poster"]["espresso-tee-type"] = "SGX";
       posterConfig.node["batch-poster"]["espresso-tee-verifier-address"] =
         "0xb562622f2D76F355D673560CB88c1dF6088702f1";
     } else {
@@ -480,7 +490,7 @@ function writeConfigs(argv: any) {
     l3Config.node.feed.output.enable = true;
     l3Config.node.dangerous["no-sequencer-coordinator"] = true;
     l3Config.node.feed.input.url.push("ws://sequencer:9642");
-    l3Config.node["batch-poster"]["hotshot-url"] = argv.espressoUrl;
+    l3Config.node["batch-poster"]["hotshot-urls"] = [argv.espressoUrl];
     l3Config.node["batch-poster"]["light-client-address"] =
       argv.lightClientAddress;
   }
