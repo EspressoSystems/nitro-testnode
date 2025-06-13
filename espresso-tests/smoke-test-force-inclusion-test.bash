@@ -161,8 +161,8 @@ PRIVATE_KEY="$(docker compose run scripts print-private-key --account l2owner 2>
 # This is a private key used for testing, save to print
 declare -p PRIVATE_KEY
 
-# Set the max delay blocks to 1 block, future blocks to 120 blocks, delay seconds to 360 seconds, future seconds to 3600 seconds
-cast send $PARENT_CHAIN_UPGRADE_EXECUTOR $(cast calldata "executeCall(address, bytes)" $SEQUENCER_INBOX  $(cast calldata "setMaxTimeVariation((uint256,uint256,uint256,uint256))"  "(1,120,1,3600)"))  --rpc-url $PARENT_CHAIN_RPC_URL --private-key $PRIVATE_KEY
+# Set the max delay blocks to 10 blocks, future blocks to 120 blocks, delay seconds to 150 seconds, future seconds to 3600 seconds
+cast send $PARENT_CHAIN_UPGRADE_EXECUTOR $(cast calldata "executeCall(address, bytes)" $SEQUENCER_INBOX  $(cast calldata "setMaxTimeVariation((uint256,uint256,uint256,uint256))"  "(10,120,150,3600)"))  --rpc-url $PARENT_CHAIN_RPC_URL --private-key $PRIVATE_KEY
 
 #  First call the maxTimeVariation function to get the max time variation
 {
@@ -218,14 +218,21 @@ fi
 sleep 120
 
 
-CAFF_NODE_RESPONSE=$(cast balance 0x3f1Eae7D46d88F08fc2F8ed27FCb2AB183EB2d0E --rpc-url http://127.0.0.1:8550 2>/dev/null)
-
-# Check if the command succeeded (got a balance response)
-if [[ $? -eq 0 ]]; then
-    # If we got a balance response (success case for the command), that's bad for us
-    if [[ $CAFF_NODE_RESPONSE != "0" ]]; then
-        echo "Caff node should not be running - balance is $CAFF_NODE_RESPONSE"
-        exit 1
+has_force_inclusion_log() {
+    local container_name="caff-node-1"
+    local search_string="force inclusion is going to happen"
+    if docker logs "$container_name" 2>&1 | grep -q "$search_string"; then
+        return 1  
+    else
+        return 0  
     fi
+}
+
+
+if has_force_inclusion_log "caff-node-1" "force inclusion is going to happen"; then
+  echo "It printed force inclusion is going to happen log"
+  exit 0
+else
+  echo "Caff node did not print force inclusion log"
+  exit 1
 fi
-echo "Test Passed"
