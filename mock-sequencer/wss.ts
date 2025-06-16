@@ -57,7 +57,10 @@ export class MockSequencer {
             }
             if (blockNumber == this.sendOversized) {
                 intercept = true
-                // todo
+                const overSized = '0'.repeat(10000000)
+                const l2MsgBytes = new TextEncoder().encode(overSized)
+                console.log("oversized message length:", l2MsgBytes.length)
+                message.message.message.l2Msg = overSized
                 return
             }
             newMessages.push(message)
