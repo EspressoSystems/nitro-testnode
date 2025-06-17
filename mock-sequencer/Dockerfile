@@ -1,5 +1,4 @@
 FROM node:18-bullseye-slim
-# COPY from ./scripts
 WORKDIR /workspace
 
 COPY ./package.json ./
