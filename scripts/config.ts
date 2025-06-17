@@ -304,6 +304,7 @@ function writeConfigs(argv: any) {
     let config = baseConfig as any;
     config.node["batch-poster"]["hotshot-urls"] = [];
     config.node["batch-poster"]["light-client-address"] = "";
+    config.node["batch-poster"]["max-empty-batch-delay"] = "1h";
   }
 
   baseConfig.node["data-availability"]["sequencer-inbox-address"] =
@@ -448,7 +449,12 @@ function writeConfigs(argv: any) {
 
     let posterConfig = JSON.parse(baseConfJSON);
     if (argv.espresso) {
-      posterConfig.node.feed.input.url.push("ws://sequencer:9642");
+      if (argv.mockSequencer) {
+        posterConfig.node.feed.input.url.push("ws://mock-sequencer:9642");
+        posterConfig.node["batch-poster"]["max-empty-batch-delay"] = "30s"
+      } else {
+        posterConfig.node.feed.input.url.push("ws://sequencer:9642");
+      }
       posterConfig.node["batch-poster"]["hotshot-urls"] = [argv.espressoUrl];
       posterConfig.node["batch-poster"]["light-client-address"] =
         argv.lightClientAddress;
