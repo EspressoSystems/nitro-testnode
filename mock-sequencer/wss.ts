@@ -13,6 +13,12 @@ export class MockSequencer {
                 this.clients.delete(ws)
             })
         })
+        this.wss.on('message', (data) => {
+            console.log('receive message:', data)
+            if (this.remoteWs) {
+                this.remoteWs.send(data)
+            }
+        })
 
     }
 
@@ -34,10 +40,16 @@ export class MockSequencer {
         this.sendOversized = this.getCurrentCount() + 1
     }
 
+    public setSendInvalidDelayedMessages() {
+        console.log('setting next block to be invalid delayed messages', this.getCurrentCount() + 1)
+        this.sendInvalidDelayedMessages = true
+    }
+
     public reset() {
         this.skipNext = 0
         this.sendInRandom = false
         this.sendOversized = 0
+        this.sendInvalidDelayedMessages = false
     }
 
     private processAndBroadcast(data: WebSocket.Data) {
@@ -50,6 +62,9 @@ export class MockSequencer {
         let intercept = false
         messages.messages.forEach((message) => {
             const blockNumber = message.sequenceNumber
+            const delayedCount = message.message.delayedMessagesRead
+            this.blockNumberToDelayedCount.set(blockNumber, delayedCount)
+
             if (blockNumber == this.skipNext) {
                 console.log('Skipping block', blockNumber)
                 intercept = true
@@ -61,15 +76,30 @@ export class MockSequencer {
                 const l2MsgBytes = new TextEncoder().encode(overSized)
                 console.log("oversized message length:", l2MsgBytes.length)
                 message.message.message.l2Msg = overSized
-                return
             }
-            newMessages.push(message)
+
+            if (this.sendInvalidDelayedMessages) {
+                const previousDelayedCount = this.blockNumberToDelayedCount.get(blockNumber - 1)
+                if (previousDelayedCount === undefined) {
+                    // we don't know if this is a delayed message, will skip it first
+                    return
+                }
+                if (previousDelayedCount + 1 === delayedCount) {
+                    console.log('tampering delayed messages', delayedCount)
+                    message.message.message.l2Msg = ''
+                    intercept = true
+                }
+            }
+
             if (blockNumber > this.blockNumber) {
                 this.blockNumber = blockNumber
             }
+            newMessages.push(message)
         })
 
-        if (this.skipNext === null && this.sendOversized === null) {
+        if (!this.skipNext &&
+            !this.sendOversized &&
+            !this.sendInvalidDelayedMessages) {
             return this.broadcastToClients(data)
         }
         if (intercept) {
@@ -113,10 +143,6 @@ export class MockSequencer {
             console.error('Remote WebSocket error:', err)
         })
 
-        this.wss.on('message', (data) => {
-            console.log('receive message:', data)
-            this.remoteWs.send(data)
-        })
     }
 
     private broadcastToClients(data: WebSocket.Data) {
@@ -135,8 +161,10 @@ export class MockSequencer {
     private wss: WebSocketServer
     private remoteWs!: WebSocket
     private blockNumber = 0
+    private blockNumberToDelayedCount = new Map<number, number>([[0, 1]])
 
     private skipNext: number | null = null
     private sendInRandom = false
     private sendOversized: number | null = null
+    private sendInvalidDelayedMessages = false
 }

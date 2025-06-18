@@ -124,4 +124,3 @@ if [[ $next_processing_hotshot_block_num -le $((last_processing_hotshot_block_nu
 fi
 
 exit 1
-

@@ -35,6 +35,12 @@ app.post('/reset', (_req, res) => {
   res.json(sequencer.getCurrentCount())
 })
 
+app.post('/send-invalid-delayed-messages', (_req, res) => {
+  const count = sequencer.getCurrentCount()
+  sequencer.setSendInvalidDelayedMessages()
+  res.json(count)
+})
+
 app.listen(HTTP_PORT, () => {
   console.log(`MockSequencer HTTP server listening on http://localhost:${HTTP_PORT}`)
 })

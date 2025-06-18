@@ -22,6 +22,7 @@ import {
   setValidKeysetCommand,
   waitForSyncCommand,
   transferL3ChainOwnershipCommand,
+  sendL2DelayedCommand,
 } from "./ethcommands";
 
 async function main() {
@@ -52,6 +53,7 @@ async function main() {
     .command(transferERC20Command)
     .command(sendL1Command)
     .command(sendL2Command)
+    .command(sendL2DelayedCommand)
     .command(sendL3Command)
     .command(sendRPCCommand)
     .command(setValidKeysetCommand)
