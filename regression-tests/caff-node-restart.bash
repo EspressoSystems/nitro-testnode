@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 
+l3_arg=""
+
+if [[ $1 == "--l3" ]]; then
+    l3_arg="--l3node"
+fi
+
 wait_for_block_number() {
     local rpcUrl="$1"
     local targetBlockNumber="$2"
@@ -36,11 +42,7 @@ cd "$(dirname "$0")"
 
 echo "starting nodes"
 
-../test-node.bash --init-force --espresso --validate --latest-espresso-image --caff-node --detach
-
-export http_proxy=""
-export https_proxy=""
-export all_proxy=""
+../test-node.bash --init-force --espresso --no-simple --latest-espresso-image --caff-node $l3_arg --detach
 
 container_name="caff-node"
 
@@ -84,7 +86,6 @@ echo "next block number: $next_block_num"
 
 if [[ $next_block_num -eq $((last_block_num + 1)) ]]; then
     echo "Caff node restarted successfully"
-    exit 0
 else
     echo "Caff node restart failed"
     exit 1

@@ -53,6 +53,7 @@ lightClientAddrForL3=0x5e36aa9caaf5f708fca5c04d2d4c776a62b2b258
 enableCaffNode=false
 espresso=false
 l2_espresso=false
+l3_espresso=false
 latest_espresso_image=false
 l3_custom_fee_token=false
 l3_token_bridge=false
@@ -391,6 +392,7 @@ if $espresso; then
         # If we run the `l3node` with enabling espresso mode, then the
         # l2 node will run without `espresso` mode.
         l2_espresso=false
+        l3_espresso=true
     fi
     NODES="$NODES espresso-dev-node"
 fi
@@ -592,10 +594,10 @@ if $force_init; then
 
     else
         echo == Writing configs
-        docker compose run scripts write-config  $anytrustNodeConfigLine --espresso $l2_espresso --lightClientAddress $lightClientAddr --mockSequencer $espresso_mock_sequencer
+        docker compose run scripts write-config  $anytrustNodeConfigLine --espresso $l2_espresso --l3Espresso $l3_espresso --lightClientAddress $lightClientAddr --mockSequencer $espresso_mock_sequencer
         if $enableCaffNode; then
             echo == Writing configs for finality node
-            docker compose run scripts write-config  $anytrustNodeConfigLine  --espresso $l2_espresso  --enableCaffNode --lightClientAddress $lightClientAddr --mockSequencer $espresso_mock_sequencer
+            docker compose run scripts write-config  $anytrustNodeConfigLine  --espresso $l2_espresso  --l3Espresso $l3_espresso --enableCaffNode --lightClientAddress $lightClientAddr --mockSequencer $espresso_mock_sequencer
         fi
         echo == Initializing redis
         docker compose up --wait redis
@@ -645,7 +647,7 @@ if $force_init; then
         echo == Writing l3 chain config
         l3owneraddress=`docker compose run scripts print-address --account l3owner | tail -n 1 | tr -d '\r\n'`
         echo l3owneraddress $l3owneraddress
-        docker compose run scripts --l2owner $l3owneraddress  write-l3-chain-config --espresso $espresso
+        docker compose run scripts --l2owner $l3owneraddress  write-l3-chain-config --espresso $l3_espresso
 
         EXTRA_L3_DEPLOY_FLAG=""
         if $l3_custom_fee_token; then
