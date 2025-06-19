@@ -435,6 +435,10 @@ function writeConfigs(argv: any) {
           "second-threshold-tolerance": 1,
           "polling-interval": "250ms",
         },
+        "state-checker": {
+          "trusted-node-url": "http://bad-url:8550",
+          "error-tolerance-duration": "1h"
+        }
       };
       if (argv.l3Espresso) {
         sequencerConfig.node["espresso-caff-node"]["namespace"] = 333333;

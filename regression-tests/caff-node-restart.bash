@@ -28,7 +28,12 @@ read_last_log() {
 
 parse_block_number() {
     local log="$1"
-    echo $(echo "$log" | awk -F'blockNumber=' '{print $2}' | awk '{print $1}')
+    result=$(echo "$log" | awk -F'blockNumber=' '{print $2}' | awk '{print $1}')
+    if [ -n "$result" ]; then
+        echo "$result"
+        return
+    fi
+    echo $(echo "$log" | awk -F'\"block number\"=' '{print $2}' | awk '{print $1}')
 }
 
 get_log_count() {
@@ -43,6 +48,10 @@ cd "$(dirname "$0")"
 echo "starting nodes"
 
 ../test-node.bash --init-force --espresso --no-simple --latest-espresso-image --caff-node $l3_arg --detach
+
+export http_proxy=""
+export https_proxy=""
+export all_proxy=""
 
 container_name="caff-node"
 
@@ -62,33 +71,57 @@ caff_rpc="http://localhost:8550"
 
 wait_for_block_number $caff_rpc 20
 
+echo "shutting down caff node"
+docker compose stop $container_name 2>&1
 docker compose stop $container_name 2>&1
 
 sleep 10
 
 count=$(get_log_count $container_name)
-last_log=$(read_last_log $container_name "Produced block")
-last_block_num=$(parse_block_number "$last_log")
-echo "last log: $last_log"
-echo "last block number: $last_block_num"
+last_produced_block_log=$(read_last_log $container_name "Produced block")
+last_produced_block_num=$(parse_block_number "$last_produced_block_log")
+echo "last log: $last_produced_block_log"
+echo "last block number: $last_produced_block_num"
 
-echo "shutting down caff node"
+last_processing_hotshot_block_log=$(read_last_log $container_name "processing hotshot block")
+last_processing_hotshot_block_num=$(parse_block_number "$last_processing_hotshot_block_log")
+echo "last processing hotshot block number: $last_processing_hotshot_block_num"
+
 docker compose start $container_name
 
-sleep 10
+sleep 20
 
-next_log=$(docker compose logs $container_name 2>&1 | tail -n +$count | grep "Produced block" | head -1)
-echo "next log: $next_log"
-next_block_num=$(parse_block_number "$next_log")
+next_produced_block_log=$(docker compose logs $container_name 2>&1 | tail -n +$count | grep "Produced block" | head -1)
+echo "next log: $next_produced_block_log"
+next_produced_block_num=$(parse_block_number "$next_produced_block_log")
 
-echo "last block number: $last_block_num"
-echo "next block number: $next_block_num"
+next_processing_hotshot_block_log=$(docker compose logs $container_name 2>&1 | tail -n +$count | grep "processing hotshot block" | head -1)
+next_processing_hotshot_block_num=$(parse_block_number "$next_processing_hotshot_block_log")
 
-if [[ $next_block_num -eq $((last_block_num + 1)) ]]; then
-    echo "Caff node restarted successfully"
+echo "last block number: $last_produced_block_num"
+echo "next block number: $next_produced_block_num"
+
+echo "last_hotshot_log: $last_processing_hotshot_block_log"
+echo "next_hotshot_log: $next_processing_hotshot_block_log"
+echo "last processing hotshot block number: $last_processing_hotshot_block_num"
+echo "next processing hotshot block number: $next_processing_hotshot_block_num"
+
+if [[ $next_produced_block_num -eq $((last_produced_block_num + 1)) ]]; then
+    echo "caff node next produced block check succeeded"
 else
-    echo "Caff node restart failed"
+    echo "caff node next produced block check failed"
     exit 1
 fi
 
-docker compose down
+if [[ $next_processing_hotshot_block_num -le $((last_processing_hotshot_block_num)) ]]; then
+    # It is allowed the caff node restarts from a bit earlier hotshot block
+    # because the caff node stores the earliest hotshot block number of its buffer
+    if [[ $next_processing_hotshot_block_num -ge $((last_processing_hotshot_block_num - 10)) ]]; then
+        echo "caff node next processing hotshot block check succeeded"
+        docker compose down
+        exit 0
+    fi
+fi
+
+exit 1
+
