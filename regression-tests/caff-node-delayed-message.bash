@@ -6,6 +6,10 @@ cd "$(dirname "$0")"
 echo "starting nodes"
 ../test-node.bash --init-force --espresso --no-simple --latest-espresso-image --caff-node --mock-sequencer --detach
 
+export http_proxy=""
+export https_proxy=""
+export all_proxy=""
+
 echo "starting tx spammer"
 docker compose run --detach scripts send-l2 --ethamount 10 --to user_l2user --times 500000 --delay 20000 --wait
 
@@ -23,6 +27,8 @@ if [ "$beforeBalance" != "0" ]; then
     exit 1
 fi
 
+beforeL1=$(cast block-number --rpc-url http://127.0.0.1:8545)
+echo "before sending delayed transaction, l1 block number: $beforeL1"
 docker compose run scripts send-l2-delayed --ethamount 10000 --to $user --wait
 
 while true; do
@@ -34,5 +40,13 @@ while true; do
     fi
     sleep 1
 done
+
+finalizedL1=$(cast block-number finalized --rpc-url http://127.0.0.1:8545)
+echo "after getting delayed message, finalized block number: $finalizedL1"
+
+if [ "$finalizedL1" -lt "$beforeL1" ]; then
+    echo "delayed transaction get included before block being finalized"
+    exit 1
+fi
 
 docker compose down

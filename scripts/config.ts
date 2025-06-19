@@ -427,8 +427,8 @@ function writeConfigs(argv: any) {
         "legacy-sgx-verifier-addr":
           "0xb562622f2D76F355D673560CB88c1dF6088702f1",
         "batch-poster-addr": "0xe2148eE53c0755215Df69b2616E552154EdC584f",
-        "wait-for-finalization": false,
-        "wait-for-confirmations": true,
+        "wait-for-finalization": true,
+        "wait-for-confirmations": false,
         "blocks-to-read": 6,
         "force-inclusion-checker": {
           "block-threshold-tolerance": 1,
