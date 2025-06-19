@@ -298,6 +298,7 @@ function writeConfigs(argv: any) {
       vhosts: "*",
       corsdomain: "*",
     },
+    "log-level": "DEBUG"
   };
 
   if (argv.espresso) {
