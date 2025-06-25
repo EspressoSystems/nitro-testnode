@@ -298,6 +298,7 @@ function writeConfigs(argv: any) {
       vhosts: "*",
       corsdomain: "*",
     },
+    "log-level": "DEBUG"
   };
 
   if (argv.espresso) {
@@ -410,8 +411,9 @@ function writeConfigs(argv: any) {
       sequencerConfig.node["seq-coordinator"].enable = true;
     }
 
-    if (argv.espresso && argv.enableCaffNode) {
+    if (argv.enableCaffNode) {
       sequencerConfig.node.sequencer = false;
+      sequencerConfig.node["seq-coordinator"].enable = false;
       sequencerConfig.execution["sequencer"].enable = false;
       sequencerConfig.node["delayed-sequencer"].enable = false;
       sequencerConfig.node["parent-chain-reader"].enable = true;
@@ -433,7 +435,19 @@ function writeConfigs(argv: any) {
           "second-threshold-tolerance": 1,
           "polling-interval": "250ms",
         },
+        "state-checker": {
+          "trusted-node-url": "http://bad-url:8550",
+          "error-tolerance-duration": "1h"
+        }
       };
+      if (argv.l3Espresso) {
+        sequencerConfig.node["espresso-caff-node"]["namespace"] = 333333;
+        sequencerConfig.chain.id = 333333;
+        sequencerConfig["parent-chain"].connection.url = argv.l2url;
+        const l3ChainInfoFile = path.join(consts.configpath, "l3_chain_info.json");
+        sequencerConfig.chain["info-files"] = [l3ChainInfoFile];
+        sequencerConfig.node["espresso-caff-node"]["batch-poster-addr"] = "0x3E6134aAD4C4d422FF2A4391Dc315c4DDf98D1a5";
+      }
 
       sequencerConfig.execution["forwarding-target"] = "ws://sequencer:8548";
       fs.writeFileSync(
@@ -492,13 +506,16 @@ function writeConfigs(argv: any) {
   l3Config.node["delayed-sequencer"]["use-merge-finality"] = false;
   l3Config.node["batch-poster"].enable = true;
   l3Config.node["batch-poster"]["redis-url"] = "";
-  if (argv.espresso) {
+  if (argv.l3Espresso) {
     l3Config.node.feed.output.enable = true;
     l3Config.node.dangerous["no-sequencer-coordinator"] = true;
-    l3Config.node.feed.input.url.push("ws://sequencer:9642");
-    l3Config.node["batch-poster"]["hotshot-urls"] = [argv.espressoUrl];
+    l3Config.node.feed.input.url.push("ws://l3node:3348");
+    l3Config.node["batch-poster"]["hotshot-urls"] = [argv.espressoUrl, argv.espressoUrl];
     l3Config.node["batch-poster"]["light-client-address"] =
       argv.lightClientAddress;
+    l3Config.node["batch-poster"]["espresso-tee-type"] = "SGX";
+    l3Config.node["batch-poster"]["espresso-tee-verifier-address"] =
+      "0x1E08B9c3f94E9aBcc531f67F949d796eC76963b9";
   }
   fs.writeFileSync(
     path.join(consts.configpath, "l3node_config.json"),
