@@ -54,10 +54,6 @@ echo "starting with mock sequencer"
 
 ../test-node.bash --init-force --espresso --latest-espresso-image --validate --mock-sequencer --detach
 
-export http_proxy=""
-export https_proxy=""
-export all_proxy=""
-
 while true; do
     curl -sfL http://localhost:41000/v0/status/block-height && break || sleep 5
     echo "waiting for nodes"
