@@ -183,6 +183,32 @@ function getChainInfo(): ChainInfo {
   return chainInfo;
 }
 
+function updateConfigValue(argv: any) {
+  const filePath = argv.path
+  const propertyPath = argv.property
+  const value = argv.value
+  let v: any
+  if (argv.isBool) {
+    v = value === "true" ? true : false
+  } else if (argv.isNumber) {
+    v = Number(value)
+  } else {
+    v = value
+  }
+  const fileContents = fs.readFileSync(filePath).toString();
+  const config = JSON.parse(fileContents);
+  const property = propertyPath.split(".");
+  let current = config;
+  for (let i = 0; i < property.length - 1; i++) {
+    if (!current[property[i]]) {
+      throw new Error(`Property ${property[i]} not found`);
+    }
+    current = current[property[i]];
+  }
+  current[property[property.length - 1]] = v;
+  fs.writeFileSync(filePath, JSON.stringify(config, null, 2));
+}
+
 function writeConfigs(argv: any) {
   const valJwtSecret = path.join(consts.configpath, "val_jwt.hex");
   const chainInfoFile = path.join(consts.configpath, "l2_chain_info.json");
@@ -427,8 +453,8 @@ function writeConfigs(argv: any) {
         "legacy-sgx-verifier-addr":
           "0xb562622f2D76F355D673560CB88c1dF6088702f1",
         "batch-poster-addr": "0xe2148eE53c0755215Df69b2616E552154EdC584f",
-        "wait-for-finalization": false,
-        "wait-for-confirmations": true,
+        "wait-for-finalization": true,
+        "wait-for-confirmations": false,
         "blocks-to-read": 6,
         "force-inclusion-checker": {
           "block-threshold-tolerance": 1,
@@ -729,6 +755,39 @@ function dasBackendsJsonConfig(argv: any) {
     ],
   };
   return backends;
+}
+
+export const updateConfigValueCommand = {
+  command: "update-config-value",
+  describe: "updates a config value",
+  builder: {
+    path: {
+      string: true,
+      describe: "path to config file",
+      default: "l2_chain_info.json",
+    },
+    property: {
+      string: true,
+      describe: "property to update",
+    },
+    value: {
+      string: true,
+      describe: "value to set",
+    },
+    isBool: {
+      boolean: true,
+      describe: "value is boolean",
+      default: false,
+    },
+    isNumber: {
+      boolean: true,
+      describe: "value is number",
+      default: false,
+    },
+  },
+  handler: async (argv: any) => {
+    updateConfigValue(argv)
+  },
 }
 
 export const writeConfigCommand = {

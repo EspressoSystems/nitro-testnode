@@ -2,7 +2,7 @@ import { hideBin } from "yargs/helpers";
 import Yargs from "yargs/yargs";
 import { stressOptions } from "./stress";
 import { redisReadCommand, redisInitCommand } from "./redis";
-import { writeConfigCommand, writeGethGenesisCommand, writePrysmCommand, writeL2ChainConfigCommand, writeL3ChainConfigCommand, writeL2DASCommitteeConfigCommand, writeL2DASMirrorConfigCommand, writeL2DASKeysetConfigCommand } from "./config";
+import { writeConfigCommand, writeGethGenesisCommand, writePrysmCommand, writeL2ChainConfigCommand, writeL3ChainConfigCommand, writeL2DASCommitteeConfigCommand, writeL2DASMirrorConfigCommand, writeL2DASKeysetConfigCommand, updateConfigValueCommand } from "./config";
 import {
   printAddressCommand,
   namedAccountHelpString,
@@ -22,6 +22,7 @@ import {
   setValidKeysetCommand,
   waitForSyncCommand,
   transferL3ChainOwnershipCommand,
+  sendL2DelayedCommand,
 } from "./ethcommands";
 
 async function main() {
@@ -52,10 +53,12 @@ async function main() {
     .command(transferERC20Command)
     .command(sendL1Command)
     .command(sendL2Command)
+    .command(sendL2DelayedCommand)
     .command(sendL3Command)
     .command(sendRPCCommand)
     .command(setValidKeysetCommand)
     .command(transferL3ChainOwnershipCommand)
+    .command(updateConfigValueCommand)
     .command(writeConfigCommand)
     .command(writeGethGenesisCommand)
     .command(writeL2ChainConfigCommand)

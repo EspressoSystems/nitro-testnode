@@ -49,10 +49,6 @@ echo "starting nodes"
 
 ../test-node.bash --init-force --espresso --no-simple --latest-espresso-image --caff-node $l3_arg --detach
 
-export http_proxy=""
-export https_proxy=""
-export all_proxy=""
-
 container_name="caff-node"
 
 while true; do
@@ -124,4 +120,3 @@ if [[ $next_processing_hotshot_block_num -le $((last_processing_hotshot_block_nu
 fi
 
 exit 1
-
