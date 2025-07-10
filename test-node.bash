@@ -597,7 +597,7 @@ if $force_init; then
         docker compose run scripts write-config  $anytrustNodeConfigLine --espresso $l2_espresso --l3Espresso $l3_espresso --lightClientAddress $lightClientAddr --mockSequencer $espresso_mock_sequencer
         if $enableCaffNode; then
             echo == Writing configs for finality node
-            docker compose run scripts write-config  $anytrustNodeConfigLine  --espresso $l2_espresso  --l3Espresso $l3_espresso --enableCaffNode --lightClientAddress $lightClientAddr --mockSequencer $espresso_mock_sequencer
+            docker compose run scripts write-config  $anytrustNodeConfigLine  --espresso $l2_espresso  --l3Espresso $l3_espresso --enableCaffNode --validate $validate --lightClientAddress $lightClientAddr --mockSequencer $espresso_mock_sequencer
         fi
         echo == Initializing redis
         docker compose up --wait redis

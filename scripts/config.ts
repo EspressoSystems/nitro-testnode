@@ -473,6 +473,11 @@ function writeConfigs(argv: any) {
         const l3ChainInfoFile = path.join(consts.configpath, "l3_chain_info.json");
         sequencerConfig.chain["info-files"] = [l3ChainInfoFile];
         sequencerConfig.node["espresso-caff-node"]["batch-poster-addr"] = "0x3E6134aAD4C4d422FF2A4391Dc315c4DDf98D1a5";
+      } else if (argv.validate) {
+        sequencerConfig.node["espresso-caff-node"]["state-checker"] = {
+          "trusted-node-url": "http://validator:8547",
+          "error-tolerance-duration": "1m"
+        }
       }
 
       sequencerConfig.execution["forwarding-target"] = "ws://sequencer:8548";
@@ -819,6 +824,11 @@ export const writeConfigCommand = {
       describe: "DAS committee member B BLS pub key",
       default: "",
     },
+    validate: {
+      boolean: true,
+      describe: "enable the caff node to use the validator as the trusted node for its state checker",
+      default: false,
+    }
   },
   handler: (argv: any) => {
     writeConfigs(argv);
