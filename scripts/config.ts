@@ -476,7 +476,7 @@ function writeConfigs(argv: any) {
       } else if (argv.validate) {
         sequencerConfig.node["espresso-caff-node"]["state-checker"] = {
           "trusted-node-url": "http://validator:8547",
-          "error-tolerance-duration": "1m"
+          "error-tolerance-duration": "1m",
         }
       }
 

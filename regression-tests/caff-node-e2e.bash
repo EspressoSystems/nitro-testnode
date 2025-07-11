@@ -14,7 +14,7 @@ echo "starting tx spammer"
 docker compose run --detach scripts send-l2 --ethamount 10 --to user_l2user --times 50 --delay 200 --wait
 
 for i in {1..20}; do
-    docker compose run scripts send-l2-delayed --ethamount 10000 --to user_delayed_user --wait
+    docker compose run scripts send-l2-delayed --ethamount 10 --to user_delayed_user --wait
     sleep 5
 done
 
@@ -23,8 +23,18 @@ sleep 60
 
 user_l2user_address=$(docker compose run scripts print-address --account user_l2user | tail -n 1 | tr -d '\r\n')
 balance1=$(cast balance $user_l2user_address --rpc-url http://127.0.0.1:8550)
-echo $balance1
+actualBalance1=$(cast balance $user_l2user_address --rpc-url http://127.0.0.1:8247)
+if [ "$balance1" != "$actualBalance1" ]; then
+    echo "Error: balance1 ($balance1) does not match actualBalance1 ($actualBalance1)"
+    exit 1
+fi
 
 user_delayed_user_address=$(docker compose run scripts print-address --account user_delayed_user | tail -n 1 | tr -d '\r\n')
 balance2=$(cast balance $user_delayed_user_address --rpc-url http://127.0.0.1:8550)
-echo $balance2
+actualBalance2=$(cast balance $user_delayed_user_address --rpc-url http://127.0.0.1:8247)
+if [ "$balance2" != "$actualBalance2" ]; then
+    echo "Error: balance2 ($balance2) does not match actualBalance2 ($actualBalance2)"
+    exit 1
+fi
+
+docker compose down
