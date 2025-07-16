@@ -322,7 +322,7 @@ done
 
 if $espresso; then
     NITRO_CONTRACTS_REPO=https://github.com/EspressoSystems/nitro-contracts.git
-    NITRO_CONTRACTS_BRANCH=v2.1.3-celestia-1b04973
+    NITRO_CONTRACTS_BRANCH=develop
     export NITRO_CONTRACTS_REPO
     export NITRO_CONTRACTS_BRANCH
     echo "Running espresso mode"
