@@ -480,7 +480,7 @@ function writeConfigs(argv: any) {
   l3Config.node["delayed-sequencer"]["use-merge-finality"] = false;
   l3Config.node["batch-poster"].enable = true;
   l3Config.node["batch-poster"]["redis-url"] = "";
-  if (argv.espresso) {
+  if (argv.l3Espresso) {
     l3Config.node.feed.output.enable = true;
     l3Config.node.dangerous["no-sequencer-coordinator"] = true;
     l3Config.node.feed.input.url.push("ws://sequencer:9642");
