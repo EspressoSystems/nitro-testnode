@@ -197,6 +197,11 @@ function writeConfigs(argv: any) {
       "info-files": [chainInfoFile],
     },
     node: {
+      bold: {
+        "rpc-block-number": "latest",
+        "strategy": "makeNodes",
+        "assertion-posting-interval": "10s"
+      },
       staker: {
         dangerous: {
           "without-block-validator": false,
@@ -378,7 +383,7 @@ function writeConfigs(argv: any) {
   } else {
     let validatorConfig = JSON.parse(baseConfJSON);
     validatorConfig.node.staker.enable = true;
-    validatorConfig.node.staker["use-smart-contract-wallet"] = true;
+    validatorConfig.node.staker["use-smart-contract-wallet"] = false;  // TODO: set to true when fixed
     if (argv.espresso) {
       validatorConfig.node["block-validator"]["dangerous"][
         "reset-block-validation"
