@@ -3,10 +3,6 @@ set -euo pipefail
 
 ./test-node.bash --espresso --latest-espresso-image --validate --tokenbridge --init-force --detach
 
-export http_proxy=""
-export https_proxy=""
-export all_proxy=""
-
 rollupAddress=$(docker compose run --entrypoint sh poster -c "jq -r '.[0].rollup.rollup' /config/deployed_chain_info.json | tail -n 1 | tr -d '\r\n'")
 previousConfirmed=$(cast call --rpc-url http://localhost:8545 $rollupAddress 'latestConfirmed()(bytes32)')
 echo "latest confirmed hash: $previousConfirmed"
