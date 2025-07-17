@@ -3,11 +3,13 @@
 set -eu
 
 DEFAULT_NITRO_CONTRACTS_REPO="https://github.com/OffchainLabs/nitro-contracts.git"
-NITRO_NODE_VERSION=offchainlabs/nitro-node:v3.2.1-d81324d-dev
+NITRO_NODE_VERSION=offchainlabs/nitro-node:v3.6.7-a7c9f1e
 BLOCKSCOUT_VERSION=offchainlabs/blockscout:v1.1.0-0e716c8
 
-# This commit matches v2.1.0 release of nitro-contracts, with additional support to set arb owner through upgrade executor
-DEFAULT_NITRO_CONTRACTS_VERSION="99c07a7db2fcce75b751c5a2bd4936e898cda065"
+# nitro-contract workaround for testnode
+# 1. authorizing validator signer key since validator wallet is buggy
+#    - gas estimation sent from 0x0000 lead to balance and permission error
+DEFAULT_NITRO_CONTRACTS_VERSION="v3.1.0"
 DEFAULT_TOKEN_BRIDGE_VERSION="v1.2.2"
 
 ESPRESSO_VERSION=ghcr.io/espressosystems/nitro-espresso-integration/nitro-node:integration
