@@ -469,14 +469,15 @@ function writeConfigs(argv: any) {
 
   let l3Config = JSON.parse(baseConfJSON);
   l3Config["parent-chain"].connection.url = argv.l2url;
-  l3Config.node.staker["parent-chain-wallet"].account = namedAddress("l3owner");
+  // use the same account for l2 and l3 staker
+  // l3Config.node.staker["parent-chain-wallet"].account = namedAddress("l3owner")
   l3Config.node["batch-poster"]["parent-chain-wallet"].account =
     namedAddress("l3sequencer");
   l3Config.chain.id = 333333;
   const l3ChainInfoFile = path.join(consts.configpath, "l3_chain_info.json");
   l3Config.chain["info-files"] = [l3ChainInfoFile];
   l3Config.node.staker.enable = true;
-  l3Config.node.staker["use-smart-contract-wallet"] = true;
+  l3Config.node.staker["use-smart-contract-wallet"] = false;  // TODO: set to true when fixed
   l3Config.node.sequencer = true;
   l3Config.execution["sequencer"].enable = true;
   l3Config.node["dangerous"]["no-sequencer-coordinator"] = true;

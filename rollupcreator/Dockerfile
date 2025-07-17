@@ -1,8 +1,12 @@
 FROM node:20-bookworm-slim
 ARG NITRO_CONTRACTS_BRANCH=main
 ARG NITRO_CONTRACTS_REPO=https://github.com/OffchainLabs/nitro-contracts.git
-RUN apt-get update && \
-    apt-get install -y git docker.io python3 build-essential curl jq
+RUN apt-get update
+RUN apt-get install -y git
+RUN apt-get install -y docker.io
+RUN apt-get install -y python3
+RUN apt-get install -y build-essential
+RUN apt-get install -y curl jq
 WORKDIR /workspace  
 RUN git clone --recurse-submodules --no-checkout ${NITRO_CONTRACTS_REPO} ./
 RUN git checkout ${NITRO_CONTRACTS_BRANCH}
