@@ -314,7 +314,7 @@ function writeConfigs(argv: any) {
   if (argv.simple) {
     let simpleConfig = JSON.parse(baseConfJSON);
     simpleConfig.node.staker.enable = true;
-    simpleConfig.node.staker["use-smart-contract-wallet"] = true;
+    simpleConfig.node.staker["use-smart-contract-wallet"] = false;
     simpleConfig.node.staker.dangerous["without-block-validator"] = true;
     simpleConfig.node.sequencer = true;
     simpleConfig.node.dangerous["no-sequencer-coordinator"] = true;
