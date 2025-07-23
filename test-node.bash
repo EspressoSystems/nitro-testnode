@@ -3,14 +3,16 @@
 set -eu
 
 DEFAULT_NITRO_CONTRACTS_REPO="https://github.com/OffchainLabs/nitro-contracts.git"
-NITRO_NODE_VERSION=offchainlabs/nitro-node:v3.2.1-d81324d-dev
+NITRO_NODE_VERSION=offchainlabs/nitro-node:v3.6.7-a7c9f1e
 BLOCKSCOUT_VERSION=offchainlabs/blockscout:v1.1.0-0e716c8
 
-# This commit matches v2.1.0 release of nitro-contracts, with additional support to set arb owner through upgrade executor
-DEFAULT_NITRO_CONTRACTS_VERSION="99c07a7db2fcce75b751c5a2bd4936e898cda065"
+# nitro-contract workaround for testnode
+# 1. authorizing validator signer key since validator wallet is buggy
+#    - gas estimation sent from 0x0000 lead to balance and permission error
+DEFAULT_NITRO_CONTRACTS_VERSION="v3.1.0"
 DEFAULT_TOKEN_BRIDGE_VERSION="v1.2.2"
 
-ESPRESSO_VERSION=ghcr.io/espressosystems/nitro-espresso-integration/nitro-node-dev:integration
+ESPRESSO_VERSION=ghcr.io/espressosystems/nitro-espresso-integration/nitro-node:integration
 
 # Set default versions if not overriden by provided env vars
 : ${NITRO_CONTRACTS_REPO:=$DEFAULT_NITRO_CONTRACTS_REPO}
@@ -53,6 +55,7 @@ lightClientAddrForL3=0x5e36aa9caaf5f708fca5c04d2d4c776a62b2b258
 enableCaffNode=false
 espresso=false
 l2_espresso=false
+l3_espresso=false
 latest_espresso_image=false
 l3_custom_fee_token=false
 l3_token_bridge=false
@@ -317,7 +320,7 @@ done
 
 if $espresso; then
     NITRO_CONTRACTS_REPO=https://github.com/EspressoSystems/nitro-contracts.git
-    NITRO_CONTRACTS_BRANCH=v2.1.3-98026d1
+    NITRO_CONTRACTS_BRANCH=develop
     export NITRO_CONTRACTS_REPO
     export NITRO_CONTRACTS_BRANCH
     echo "Running espresso mode"
@@ -378,8 +381,13 @@ if $espresso; then
         # If we run the `l3node` with enabling espresso mode, then the
         # l2 node will run without `espresso` mode.
         l2_espresso=false
+        l3_espresso=true
     fi
     NODES="$NODES espresso-dev-node"
+fi
+
+if $enableCaffNode; then
+  NODES="$NODES caff-node"
 fi
 
 if $dev_nitro && $build_dev_nitro; then
@@ -552,10 +560,10 @@ if $force_init; then
 
     else
         echo == Writing configs
-        docker compose run scripts write-config  $anytrustNodeConfigLine --espresso $l2_espresso --lightClientAddress $lightClientAddr
+        docker compose run scripts write-config  $anytrustNodeConfigLine --espresso $l2_espresso --l3Espresso $l3_espresso --lightClientAddress $lightClientAddr
         if $enableCaffNode; then
             echo == Writing configs for finality node
-            docker compose run scripts write-config  $anytrustNodeConfigLine  --espresso $l2_espresso  --enableCaffNode --lightClientAddress $lightClientAddr
+            docker compose run scripts write-config  $anytrustNodeConfigLine  --espresso $l2_espresso  --l3Espresso $l3_espresso --enableCaffNode --lightClientAddress $lightClientAddr
         fi
         echo == Initializing redis
         docker compose up --wait redis
@@ -587,6 +595,7 @@ if $force_init; then
 
     if $l3node; then
         echo == Funding l3 users
+        docker compose run scripts send-l2 --ethamount 1000 --to validator --wait
         docker compose run scripts send-l2 --ethamount 1000 --to l3owner --wait
         docker compose run scripts send-l2 --ethamount 1000 --to l3sequencer --wait
 
@@ -605,7 +614,7 @@ if $force_init; then
         echo == Writing l3 chain config
         l3owneraddress=`docker compose run scripts print-address --account l3owner | tail -n 1 | tr -d '\r\n'`
         echo l3owneraddress $l3owneraddress
-        docker compose run scripts --l2owner $l3owneraddress  write-l3-chain-config --espresso $espresso
+        docker compose run scripts --l2owner $l3owneraddress  write-l3-chain-config --espresso $l3_espresso
 
         EXTRA_L3_DEPLOY_FLAG=""
         if $l3_custom_fee_token; then
