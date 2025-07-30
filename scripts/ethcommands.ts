@@ -55,6 +55,44 @@ async function bridgeFunds(argv: any, parentChainUrl: string, chainUrl: string, 
   }
 }
 
+async function sendL2DelayedTransaction(argv: any, parentChainUrl: string, chainUrl: string, inboxAddr: string) {
+  const l2provider = new ethers.providers.WebSocketProvider(chainUrl);
+  const account = namedAccount(argv.from, argv.threadId).connect(l2provider)
+  const startNonce = await account.getTransactionCount("pending")
+  argv.data = undefined
+  const tx = await account.populateTransaction({
+    to: namedAddress(argv.to, argv.threadId),
+    value: ethers.utils.parseEther(argv.ethamount),
+    data: argv.data,
+    nonce: startNonce,
+  })
+  const signedTx = await account.signTransaction(tx)
+  // signed transaction type is 4
+  const txBytes = [4, ...ethers.utils.arrayify(signedTx)]
+  const dataStr = ethers.utils.hexlify(txBytes)
+  const iface = new ethers.utils.Interface([
+    "function sendL2Message(bytes messageData)"
+  ]);
+  const data = iface.encodeFunctionData("sendL2Message", [dataStr]);
+
+  argv.provider = new ethers.providers.WebSocketProvider(parentChainUrl);
+  argv.data = data
+  const l1provider = new ethers.providers.WebSocketProvider(parentChainUrl);
+  const l1Account = namedAccount("funnel", argv.threadId).connect(l1provider)
+  const nonce = await l1Account.getTransactionCount("pending")
+  const response = await l1Account.sendTransaction({
+    to: inboxAddr,
+    value: 0,
+    data: argv.data,
+    nonce: nonce,
+  })
+  if (argv.wait) {
+    const receipt = await response.wait()
+    console.log(receipt)
+  }
+  l1provider.destroy()
+}
+
 async function bridgeNativeToken(argv: any, parentChainUrl: string, chainUrl: string, inboxAddr: string, token: string) {
   argv.provider = new ethers.providers.WebSocketProvider(parentChainUrl);
 
@@ -492,6 +530,44 @@ export const sendL2Command = {
     await runStress(argv, sendTransaction);
 
     argv.provider.destroy();
+  },
+};
+
+export const sendL2DelayedCommand = {
+  command: "send-l2-delayed",
+  describe: "sends funds between l2 accounts using delayed inbox",
+  builder: {
+    ethamount: {
+      string: true,
+      describe: "amount to transfer (in eth)",
+      default: "10",
+    },
+    from: {
+      string: true,
+      describe: "account (see general help)",
+      default: "funnel",
+    },
+    to: {
+      string: true,
+      describe: "address (see general help)",
+      default: "funnel",
+    },
+    wait: {
+      boolean: true,
+      describe: "wait for transaction to complete",
+      default: false,
+    },
+    data: { string: true, describe: "data" },
+  },
+  handler: async (argv: any) => {
+    const deploydata = JSON.parse(
+      fs
+        .readFileSync(path.join(consts.configpath, "deployment.json"))
+        .toString()
+    );
+    const inboxAddr = ethers.utils.hexlify(deploydata.inbox);
+    console.log("inboxAddr", inboxAddr)
+    await sendL2DelayedTransaction(argv, argv.l1url, argv.l2url, inboxAddr);
   },
 };
 
