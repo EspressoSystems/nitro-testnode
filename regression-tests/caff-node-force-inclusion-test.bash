@@ -148,14 +148,17 @@ echo "UPGRADE_EXECUTOR: $PARENT_CHAIN_UPGRADE_EXECUTOR"
 echo "SEQUENCER_INBOX: $SEQUENCER_INBOX"
 echo "Inbox: $INBOX_ADDRESS"
 
-# Before setting the max delay verify that Caff node is running
-CAFF_NODE_RESPONSE=$(cast balance 0x3f1Eae7D46d88F08fc2F8ed27FCb2AB183EB2d0E --rpc-url http://127.0.0.1:8550)
+while true; do
+    # Before setting the max delay verify that Caff node is running
+    CAFF_NODE_RESPONSE=$(cast balance 0x3f1Eae7D46d88F08fc2F8ed27FCb2AB183EB2d0E --rpc-url http://127.0.0.1:8550)
 
-if [[ $CAFF_NODE_RESPONSE == "0" ]]; then
-    echo "Caff node is not running. Please start the node and try again."
-    exit 1
-fi
-
+    if [[ $CAFF_NODE_RESPONSE == "0" ]]; then
+        echo "Caff node is catching up, wait"
+        sleep 10
+    else
+        break
+    fi
+done
 
 PRIVATE_KEY="$(docker compose run scripts print-private-key --account l2owner 2>/dev/null | trim-last)"
 # This is a private key used for testing, save to print
@@ -231,6 +234,7 @@ has_force_inclusion_log() {
 
 if has_force_inclusion_log "caff-node-1" "force inclusion is going to happen"; then
   echo "It printed force inclusion is going to happen log"
+  docker compose down
   exit 0
 else
   echo "Caff node did not print force inclusion log"
