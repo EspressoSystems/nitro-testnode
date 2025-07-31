@@ -566,7 +566,6 @@ export const sendL2DelayedCommand = {
         .toString()
     );
     const inboxAddr = ethers.utils.hexlify(deploydata.inbox);
-    console.log("inboxAddr", inboxAddr)
     await sendL2DelayedTransaction(argv, argv.l1url, argv.l2url, inboxAddr);
   },
 };

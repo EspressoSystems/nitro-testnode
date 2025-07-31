@@ -92,9 +92,9 @@ info Ensuring docker compose project is stopped
 run docker compose down -v --remove-orphans
 
 info Deploying a Espresso Nitro stack with caff node also enabled
-emph ./test-node.bash --espresso --latest-espresso-image --caff-node  --validate --tokenbridge --init-force --detach 
+emph ./test-node.bash --espresso --latest-espresso-image --caff-node  --validate --tokenbridge --init-force --detach
 if [ "$DEBUG" = "true" ]; then
-  ./test-node.bash --espresso --latest-espresso-image --validate --caff-node  --tokenbridge --init-force --detach 
+  ./test-node.bash --espresso --latest-espresso-image --validate --caff-node  --tokenbridge --init-force --detach
 else
   info "This command starts up an entire Nitro stack. It takes a long time."
   info "Run \`tail -f $TESTNODE_LOG_FILE\` to see logs, if necessary."

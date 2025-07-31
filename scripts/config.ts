@@ -447,7 +447,7 @@ function writeConfigs(argv: any) {
       sequencerConfig.node["seq-coordinator"].enable = false;
       sequencerConfig.execution["sequencer"].enable = false;
       sequencerConfig.node["delayed-sequencer"].enable = false;
-      sequencerConfig.node["parent-chain-reader"].enable = false;
+      sequencerConfig.node["parent-chain-reader"].enable = true;
       sequencerConfig.node["espresso-caff-node"] = {
         "enable": true,
         "hotshot-urls": [argv.espressoUrl, argv.espressoUrl],
@@ -461,11 +461,11 @@ function writeConfigs(argv: any) {
         "wait-for-finalization": true,
         "from-block": 1,
         "wait-for-confirmations": false,
-        "blocks-to-read": 6,
+        "blocks-to-read": 1,
         "force-inclusion-checker": {
-          "block-threshold-tolerance": 1,
-          "second-threshold-tolerance": 1,
-          "polling-interval": "250ms",
+          "block-threshold-tolerance": 1000,
+          "second-threshold-tolerance": 1000,
+          "polling-interval": "1h",
         },
         "state-checker": {
           "trusted-node-url": "http://bad-url:8550",
