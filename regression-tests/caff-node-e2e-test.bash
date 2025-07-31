@@ -41,4 +41,12 @@ if [ "$balance2" != "$actualBalance2" ]; then
     exit 1
 fi
 
+blockNumber=$(cast block-number --rpc-url http://localhost:8247)
+echo "blockNumber: $blockNumber"
+trustedState=$(cast block $blockNumber --rpc-url http://localhost:8247 --json | jq -r .stateRoot)
+caffState=$(cast block $blockNumber --rpc-url http://localhost:8550 --json | jq -r .stateRoot)
+if [ "$trustedState" != "$caffState" ]; then
+    echo "Error: trustedState ($trustedState) does not match caffState ($caffState)"
+    exit 1
+fi
 docker compose down
