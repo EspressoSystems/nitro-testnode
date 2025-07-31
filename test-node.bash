@@ -436,7 +436,7 @@ if $dev_nitro; then
   docker tag nitro-node-dev:latest nitro-node-dev-testnode
 else
   if $latest_espresso_image; then
-    docker pull $ESPRESSO_VERSION 
+    docker pull $ESPRESSO_VERSION --platform linux/amd64
     docker tag $ESPRESSO_VERSION nitro-node-dev-testnode
   else 
      docker pull $NITRO_NODE_VERSION

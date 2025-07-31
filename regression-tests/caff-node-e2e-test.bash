@@ -8,18 +8,22 @@ echo "starting nodes"
 
 # This e2e test is largly based on the state checker
 # We set the error tolerance duration to 1m
-docker compose run scripts update-config-value --path /config/caff_sequencer_config.json --property node.espresso-caff-node.state-checker.error-tolerance-duration --value "1m"
 
 echo "starting tx spammer"
 docker compose run --detach scripts send-l2 --ethamount 10 --to user_l2user --times 50 --delay 200 --wait
 
 for i in {1..20}; do
+    echo "sending delayed tx"
     docker compose run scripts send-l2-delayed --ethamount 10 --to user_delayed_user --wait
     sleep 5
 done
 
-# Wait for all the transactions to be processed
+echo "waiting for all transactions to be processed by the caff node"
 sleep 60
+
+export http_proxy=""
+export https_proxy=""
+export all_proxy=""
 
 user_l2user_address=$(docker compose run scripts print-address --account user_l2user | tail -n 1 | tr -d '\r\n')
 balance1=$(cast balance $user_l2user_address --rpc-url http://127.0.0.1:8550)
