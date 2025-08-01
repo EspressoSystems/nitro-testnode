@@ -302,7 +302,7 @@ function writeConfigs(argv: any) {
 
   if (argv.espresso) {
     let config = baseConfig as any;
-    config.node["batch-poster"]["hotshot-url"] = "";
+    config.node["batch-poster"]["hotshot-urls"] = "";
     config.node["batch-poster"]["light-client-address"] = "";
   }
 
@@ -328,7 +328,7 @@ function writeConfigs(argv: any) {
     }
     if (argv.espresso) {
       simpleConfig.node.feed.output.enable = true;
-      simpleConfig.node["batch-poster"]["hotshot-url"] = argv.espressoUrl;
+      simpleConfig.node["batch-poster"]["hotshot-urls"] = [argv.espressoUrl];
       simpleConfig.node["batch-poster"]["light-client-address"] =
         argv.lightClientAddress;
       simpleConfig.node["block-validator"]["dangerous"][
@@ -442,7 +442,7 @@ function writeConfigs(argv: any) {
     let posterConfig = JSON.parse(baseConfJSON);
     if (argv.espresso) {
       posterConfig.node.feed.input.url.push("ws://sequencer:9642");
-      posterConfig.node["batch-poster"]["hotshot-url"] = argv.espressoUrl;
+      posterConfig.node["batch-poster"]["hotshot-urls"] = [argv.espressoUrl];
       posterConfig.node["batch-poster"]["light-client-address"] =
         argv.lightClientAddress;
     } else {
@@ -480,7 +480,7 @@ function writeConfigs(argv: any) {
     l3Config.node.feed.output.enable = true;
     l3Config.node.dangerous["no-sequencer-coordinator"] = true;
     l3Config.node.feed.input.url.push("ws://sequencer:9642");
-    l3Config.node["batch-poster"]["hotshot-url"] = argv.espressoUrl;
+    l3Config.node["batch-poster"]["hotshot-urls"] = [argv.espressoUrl];
     l3Config.node["batch-poster"]["light-client-address"] =
       argv.lightClientAddress;
   }
