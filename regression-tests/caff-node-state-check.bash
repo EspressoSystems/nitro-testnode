@@ -49,4 +49,20 @@ if [ "$trustedState" != "$caffState" ]; then
     echo "Error: trustedState ($trustedState) does not match caffState ($caffState)"
     exit 1
 fi
+
+echo "use the geth node as the trusted node"
+docker compose run scripts update-config-value --path /config/caff_sequencer_config.json --property node.espresso-caff-node.state-checker.trusted-node-url --value http://geth:8545
+
+echo "restart caff node"
+docker compose restart caff-node
+
+sleep 20
+
+while true; do
+    if docker compose ps -a caff-node | grep Exited; then
+        break
+    fi
+    sleep 10
+done
+
 docker compose down
