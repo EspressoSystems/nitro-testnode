@@ -183,31 +183,6 @@ function getChainInfo(): ChainInfo {
     return chainInfo;
 }
 
-function updateConfigValue(argv: any) {
-  const filePath = argv.path
-  const propertyPath = argv.property
-  const value = argv.value
-  let v: any
-  if (argv.isBool) {
-    v = value === "true" ? true : false
-  } else if (argv.isNumber) {
-    v = Number(value)
-  } else {
-    v = value
-  }
-  const fileContents = fs.readFileSync(filePath).toString();
-  const config = JSON.parse(fileContents);
-  const property = propertyPath.split(".");
-  let current = config;
-  for (let i = 0; i < property.length - 1; i++) {
-    if (!current[property[i]]) {
-      throw new Error(`Property ${property[i]} not found`);
-    }
-    current = current[property[i]];
-  }
-  current[property[property.length - 1]] = v;
-  fs.writeFileSync(filePath, JSON.stringify(config, null, 2));
-}
 
 function writeConfigs(argv: any) {
   const valJwtSecret = path.join(consts.configpath, "val_jwt.hex");
@@ -458,8 +433,8 @@ function writeConfigs(argv: any) {
         "wait-for-confirmations": false,
         "blocks-to-read": 1,
         "force-inclusion-checker": {
-          "block-threshold-tolerance": 1000,
-          "second-threshold-tolerance": 1000,
+          "block-threshold-tolerance": 100000,
+          "second-threshold-tolerance": 100000,
           "polling-interval": "1h",
         },
         "state-checker": {
@@ -761,39 +736,6 @@ function dasBackendsJsonConfig(argv: any) {
     ],
   };
   return backends;
-}
-
-export const updateConfigValueCommand = {
-  command: "update-config-value",
-  describe: "updates a config value",
-  builder: {
-    path: {
-      string: true,
-      describe: "path to config file",
-      default: "l2_chain_info.json",
-    },
-    property: {
-      string: true,
-      describe: "property to update",
-    },
-    value: {
-      string: true,
-      describe: "value to set",
-    },
-    isBool: {
-      boolean: true,
-      describe: "value is boolean",
-      default: false,
-    },
-    isNumber: {
-      boolean: true,
-      describe: "value is number",
-      default: false,
-    },
-  },
-  handler: async (argv: any) => {
-    updateConfigValue(argv)
-  },
 }
 
 export const writeConfigCommand = {

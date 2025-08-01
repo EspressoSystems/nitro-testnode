@@ -31,6 +31,32 @@ async function sendTransaction(argv: any, threadId: number) {
     }
 }
 
+function updateConfigValue(argv: any) {
+  const filePath = argv.path
+  const propertyPath = argv.property
+  const value = argv.value
+  let v: any
+  if (argv.isBool) {
+    v = value === "true" ? true : false
+  } else if (argv.isNumber) {
+    v = Number(value)
+  } else {
+    v = value
+  }
+  const fileContents = fs.readFileSync(filePath).toString();
+  const config = JSON.parse(fileContents);
+  const property = propertyPath.split(".");
+  let current = config;
+  for (let i = 0; i < property.length - 1; i++) {
+    if (!current[property[i]]) {
+      throw new Error(`Property ${property[i]} not found`);
+    }
+    current = current[property[i]];
+  }
+  current[property[property.length - 1]] = v;
+  fs.writeFileSync(filePath, JSON.stringify(config, null, 2));
+}
+
 async function bridgeFunds(argv: any, parentChainUrl: string, chainUrl: string, inboxAddr: string) {
   argv.provider = new ethers.providers.WebSocketProvider(parentChainUrl);
 
@@ -53,6 +79,31 @@ async function bridgeFunds(argv: any, parentChainUrl: string, chainUrl: string, 
       await sleep(100)
     }
   }
+}
+
+async function setIsBatchPoster(argv: any) {
+  const parentChainUrl = argv.l1url;
+  const seqInboxAddr = argv.seqInboxAddr;
+  const batchPoster = argv.batchPoster;
+  const isBatchPoster = argv.isBatchPoster;
+
+  const provider = new ethers.providers.WebSocketProvider(parentChainUrl);
+  const account = namedAccount("l2owner", argv.threadId).connect(provider)
+  const iface = new ethers.utils.Interface([
+    "function setIsBatchPoster(address, bool)"
+  ]);
+  const data = iface.encodeFunctionData("setIsBatchPoster", [batchPoster, isBatchPoster])
+  const response = await account.sendTransaction({
+    to: seqInboxAddr,
+    value: 0,
+    data: data,
+    nonce: await account.getTransactionCount("pending"),
+  })
+  if (argv.wait) {
+    const receipt = await response.wait()
+    console.log(receipt)
+  }
+  provider.destroy()
 }
 
 async function sendL2DelayedTransaction(argv: any, parentChainUrl: string, chainUrl: string, inboxAddr: string) {
@@ -462,6 +513,71 @@ export const transferERC20Command = {
     argv.provider.destroy();
   },
 };
+
+export const updateConfigValueCommand = {
+  command: "update-config-value",
+  describe: "updates a config value",
+  builder: {
+    path: {
+      string: true,
+      describe: "path to config file",
+      default: "l2_chain_info.json",
+    },
+    property: {
+      string: true,
+      describe: "property to update",
+    },
+    value: {
+      string: true,
+      describe: "value to set",
+    },
+    isBool: {
+      boolean: true,
+      describe: "value is boolean",
+      default: false,
+    },
+    isNumber: {
+      boolean: true,
+      describe: "value is number",
+      default: false,
+    },
+  },
+  handler: async (argv: any) => {
+    updateConfigValue(argv)
+  },
+}
+
+export const setIsBatchPosterCommand = {
+  command: "set-is-batch-poster",
+  describe: "sets the isBatchPoster flag for a batch poster",
+  builder: {
+    parentChainUrl: {
+      string: true,
+      describe: "parent chain url",
+    },
+    seqInboxAddr: {
+      string: true,
+      describe: "sequencer inbox address",
+    },
+    batchPoster: {
+      string: true,
+      describe: "batch poster address",
+    },
+    isBatchPoster: {
+      boolean: true,
+      describe: "is batch poster",
+      default: false,
+    },
+    wait: {
+      boolean: true,
+      describe: "wait for transaction to complete",
+      default: false,
+    },
+  },
+  handler: async (argv: any) => {
+    await setIsBatchPoster(argv)
+  },
+}
 
 export const sendL1Command = {
   command: "send-l1",

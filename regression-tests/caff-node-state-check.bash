@@ -6,9 +6,6 @@ cd "$(dirname "$0")"
 echo "starting nodes"
 ../test-node.bash --init-force --espresso --validate --latest-espresso-image --caff-node --detach
 
-# This e2e test is largly based on the state checker
-# We set the error tolerance duration to 1m
-
 echo "starting tx spammer"
 docker compose run --detach scripts send-l2 --ethamount 10 --to user_l2user --times 50 --delay 200 --wait
 
