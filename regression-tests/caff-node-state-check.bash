@@ -21,10 +21,6 @@ done
 echo "waiting for all transactions to be processed by the caff node"
 sleep 60
 
-export http_proxy=""
-export https_proxy=""
-export all_proxy=""
-
 user_l2user_address=$(docker compose run scripts print-address --account user_l2user | tail -n 1 | tr -d '\r\n')
 balance1=$(cast balance $user_l2user_address --rpc-url http://127.0.0.1:8550)
 actualBalance1=$(cast balance $user_l2user_address --rpc-url http://127.0.0.1:8247)
