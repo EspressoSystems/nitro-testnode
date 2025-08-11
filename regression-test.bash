@@ -15,5 +15,13 @@ echo "3. Running caff-node-state-check.bash"
 ./caff-node-state-check.bash
 echo "Completed caff-node-state-check.bash"
 
+echo "4. Running caff-node-restart.bash"
+./caff-node-restart.bash
+echo "Completed caff-node-restart.bash"
+
+echo "5. Running batcher-with-malicious-sequencer.bash"
+./batcher-with-malicious-sequencer.bash
+echo "Completed batcher-with-malicious-sequencer.bash"
+
 echo "All regression tests completed successfully!"
 docker compose down

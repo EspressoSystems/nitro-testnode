@@ -1,0 +1,79 @@
+name: Regression Test CI
+run-name: CI triggered from @${{ github.actor }} of ${{ github.head_ref }}
+
+on:
+  workflow_dispatch:
+
+# Cancel in-progress jobs except for integration branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !contains(github.ref, 'integration/')}}
+
+jobs:
+  regression_test:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      # Install wscat for finality node smoke test to listen to sequencer feed
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "16"
+
+      - name: Install wscat
+        run: npm install -g wscat
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: network=host
+
+      # Explicitly building the docker images because it's not clear how we can
+      # use the github action (gha) cache if we let docker compose build the images.
+      - uses: docker/build-push-action@v5
+        with:
+          context: ./rollupcreator
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          # Use default branch from test-node.bash
+          build-args: |
+            NITRO_CONTRACTS_BRANCH=develop
+
+      - uses: docker/build-push-action@v5
+        with:
+          context: ./scripts
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - uses: docker/build-push-action@v5
+        with:
+          context: ./mock-sequencer
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - uses: docker/build-push-action@v5
+        with:
+          context: ./tokenbridge
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          # Use default branch from test-node.bash
+          build-args: |
+            TOKEN_BRIDGE_BRANCH=v1.2.2
+
+      - name: Regression Test with Latest Espresso Image
+        run: ./regression-test.bash
+
+      - name: Dump docker logs on failure
+        if: failure()
+        run: |
+          docker compose logs
