@@ -23,6 +23,7 @@ import {
   waitForSyncCommand,
   transferL3ChainOwnershipCommand,
   sendL2DelayedCommand,
+  sendL2ToHotShotCommand,
   updateConfigValueCommand,
   setIsBatchPosterCommand,
 } from "./ethcommands";
@@ -56,6 +57,7 @@ async function main() {
     .command(sendL1Command)
     .command(sendL2Command)
     .command(sendL2DelayedCommand)
+    .command(sendL2ToHotShotCommand)
     .command(sendL3Command)
     .command(sendRPCCommand)
     .command(setValidKeysetCommand)

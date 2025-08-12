@@ -144,6 +144,129 @@ async function sendL2DelayedTransaction(argv: any, parentChainUrl: string, chain
   l1provider.destroy()
 }
 
+async function sendL2TransactionToHotShot(argv: any) {
+  const to = namedAddress(argv.to)
+  const provider = new ethers.providers.WebSocketProvider(argv.l2url)
+  const account = namedAccount(argv.from).connect(provider)
+  const nonce = await account.getTransactionCount("pending")
+
+  const network = await provider.getNetwork()
+  const chainId = network.chainId
+
+  const gasLimit = ethers.BigNumber.from("21000")
+  const gasPrice = await provider.getGasPrice()
+
+  const tx = {
+    to: to,
+    value: ethers.utils.parseEther(argv.ethamount || "0"),
+    data: argv.data || "0x",
+    nonce: nonce,
+    gasLimit: gasLimit,
+    gasPrice: gasPrice,
+    chainId: chainId
+  }
+
+  const serializedTx = ethers.utils.serializeTransaction(tx)
+  const uint8ArrayTx = ethers.utils.arrayify(serializedTx)
+
+  const positionBuf = new Uint8Array(8)
+  const sizeBuf = new Uint8Array(8)
+
+  new DataView(positionBuf.buffer).setBigUint64(0, BigInt(argv.position))
+
+  new DataView(sizeBuf.buffer).setBigUint64(0, BigInt(uint8ArrayTx.length))
+
+  const payload = new Uint8Array(positionBuf.length + sizeBuf.length + uint8ArrayTx.length)
+  payload.set(positionBuf)
+  payload.set(sizeBuf, positionBuf.length)
+  payload.set(uint8ArrayTx, positionBuf.length + sizeBuf.length)
+
+  const signer = namedAccount(argv.signer)
+  const privateKey = signer.privateKey
+  const payloadHash = ethers.utils.keccak256(payload)
+  const signatureObj = new ethers.utils.SigningKey(privateKey).signDigest(payloadHash)
+  const signature = ethers.utils.joinSignature(signatureObj)
+  const uint8ArraySignature = ethers.utils.arrayify(signature)
+
+  const { r, s, v } = ethers.utils.splitSignature(signature)
+  console.log('Original signature:', Buffer.from(uint8ArraySignature).toString('hex'))
+  console.log('r:', r)
+  console.log('s:', s)
+  console.log('v:', v)
+
+  console.log('Signature length:', uint8ArraySignature.length)
+  console.log('Last byte:', uint8ArraySignature[64])
+  if (uint8ArraySignature[64] === 27 || uint8ArraySignature[64] === 28) {
+    uint8ArraySignature[64] = uint8ArraySignature[64] - 27
+  }
+  console.log('Modified signature:', Buffer.from(uint8ArraySignature).toString('hex'))
+
+  const recoveredAddress = ethers.utils.verifyMessage(payloadHash, signature)
+  console.log('Recovered address:', recoveredAddress)
+  console.log('Signer address:', signer.address)
+
+  const signatureLengthBuf = new Uint8Array(8)
+  new DataView(signatureLengthBuf.buffer).setBigUint64(0, BigInt(uint8ArraySignature.length))
+
+  const combined = new Uint8Array(signatureLengthBuf.length + uint8ArraySignature.length + payload.length)
+  combined.set(signatureLengthBuf)
+  combined.set(uint8ArraySignature, signatureLengthBuf.length)
+  combined.set(payload, signatureLengthBuf.length + uint8ArraySignature.length)
+
+  const signatureSize = new DataView(combined.buffer).getBigUint64(0, false)
+
+  const signatureBytes = combined.slice(8, 8 + Number(signatureSize))
+
+  const userDataStart = 8 + Number(signatureSize)
+  const userDataBytes = combined.slice(userDataStart)
+  const userDataHash = ethers.utils.keccak256(userDataBytes)
+
+  console.log('userDataBytes:', Buffer.from(userDataBytes).toString('hex'))
+  console.log('userDataHash:', userDataHash)
+
+  const recoveredAddressFromParsed = ethers.utils.verifyMessage(userDataHash, signatureBytes)
+  console.log('Recovered address from parsed data:', recoveredAddressFromParsed)
+
+
+  const hotshotTx = {
+    namespace: chainId,
+    payload: arrayBufferToBase64(combined)
+  }
+
+  const url = `${argv.espressoUrl}/submit/submit`
+  console.log('URL:', url)
+  const body = JSON.stringify(hotshotTx)
+  console.log('Body:', body)
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    },
+    body: body
+  })
+
+  const responseText = await response.text()
+  console.log('Response:', responseText)
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`)
+  }
+
+  return
+}
+
+function arrayBufferToBase64(buffer: ArrayBuffer) {
+  let binary = '';
+  const bytes = new Uint8Array(buffer);
+  const len = bytes.byteLength;
+  for(let i = 0; i < len; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
 async function bridgeNativeToken(argv: any, parentChainUrl: string, chainUrl: string, inboxAddr: string, token: string) {
   argv.provider = new ethers.providers.WebSocketProvider(parentChainUrl);
 
@@ -685,6 +808,42 @@ export const sendL2DelayedCommand = {
     await sendL2DelayedTransaction(argv, argv.l1url, argv.l2url, inboxAddr);
   },
 };
+
+export const sendL2ToHotShotCommand = {
+  command: "send-l2-to-hotshot",
+  describe: "send a transaction to HotShot directly, not through sequencer or batch poster",
+  builder: {
+    ethamount: {
+      string: true,
+      describe: "amount to transfer (in eth)",
+      default: "10",
+    },
+    from: {
+      string: true,
+      describe: "account (see general help)",
+      default: "funnel",
+    },
+    to: {
+      string: true,
+      describe: "address (see general help)",
+      default: "funnel",
+    },
+    position: {
+      number: true,
+      describe: "position of the message",
+      default: 0,
+    },
+    signer: {
+      string: true,
+      describle: "the private key of the signer",
+      default: "",
+    },
+  },
+  handler: async (argv: any) => {
+    await sendL2TransactionToHotShot(argv)
+  },
+
+}
 
 export const sendL3Command = {
   command: "send-l3",
