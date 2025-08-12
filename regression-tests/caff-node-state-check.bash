@@ -4,6 +4,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 echo "starting nodes"
+
 ../test-node.bash --init-force --espresso --validate --latest-espresso-image --caff-node --detach
 
 echo "starting tx spammer"
@@ -14,6 +15,10 @@ for i in {1..20}; do
     docker compose run scripts send-l2-delayed --ethamount 10 --to user_delayed_user --wait
     sleep 5
 done
+
+export http_proxy=""
+export https_proxy=""
+export all_proxy=""
 
 echo "waiting for all transactions to be processed by the caff node"
 sleep 60

@@ -2,6 +2,7 @@
 set -euo pipefail
 
 echo "Running regression tests..."
+cd regression-tests
 
 echo "1. Running caff-node-batcher-addr-monitor.bash"
 ./caff-node-batcher-addr-monitor.bash
