@@ -188,22 +188,12 @@ async function sendL2TransactionToHotShot(argv: any) {
   const signature = ethers.utils.joinSignature(signatureObj)
   const uint8ArraySignature = ethers.utils.arrayify(signature)
 
-  const { r, s, v } = ethers.utils.splitSignature(signature)
-  console.log('Original signature:', Buffer.from(uint8ArraySignature).toString('hex'))
-  console.log('r:', r)
-  console.log('s:', s)
-  console.log('v:', v)
 
-  console.log('Signature length:', uint8ArraySignature.length)
-  console.log('Last byte:', uint8ArraySignature[64])
+  // The Go code expects a secp256k1 format signature where v should be 0 or 1
+  // Ethereum signature has v as 27 or 28, we need to convert it to 0 or 1
   if (uint8ArraySignature[64] === 27 || uint8ArraySignature[64] === 28) {
     uint8ArraySignature[64] = uint8ArraySignature[64] - 27
   }
-  console.log('Modified signature:', Buffer.from(uint8ArraySignature).toString('hex'))
-
-  const recoveredAddress = ethers.utils.verifyMessage(payloadHash, signature)
-  console.log('Recovered address:', recoveredAddress)
-  console.log('Signer address:', signer.address)
 
   const signatureLengthBuf = new Uint8Array(8)
   new DataView(signatureLengthBuf.buffer).setBigUint64(0, BigInt(uint8ArraySignature.length))
@@ -213,30 +203,13 @@ async function sendL2TransactionToHotShot(argv: any) {
   combined.set(uint8ArraySignature, signatureLengthBuf.length)
   combined.set(payload, signatureLengthBuf.length + uint8ArraySignature.length)
 
-  const signatureSize = new DataView(combined.buffer).getBigUint64(0, false)
-
-  const signatureBytes = combined.slice(8, 8 + Number(signatureSize))
-
-  const userDataStart = 8 + Number(signatureSize)
-  const userDataBytes = combined.slice(userDataStart)
-  const userDataHash = ethers.utils.keccak256(userDataBytes)
-
-  console.log('userDataBytes:', Buffer.from(userDataBytes).toString('hex'))
-  console.log('userDataHash:', userDataHash)
-
-  const recoveredAddressFromParsed = ethers.utils.verifyMessage(userDataHash, signatureBytes)
-  console.log('Recovered address from parsed data:', recoveredAddressFromParsed)
-
-
   const hotshotTx = {
     namespace: chainId,
     payload: arrayBufferToBase64(combined)
   }
 
   const url = `${argv.espressoUrl}/submit/submit`
-  console.log('URL:', url)
   const body = JSON.stringify(hotshotTx)
-  console.log('Body:', body)
 
   const response = await fetch(url, {
     method: 'POST',
