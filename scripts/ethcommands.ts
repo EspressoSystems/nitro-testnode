@@ -6,6 +6,7 @@ import * as L1GatewayRouter from "@arbitrum/token-bridge-contracts/build/contrac
 import * as L1AtomicTokenBridgeCreator from "@arbitrum/token-bridge-contracts/build/contracts/contracts/tokenbridge/ethereum/L1AtomicTokenBridgeCreator.sol/L1AtomicTokenBridgeCreator.json";
 import * as ERC20 from "@openzeppelin/contracts/build/contracts/ERC20.json";
 import * as fs from "fs";
+import * as rlp from "rlp";
 import { ARB_OWNER } from "./consts";
 const path = require("path");
 
@@ -147,39 +148,55 @@ async function sendL2DelayedTransaction(argv: any, parentChainUrl: string, chain
 async function sendL2TransactionToHotShot(argv: any) {
   const to = namedAddress(argv.to)
   const provider = new ethers.providers.WebSocketProvider(argv.l2url)
-  const account = namedAccount(argv.from).connect(provider)
-  const nonce = await account.getTransactionCount("pending")
+  const l1provider = new ethers.providers.WebSocketProvider(argv.l1url)
+  const account = namedAccount(argv.signer).connect(provider)
+  const nonce = argv.nonce
 
   const network = await provider.getNetwork()
   const chainId = network.chainId
 
-  const gasLimit = ethers.BigNumber.from("21000")
-  const gasPrice = await provider.getGasPrice()
-
-  const tx = {
-    to: to,
-    value: ethers.utils.parseEther(argv.ethamount || "0"),
-    data: argv.data || "0x",
+  const tx = await account.populateTransaction({
+    to,
+    value: ethers.utils.parseEther(argv.ethamount),
     nonce: nonce,
-    gasLimit: gasLimit,
-    gasPrice: gasPrice,
-    chainId: chainId
-  }
+  })
+  const signedTx = await account.signTransaction(tx)
+  // signed transaction type is 4
+  const uint8ArrayTx = ethers.utils.arrayify("0x04" + signedTx.slice(2))
+  const l1Block = await l1provider.getBlock("latest")
 
-  const serializedTx = ethers.utils.serializeTransaction(tx)
-  const uint8ArrayTx = ethers.utils.arrayify(serializedTx)
+  const header = [
+    3,  // kind
+    ethers.utils.arrayify(namedAddress("sequencer", argv.threadId)),  // poster
+    ethers.utils.arrayify(ethers.utils.hexlify(l1Block.number)),  // blockNumber
+    ethers.utils.arrayify(ethers.utils.hexlify(l1Block.timestamp)),  // timestamp
+    [],  // requestId (nilList)
+    null,  // l1BaseFee (nil)
+  ]
+
+  const message = [
+    header,
+    uint8ArrayTx,  // l2msg
+    null,
+  ]
+
+  const messageWithMeta = [
+    message,
+    argv.delayed,  // delayedMessageRead
+  ]
+
+  const encodedPayload = rlp.encode(messageWithMeta)
 
   const positionBuf = new Uint8Array(8)
   const sizeBuf = new Uint8Array(8)
 
   new DataView(positionBuf.buffer).setBigUint64(0, BigInt(argv.position))
+  new DataView(sizeBuf.buffer).setBigUint64(0, BigInt(encodedPayload.length))
 
-  new DataView(sizeBuf.buffer).setBigUint64(0, BigInt(uint8ArrayTx.length))
-
-  const payload = new Uint8Array(positionBuf.length + sizeBuf.length + uint8ArrayTx.length)
+  const payload = new Uint8Array(positionBuf.length + sizeBuf.length + encodedPayload.length)
   payload.set(positionBuf)
   payload.set(sizeBuf, positionBuf.length)
-  payload.set(uint8ArrayTx, positionBuf.length + sizeBuf.length)
+  payload.set(encodedPayload, positionBuf.length + sizeBuf.length)
 
   const signer = namedAccount(argv.signer)
   const privateKey = signer.privateKey
@@ -789,12 +806,7 @@ export const sendL2ToHotShotCommand = {
     ethamount: {
       string: true,
       describe: "amount to transfer (in eth)",
-      default: "10",
-    },
-    from: {
-      string: true,
-      describe: "account (see general help)",
-      default: "funnel",
+      default: "1",
     },
     to: {
       string: true,
@@ -810,6 +822,16 @@ export const sendL2ToHotShotCommand = {
       string: true,
       describle: "the private key of the signer",
       default: "",
+    },
+    delayed: {
+      number: true,
+      describe: "delayed message read",
+      default: 1,
+    },
+    nonce: {
+      number: true,
+      describe: "nonce of the transaction",
+      default: 0,
     },
   },
   handler: async (argv: any) => {
