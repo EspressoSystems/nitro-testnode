@@ -16,10 +16,6 @@ for i in {1..20}; do
     sleep 5
 done
 
-export http_proxy=""
-export https_proxy=""
-export all_proxy=""
-
 echo "waiting for all transactions to be processed by the caff node"
 sleep 60
 
@@ -63,4 +59,4 @@ while true; do
     sleep 10
 done
 
-docker compose down
+docker compose down --remove-orphans

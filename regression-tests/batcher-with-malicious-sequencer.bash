@@ -80,4 +80,4 @@ sleep 10
 currentCount3=$(curl -X POST --fail --silent http://127.0.0.1:10000/send-oversized)
 check_and_recover_liveness $validatorRpc $currentCount3
 
-docker compose down
+docker compose down --remove-orphans
