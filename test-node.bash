@@ -12,7 +12,7 @@ BLOCKSCOUT_VERSION=offchainlabs/blockscout:v1.1.0-0e716c8
 DEFAULT_NITRO_CONTRACTS_VERSION="v3.1.0"
 DEFAULT_TOKEN_BRIDGE_VERSION="v1.2.2"
 
-ESPRESSO_VERSION=ghcr.io/espressosystems/nitro-espresso-integration/nitro-node:jh-fix
+ESPRESSO_VERSION=ghcr.io/espressosystems/nitro-espresso-integration/nitro-node:integration
 
 # Set default versions if not overriden by provided env vars
 : ${NITRO_CONTRACTS_REPO:=$DEFAULT_NITRO_CONTRACTS_REPO}
@@ -325,7 +325,7 @@ done
 
 if $espresso; then
     NITRO_CONTRACTS_REPO=https://github.com/EspressoSystems/nitro-contracts.git
-    NITRO_CONTRACTS_BRANCH=develop
+    NITRO_CONTRACTS_BRANCH=jh/test-node
     export NITRO_CONTRACTS_REPO
     export NITRO_CONTRACTS_BRANCH
     echo "Running espresso mode"
