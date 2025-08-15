@@ -234,7 +234,7 @@ has_force_inclusion_log() {
 
 if has_force_inclusion_log "caff-node-1" "force inclusion is going to happen"; then
   echo "It printed force inclusion is going to happen log"
-  docker compose down
+  docker compose down --remove-orphans
   exit 0
 else
   echo "Caff node did not print force inclusion log"

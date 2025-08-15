@@ -52,4 +52,4 @@ while true; do
     sleep 5
 done
 
-docker compose down
+docker compose down --remove-orphans
