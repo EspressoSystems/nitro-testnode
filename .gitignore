@@ -3,3 +3,5 @@
 
 # For people using some Jetbrains editor.
 .idea
+
+.DS_Store
