@@ -6,6 +6,7 @@ import * as L1GatewayRouter from "@arbitrum/token-bridge-contracts/build/contrac
 import * as L1AtomicTokenBridgeCreator from "@arbitrum/token-bridge-contracts/build/contracts/contracts/tokenbridge/ethereum/L1AtomicTokenBridgeCreator.sol/L1AtomicTokenBridgeCreator.json";
 import * as ERC20 from "@openzeppelin/contracts/build/contracts/ERC20.json";
 import * as fs from "fs";
+import * as rlp from "rlp";
 import { ARB_OWNER } from "./consts";
 const path = require("path");
 
@@ -142,6 +143,118 @@ async function sendL2DelayedTransaction(argv: any, parentChainUrl: string, chain
     console.log(receipt)
   }
   l1provider.destroy()
+}
+
+async function sendL2TransactionToHotShot(argv: any) {
+  const to = namedAddress(argv.to)
+  const provider = new ethers.providers.WebSocketProvider(argv.l2url)
+  const l1provider = new ethers.providers.WebSocketProvider(argv.l1url)
+  const account = namedAccount(argv.signer).connect(provider)
+  const nonce = argv.nonce
+
+  const network = await provider.getNetwork()
+  const chainId = network.chainId
+
+  const tx = await account.populateTransaction({
+    to,
+    value: ethers.utils.parseEther(argv.ethamount),
+    nonce: nonce,
+  })
+  const signedTx = await account.signTransaction(tx)
+  // signed transaction type is 4
+  const uint8ArrayTx = ethers.utils.arrayify("0x04" + signedTx.slice(2))
+  const l1Block = await l1provider.getBlock("latest")
+
+  const header = [
+    3,  // kind
+    ethers.utils.arrayify(namedAddress("sequencer", argv.threadId)),  // poster
+    ethers.utils.arrayify(ethers.utils.hexlify(l1Block.number)),  // blockNumber
+    ethers.utils.arrayify(ethers.utils.hexlify(l1Block.timestamp)),  // timestamp
+    [],  // requestId (nilList)
+    null,  // l1BaseFee (nil)
+  ]
+
+  const message = [
+    header,
+    uint8ArrayTx,  // l2msg
+    null,
+  ]
+
+  const messageWithMeta = [
+    message,
+    argv.delayed,  // delayedMessageRead
+  ]
+
+  const encodedPayload = rlp.encode(messageWithMeta)
+
+  const positionBuf = new Uint8Array(8)
+  const sizeBuf = new Uint8Array(8)
+
+  new DataView(positionBuf.buffer).setBigUint64(0, BigInt(argv.position))
+  new DataView(sizeBuf.buffer).setBigUint64(0, BigInt(encodedPayload.length))
+
+  const payload = new Uint8Array(positionBuf.length + sizeBuf.length + encodedPayload.length)
+  payload.set(positionBuf)
+  payload.set(sizeBuf, positionBuf.length)
+  payload.set(encodedPayload, positionBuf.length + sizeBuf.length)
+
+  const signer = namedAccount(argv.signer)
+  const privateKey = signer.privateKey
+  const payloadHash = ethers.utils.keccak256(payload)
+  const signatureObj = new ethers.utils.SigningKey(privateKey).signDigest(payloadHash)
+  const signature = ethers.utils.joinSignature(signatureObj)
+  const uint8ArraySignature = ethers.utils.arrayify(signature)
+
+
+  // The Go code expects a secp256k1 format signature where v should be 0 or 1
+  // Ethereum signature has v as 27 or 28, we need to convert it to 0 or 1
+  if (uint8ArraySignature[64] === 27 || uint8ArraySignature[64] === 28) {
+    uint8ArraySignature[64] = uint8ArraySignature[64] - 27
+  }
+
+  const signatureLengthBuf = new Uint8Array(8)
+  new DataView(signatureLengthBuf.buffer).setBigUint64(0, BigInt(uint8ArraySignature.length))
+
+  const combined = new Uint8Array(signatureLengthBuf.length + uint8ArraySignature.length + payload.length)
+  combined.set(signatureLengthBuf)
+  combined.set(uint8ArraySignature, signatureLengthBuf.length)
+  combined.set(payload, signatureLengthBuf.length + uint8ArraySignature.length)
+
+  const hotshotTx = {
+    namespace: chainId,
+    payload: arrayBufferToBase64(combined)
+  }
+
+  const url = `${argv.espressoUrl}/submit/submit`
+  const body = JSON.stringify(hotshotTx)
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    },
+    body: body
+  })
+
+  const responseText = await response.text()
+  console.log('Response:', responseText)
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`)
+  }
+
+  return
+}
+
+function arrayBufferToBase64(buffer: ArrayBuffer) {
+  let binary = '';
+  const bytes = new Uint8Array(buffer);
+  const len = bytes.byteLength;
+  for(let i = 0; i < len; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
 }
 
 async function bridgeNativeToken(argv: any, parentChainUrl: string, chainUrl: string, inboxAddr: string, token: string) {
@@ -685,6 +798,47 @@ export const sendL2DelayedCommand = {
     await sendL2DelayedTransaction(argv, argv.l1url, argv.l2url, inboxAddr);
   },
 };
+
+export const sendL2ToHotShotCommand = {
+  command: "send-l2-to-hotshot",
+  describe: "send a transaction to HotShot directly, not through sequencer or batch poster",
+  builder: {
+    ethamount: {
+      string: true,
+      describe: "amount to transfer (in eth)",
+      default: "1",
+    },
+    to: {
+      string: true,
+      describe: "address (see general help)",
+      default: "funnel",
+    },
+    position: {
+      number: true,
+      describe: "position of the message",
+      default: 0,
+    },
+    signer: {
+      string: true,
+      describle: "the private key of the signer",
+      default: "",
+    },
+    delayed: {
+      number: true,
+      describe: "delayed message read",
+      default: 1,
+    },
+    nonce: {
+      number: true,
+      describe: "nonce of the transaction",
+      default: 0,
+    },
+  },
+  handler: async (argv: any) => {
+    await sendL2TransactionToHotShot(argv)
+  },
+
+}
 
 export const sendL3Command = {
   command: "send-l3",

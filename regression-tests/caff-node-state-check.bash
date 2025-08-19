@@ -4,6 +4,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 echo "starting nodes"
+
 ../test-node.bash --init-force --espresso --validate --latest-espresso-image --caff-node --detach
 
 echo "starting tx spammer"
@@ -58,4 +59,4 @@ while true; do
     sleep 10
 done
 
-docker compose down
+docker compose down --remove-orphans
