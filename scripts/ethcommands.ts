@@ -37,8 +37,19 @@ function updateConfigValue(argv: any) {
   const propertyPath = argv.property
   const value = argv.value
   let v: any
-  if (argv.isBool) {
-    v = value === "true" ? true : false
+  if (argv.isArray) {
+    v = value.split(",").map((v: string) => {
+      const s = v.trim()
+      if (argv.isBool) {
+        return s === "true"
+      }
+      if (argv.isNumber) {
+        return Number(s)
+      }
+      return s
+    })
+  } else if (argv.isBool) {
+    v = value === "true"
   } else if (argv.isNumber) {
     v = Number(value)
   } else {
@@ -654,6 +665,11 @@ export const updateConfigValueCommand = {
       describe: "value is number",
       default: false,
     },
+    isArray: {
+      boolean: true,
+      describe: "value is an array, separated by commas",
+      default: false,
+    }
   },
   handler: async (argv: any) => {
     updateConfigValue(argv)
