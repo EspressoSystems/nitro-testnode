@@ -72,6 +72,30 @@ else
     exit 1
 fi
 
+echo "modifying poster Hotshot url config to have 1 good url and 2 bad urls"
+docker compose run scripts update-config-value \
+    --path /config/poster_config.json \
+    --property node.batch-poster.hotshot-urls \
+    --value "$good_url,$bad_url,$bad_url" \
+    --isArray true
+
+docker compose restart poster
+
+sleep 10
+
+status=$(docker compose ps --status=running --services | grep -w poster || true)
+if [[ -z "$status" ]]; then
+    echo "Error: poster is not running but it should have started."
+    exit 1
+fi
+
+sleep 30
+now_batch_count=$(cast call $sequencer_inbox "batchCount()(uint256)" --rpc-url http://localhost:8545)
+if [[ $now_batch_count -ne $batch_count ]]; then
+    echo "batch count is not the same, the batcher is posting batches"
+    exit 1
+fi
+
 
 echo "modifying poster Hotshot url config to have 2 good urls"
 docker compose run scripts update-config-value \
