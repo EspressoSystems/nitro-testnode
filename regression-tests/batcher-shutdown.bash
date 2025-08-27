@@ -64,8 +64,8 @@ check_validator_catchup_and_compare_roots() {
 }
 
 # create a background process to send transactions.
-# It will take around 2 minutes to finish
-docker compose run scripts send-l2 --ethamount 10 --to user_l2user --times 1200 --delay 600 &
+# It will take around 3.5 minutes to finish
+docker compose run --detach scripts send-l2 --ethamount 10 --to user_l2user --times 360 --delay 600
 
 echo "stopping batcher gracefully"
 docker compose down poster
@@ -84,8 +84,7 @@ docker compose up -d poster
 echo "waiting for validator to catch up"
 check_validator_catchup_and_compare_roots
 
-docker compose run scripts send-l2 --ethamount 10 --to user_l2user --times 1200 --delay 600 &
-
+docker compose run --detach scripts send-l2 --ethamount 10 --to user_l2user --times 360 --delay 600
 echo "force kill batch poster"
 docker compose kill poster
 
