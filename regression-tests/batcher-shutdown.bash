@@ -40,7 +40,7 @@ check_validator_catchup_and_compare_roots() {
         echo "validator block number: $validator_block"
         echo "sequencer block number: $sequencer_block"
 
-        # The batch poster will post batches after the Hotshot comes into live.
+        # The batch poster will post batches after the Hotshot is live
         # It is possible that all batch posting reports are in the pending state.
         # In this case, the validator will not catch up with the sequencer.
         if [[ "$validator_block" -eq "$last_validator_block" && $(($sequencer_block - $validator_block - 1)) -le $new_batches ]]; then
