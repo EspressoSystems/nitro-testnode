@@ -25,7 +25,7 @@ check_and_recover_liveness() {
     local validatedCount=0
 
     local i=0
-    while [[ $i -lt 5 ]]; do
+    while [[ $i -lt 15 ]]; do
         local blockNumber
         blockNumber=$(cast block-number --rpc-url "$validatorRpc")
         echo "Current validated number: $blockNumber, target: $currentCount"
@@ -70,14 +70,17 @@ wait_for_block_number $validatorRpc 20
 currentCount=$(curl -X POST --fail --silent http://127.0.0.1:10000/send-in-random)
 wait_for_block_number $validatorRpc $(($currentCount+10))
 
-sleep 10
+sleep 20
 
 currentCount2=$(curl -X POST --fail --silent http://127.0.0.1:10000/skip-next)
 check_and_recover_liveness $validatorRpc $currentCount2
 
-sleep 10
+sleep 20
 
 currentCount3=$(curl -X POST --fail --silent http://127.0.0.1:10000/send-oversized)
 check_and_recover_liveness $validatorRpc $currentCount3
+
+currentCount4=$(curl -X POST --fail --silent http://127.0.0.1:10000/send-messages-at-same-block)
+check_and_recover_liveness $validatorRpc $currentCount4
 
 docker compose down --remove-orphans
