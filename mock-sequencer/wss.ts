@@ -45,6 +45,11 @@ export class MockSequencer {
         this.sendInvalidDelayedMessages = true
     }
 
+    public setSendMessageAtSameBlock() {
+        console.log('setting sequencer to tamper with message positions', this.getCurrentCount() + 1)
+        this.sendMessageAtSameBlock = this.getCurrentCount() + 1
+    }
+
     public reset() {
         this.skipNext = 0
         this.sendInRandom = false
@@ -76,6 +81,7 @@ export class MockSequencer {
                 const l2MsgBytes = new TextEncoder().encode(overSized)
                 console.log("oversized message length:", l2MsgBytes.length)
                 message.message.message.l2Msg = overSized
+                return
             }
 
             if (this.sendInvalidDelayedMessages) {
@@ -89,6 +95,13 @@ export class MockSequencer {
                     message.message.message.l2Msg = ''
                     intercept = true
                 }
+                return
+            }
+
+            if (this.sendMessageAtSameBlock && blockNumber > this.sendMessageAtSameBlock) {
+                intercept = true
+                message.sequenceNumber = this.sendMessageAtSameBlock
+                return
             }
 
             if (blockNumber > this.blockNumber) {
@@ -167,4 +180,5 @@ export class MockSequencer {
     private sendInRandom = false
     private sendOversized: number | null = null
     private sendInvalidDelayedMessages = false
+    private sendMessageAtSameBlock: number | null = null
 }
