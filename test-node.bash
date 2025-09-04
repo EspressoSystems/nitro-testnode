@@ -12,7 +12,8 @@ BLOCKSCOUT_VERSION=offchainlabs/blockscout:v1.1.0-0e716c8
 DEFAULT_NITRO_CONTRACTS_VERSION="v3.1.0"
 DEFAULT_TOKEN_BRIDGE_VERSION="v1.2.2"
 
-ESPRESSO_VERSION=ghcr.io/espressosystems/nitro-espresso-integration/nitro-node:integration
+ESPRESSO_DEFAULT_VERSION=ghcr.io/espressosystems/nitro-espresso-integration/nitro-node:integration
+: ${ESPRESSO_VERSION:=$ESPRESSO_DEFAULT_VERSION}
 
 # Set default versions if not overriden by provided env vars
 : ${NITRO_CONTRACTS_REPO:=$DEFAULT_NITRO_CONTRACTS_REPO}
@@ -433,11 +434,13 @@ if $dev_nitro; then
   docker tag nitro-node-dev:latest nitro-node-dev-testnode
 else
   if $latest_espresso_image; then
+    echo "Using Espresso image: $ESPRESSO_VERSION"
     docker pull $ESPRESSO_VERSION --platform linux/amd64
     docker tag $ESPRESSO_VERSION nitro-node-dev-testnode
-  else 
-     docker pull $NITRO_NODE_VERSION
-     docker tag $NITRO_NODE_VERSION nitro-node-dev-testnode
+  else
+    echo "Using Nitro image: $NITRO_NODE_VERSION"
+    docker pull $NITRO_NODE_VERSION
+    docker tag $NITRO_NODE_VERSION nitro-node-dev-testnode
   fi
 fi
 
