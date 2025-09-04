@@ -45,9 +45,10 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 
-echo "starting nodes"
+source ./common.bash
 
-../test-node.bash --init-force --espresso --no-simple --latest-espresso-image --caff-node $l3_arg --detach
+echo "starting nodes"
+../test-node.bash --init-force --espresso $(get_espresso_image_flag) --no-simple --caff-node $l3_arg --detach
 
 container_name="caff-node"
 

@@ -11,6 +11,7 @@ DEFAULT_NITRO_CONTRACTS_VERSION="99c07a7db2fcce75b751c5a2bd4936e898cda065"
 DEFAULT_TOKEN_BRIDGE_VERSION="v1.2.2"
 
 ESPRESSO_VERSION=ghcr.io/espressosystems/nitro-espresso-integration/nitro-node-dev:celestia-integration
+: ${ESPRESSO_VERSION:=$ESPRESSO_DEFAULT_VERSION}
 
 # Set default versions if not overriden by provided env vars
 : ${NITRO_CONTRACTS_REPO:=$DEFAULT_NITRO_CONTRACTS_REPO}
@@ -436,11 +437,13 @@ if $dev_nitro; then
   docker tag nitro-node-dev:latest nitro-node-dev-testnode
 else
   if $latest_espresso_image; then
+    echo "Using Espresso image: $ESPRESSO_VERSION"
     docker pull $ESPRESSO_VERSION --platform linux/amd64
     docker tag $ESPRESSO_VERSION nitro-node-dev-testnode
-  else 
-     docker pull $NITRO_NODE_VERSION
-     docker tag $NITRO_NODE_VERSION nitro-node-dev-testnode
+  else
+    echo "Using Nitro image: $NITRO_NODE_VERSION"
+    docker pull $NITRO_NODE_VERSION
+    docker tag $NITRO_NODE_VERSION nitro-node-dev-testnode
   fi
 fi
 

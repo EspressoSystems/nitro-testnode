@@ -8,12 +8,14 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 
+source ./common.bash
+
 # Ignore orphaned container output
 # Orphaned containers will be removed at the end of the test
 export COMPOSE_IGNORE_ORPHANS=1
 
 echo "starting nodes"
-../test-node.bash --init-force --espresso --latest-espresso-image --validate --detach
+../test-node.bash --init-force --espresso $(get_espresso_image_flag) --validate --detach
 
 echo "starting tx spammer"
 docker compose run --detach scripts send-l2 --ethamount 10 --to user_l2user --times 2000 --delay 200 --wait

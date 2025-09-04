@@ -91,15 +91,16 @@ export COMPOSE_IGNORE_ORPHANS=true
 info Ensuring docker compose project is stopped
 run docker compose down -v --remove-orphans
 
+source ./common.bash
 info Deploying a Espresso Nitro stack with caff node also enabled
-emph ./test-node.bash --espresso --latest-espresso-image --caff-node  --validate --tokenbridge --init-force --detach
+emph ./test-node.bash --espresso $(get_espresso_image_flag) --caff-node  --validate --tokenbridge --init-force --detach
 if [ "$DEBUG" = "true" ]; then
-  ./test-node.bash --espresso --latest-espresso-image --validate --caff-node  --tokenbridge --init-force --detach
+  ./test-node.bash --espresso $(get_espresso_image_flag) --caff-node  --tokenbridge --init-force --detach
 else
   info "This command starts up an entire Nitro stack. It takes a long time."
   info "Run \`tail -f $TESTNODE_LOG_FILE\` to see logs, if necessary."
   echo
- ./test-node.bash --espresso --latest-espresso-image --validate --tokenbridge --caff-node --init-force --detach   > "$TESTNODE_LOG_FILE" 2>&1
+ ./test-node.bash --espresso $(get_espresso_image_flag) --validate --tokenbridge --caff-node --init-force --detach   > "$TESTNODE_LOG_FILE" 2>&1
 fi
 
 # Start espresso sequencer node for the purposes of the test e.g. not needed for the real migration.

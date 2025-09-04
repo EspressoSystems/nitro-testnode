@@ -52,7 +52,8 @@ cd "$(dirname "$0")"
 
 echo "starting with mock sequencer"
 
-../test-node.bash --init-force --espresso --latest-espresso-image --validate --mock-sequencer --detach
+source ./common.bash
+../test-node.bash --init-force --espresso $(get_espresso_image_flag) --validate --mock-sequencer --detach
 
 while true; do
     curl -sfL http://localhost:41000/v0/status/block-height && break || sleep 5
