@@ -41,6 +41,12 @@ app.post('/send-invalid-delayed-messages', (_req, res) => {
   res.json(count)
 })
 
+app.post('/send-messages-at-same-block', (_req, res) => {
+  const count = sequencer.getCurrentCount()
+  sequencer.setSendMessageAtSameBlock()
+  res.json(count)
+})
+
 app.listen(HTTP_PORT, () => {
   console.log(`MockSequencer HTTP server listening on http://localhost:${HTTP_PORT}`)
 })
