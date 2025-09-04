@@ -17,7 +17,9 @@ user=user_l2user
 funnel=funnel
 caff_url="ws://caff-node:8548"
 
-./test-node.bash --espresso --latest-espresso-image --validate --tokenbridge --init-force --detach --caff-node
+source ./regression-tests/common.bash
+
+./test-node.bash --espresso $(get_espresso_image_flag) --validate --tokenbridge --init-force --detach --caff-node
 
 # Start the caff node
 docker compose up -d caff-node --wait --detach
