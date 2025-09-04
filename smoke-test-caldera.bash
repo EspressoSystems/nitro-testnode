@@ -13,9 +13,10 @@ listen_to_sequencer_feed() {
     done < <(wscat -c ws://127.0.0.1:9652)
 }
 
+source ./regression-tests/common.bash
 
 #  Run caldera with batch poster, sequencer, full node, validator and an anytrust chain which runs the dasserver
-./test-node.bash --init-force --validate --batchposters 1 --latest-espresso-image --detach --l2-anytrust
+./test-node.bash --init-force --validate --batchposters 1 $(get_espresso_image_flag) --detach --l2-anytrust
 docker compose up -d full-node --detach
 
 # Sending L2 transaction through the full-node's api

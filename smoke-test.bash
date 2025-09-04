@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-./test-node.bash --espresso --latest-espresso-image --validate --tokenbridge --init-force --detach
+source ./regression-tests/common.bash
+
+./test-node.bash --espresso $(get_espresso_image_flag) --validate --tokenbridge --init-force --detach
 
 rollupAddress=$(docker compose run --entrypoint sh poster -c "jq -r '.[0].rollup.rollup' /config/deployed_chain_info.json | tail -n 1 | tr -d '\r\n'")
 previousConfirmed=$(cast call --rpc-url http://localhost:8545 $rollupAddress 'latestConfirmed()(bytes32)')
