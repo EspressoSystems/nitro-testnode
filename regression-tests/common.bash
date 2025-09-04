@@ -2,7 +2,7 @@
 
 get_espresso_image_flag() {
     if [[ -n "${ESPRESSO_DEV:-}" ]]; then
-        echo "--dev"
+        echo "--dev nitro"
     else
         echo "--latest-espresso-image"
     fi
