@@ -339,6 +339,7 @@ function writeConfigs(argv: any) {
       simpleConfig.node["batch-poster"]["hotshot-urls"] = [argv.espressoUrl, argv.espressoUrl];
       simpleConfig.node["batch-poster"]["light-client-address"] =
         argv.lightClientAddress;
+      simpleConfig.node["batch-poster"]["espresso-tee-type"] = "SGX";
       simpleConfig.node["block-validator"]["dangerous"][
         "reset-block-validation"
       ] = true;
@@ -485,8 +486,6 @@ function writeConfigs(argv: any) {
       posterConfig.node["batch-poster"]["light-client-address"] =
         argv.lightClientAddress;
       posterConfig.node["batch-poster"]["espresso-tee-type"] = "SGX";
-      posterConfig.node["batch-poster"]["espresso-tee-verifier-address"] =
-        "0x43C9c3Ab961c49f8d42227628617747b1da7bcF0";
     } else {
       posterConfig.node["seq-coordinator"].enable = true;
     }
@@ -527,8 +526,6 @@ function writeConfigs(argv: any) {
     l3Config.node["batch-poster"]["light-client-address"] =
       argv.lightClientAddress;
     l3Config.node["batch-poster"]["espresso-tee-type"] = "SGX";
-    l3Config.node["batch-poster"]["espresso-tee-verifier-address"] =
-      "0x3abbB36bacAaA085059800200860F0f93AA95833";
   }
   fs.writeFileSync(
     path.join(consts.configpath, "l3node_config.json"),

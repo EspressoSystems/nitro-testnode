@@ -113,14 +113,14 @@ cd "$TESTNODE_DIR"
 # still have the output show up.
 
 info Deploying a vanilla Nitro stack locally, to be migrated to Espresso later.
-emph ./test-node.bash --simple --init-force --tokenbridge --detach --no-build-utils
+emph ./test-node.bash --simple --init-force --tokenbridge --detach
 if [ "$DEBUG" = "true" ]; then
-  ./test-node.bash --simple --init-force --tokenbridge --detach --no-build-utils
+  ./test-node.bash --simple --init-force --tokenbridge --detach
 else
   info "This command starts up an entire Nitro stack. It takes a long time."
   info "Run \`tail -f $TESTNODE_LOG_FILE\` to see logs, if necessary."
   echo
-  ./test-node.bash --simple --init-force --tokenbridge --detach --no-build-utils > "$TESTNODE_LOG_FILE" 2>&1
+  ./test-node.bash --simple --init-force --tokenbridge --detach > "$TESTNODE_LOG_FILE" 2>&1
 fi
 
 # Start espresso sequencer node for the purposes of the test e.g. not needed for the real migration.
@@ -133,6 +133,9 @@ else
   echo
   docker compose up espresso-dev-node --detach > "$ESPRESSO_DEVNODE_LOG_FILE" 2>&1
 fi
+
+info "Waiting for the Espresso dev node to start"
+sleep 300
 
 info "Load environment variables in $ENV_FILE"
 # A similar env file should be supplied for whatever
@@ -167,6 +170,9 @@ declare -p INBOX_ADDRESS
 L1_TOKEN_BRIDGE_CREATOR_ADDRESS=$(get-addr /tokenbridge-data/network.json '.l1TokenBridgeCreator')
 declare -p L1_TOKEN_BRIDGE_CREATOR_ADDRESS
 
+export http_proxy=""
+export https_proxy=""
+export all_proxy=""
 CHILD_CHAIN_UPGRADE_EXECUTOR_ADDRESS=$(cast call $L1_TOKEN_BRIDGE_CREATOR_ADDRESS 'inboxToL2Deployment(address)(address,address,address,address,address,address,address,address,address)' $INBOX_ADDRESS | tail -n 2 | head -n 1 | tr -d '\r\n')
 declare -p CHILD_CHAIN_UPGRADE_EXECUTOR_ADDRESS
 
@@ -217,15 +223,24 @@ cd $TESTNODE_DIR
 run docker stop nitro-testnode-sequencer-1
 run docker wait nitro-testnode-sequencer-1
 
+export https_proxy=http://127.0.0.1:7890
+export http_proxy=http://127.0.0.1:7890
+export all_proxy=socks5://127.0.0.1:7890
+
 # Start nitro node in new docker container with espresso image
 run ./espresso-tests/create-espresso-integrated-nitro-node.bash
+
+export http_proxy=""
+export https_proxy=""
+export all_proxy=""
+
 # Use cast to call the upgradeExecutor and execute the L1 upgrade actions.This will point the challenge manager at the new OSP entry, as well as update the wasmModuleRoot for the rollup. ** Essential migration step **
-run cast send $PARENT_CHAIN_UPGRADE_EXECUTOR "execute(address, bytes)" $SEQUENCER_MIGRATION_ACTION $(cast calldata "perform()") --rpc-url $PARENT_CHAIN_RPC_URL --private-key $PRIVATE_KEY
+run cast send $PARENT_CHAIN_UPGRADE_EXECUTOR "execute(address, bytes)" $SEQUENCER_MIGRATION_ACTION "$(cast calldata 'perform()')" --rpc-url $PARENT_CHAIN_RPC_URL --private-key $PRIVATE_KEY
 
 info "Executed SequencerMigrationAction via UpgradeExecutor"
 
 # Get the number of confirmed nodes before the upgrade to ensure the staker is still working.
-NUM_CONFIRMED_NODES_BEFORE_UPGRADE=$(cast call --rpc-url $PARENT_CHAIN_RPC_URL $ROLLUP_ADDRESS 'latestConfirmed()(uint256)')
+BYTES_CONFIRMED_NODES_BEFORE_UPGRADE=$(cast call --rpc-url $PARENT_CHAIN_RPC_URL $ROLLUP_ADDRESS 'latestConfirmed()(bytes32)')
 
 
 # Wait for CHILD_CHAIN_RPC_URL to be available
@@ -234,6 +249,8 @@ while ! curl -s $CHILD_CHAIN_RPC_URL > /dev/null; do
   info "Waiting for $CHILD_CHAIN_RPC_URL to be available..."
   sleep 5
 done
+
+docker compose run scripts send-l2 --ethamount 10 --to user_l2user --l2url ws://sequencer-on-espresso:8548
 
 info "Testing if the Espresso integration works by doing an Eth transfer."
 RECIPIENT_ADDRESS=0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
@@ -255,9 +272,9 @@ echo
 
 START=$SECONDS
 echo "Waiting for confirmed nodes."
-while [ "$NUM_CONFIRMED_NODES_BEFORE_UPGRADE" == "$(cast call --rpc-url $PARENT_CHAIN_RPC_URL $ROLLUP_ADDRESS 'latestConfirmed()(uint256)')" ]; do
+while [ "$BYTES_CONFIRMED_NODES_BEFORE_UPGRADE" == "$(cast call --rpc-url $PARENT_CHAIN_RPC_URL $ROLLUP_ADDRESS 'latestConfirmed()(bytes32)')" ]; do
   sleep 5
-  echo "Waited $(( SECONDS - START )) seconds for confirmed nodes."
+  echo "Waited $(( SECONDS - START )) seconds for confirmed nodes. $BYTES_CONFIRMED_NODES_BEFORE_UPGRADE"
 done
 
 # Echo to confirm that stakers are behaving normally.

@@ -192,12 +192,12 @@ services:
     pid: host # allow debugging
     image: espresso-integration-testnode
     entrypoint: /usr/local/bin/nitro
+    platform: linux/amd64
     ports:
       - "127.0.0.1:8547:8547"
       - "127.0.0.1:8548:8548"
       - "127.0.0.1:9642:9642"
     volumes:
-      - "seqdata:/home/user/.arbitrum/local/nitro"
       - "l1keystore:/home/user/l1keystore"
       - "espresso-config:/config"
       - "tokenbridge-data:/tokenbridge-data"

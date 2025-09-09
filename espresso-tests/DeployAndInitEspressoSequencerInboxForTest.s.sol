@@ -25,11 +25,12 @@ contract DeployAndInitEspressoSequencerInbox is Script {
            bytes memory code = vm.getDeployedCode("ArbSysMock.sol:ArbSysMock"); 
            vm.etch(0x0000000000000000000000000000000000000064, code);
         }
+        bool delayBufferable = vm.envBool("DELAY_BUFFERABLE");
         // initialize interfaces needed
         IReader4844 reader = IReader4844(reader4844Addr);
         // Start broadcast to deploy the SequencerInbox
         vm.startBroadcast(deployerPrivateKey);
-        SequencerInbox sequencerInbox = new SequencerInbox(maxDataSize, reader, isUsingFeeToken);
+        SequencerInbox sequencerInbox = new SequencerInbox(maxDataSize, reader, isUsingFeeToken, delayBufferable);
         
         // Setting batch posters and batch poster manager
         vm.stopBroadcast();
