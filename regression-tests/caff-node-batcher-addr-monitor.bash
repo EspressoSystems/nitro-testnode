@@ -4,9 +4,10 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 
-echo "starting nodes"
+source ./common.bash
 
-../test-node.bash --init-force --espresso --latest-espresso-image --no-simple --caff-node --detach
+echo "starting nodes"
+../test-node.bash --init-force --espresso $(get_espresso_image_flag) --no-simple --caff-node --detach
 
 docker compose run --detach scripts send-l2 --ethamount 10 --to user_l2user --times 10000 --delay 200 --wait
 

@@ -4,8 +4,10 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 
+source ./common.bash
+
 echo "starting nodes"
-../test-node.bash --init-force --espresso --latest-espresso-image --validate --detach
+../test-node.bash --init-force --espresso $(get_espresso_image_flag) --validate --detach
 
 # modify the `check-batch-correctness` to false
 # This is because the message constructed from the `send-l2-to-hotshot` command is not perfectly correct

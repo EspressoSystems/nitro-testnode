@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+source ./regression-tests/common.bash
 
 #  Run altlayer config with batch poster, sequencer, full node and validator
-./test-node.bash --init-force --validate --batchposters 1 --latest-espresso-image --detach 
+./test-node.bash --init-force --validate --batchposters 1 $(get_espresso_image_flag) --detach
 docker compose up -d full-node --detach
 
 # Sending L2 transaction through the full-node's api

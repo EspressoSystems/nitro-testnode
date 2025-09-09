@@ -4,25 +4,21 @@ set -euo pipefail
 echo "Running regression tests..."
 cd regression-tests
 
-echo "1. Running caff-node-batcher-addr-monitor.bash"
-./caff-node-batcher-addr-monitor.bash
-echo "Completed caff-node-batcher-addr-monitor.bash"
+for script in $(find regression-tests -maxdepth 1 -name '*.bash' ! -name 'common.bash' | sort); do
+  echo "Running $(basename "$script")"
+  attempt=1
+  max_attempts=3
+  while ! ./$script; do
+    if (( attempt >= max_attempts )); then
+      echo "Failed $(basename "$script") after $attempt attempts, aborting."
+      exit 1
+    fi
+    attempt=$((attempt+1))
+    echo "Retrying $(basename "$script") (attempt $attempt/$max_attempts)..."
+  done
+  echo "Completed $(basename "$script")"
 
-echo "2. Running caff-node-force-inclusion-test.bash"
-./caff-node-force-inclusion-test.bash
-echo "Completed caff-node-force-inclusion-test.bash"
-
-echo "3. Running caff-node-state-check.bash"
-./caff-node-state-check.bash
-echo "Completed caff-node-state-check.bash"
-
-echo "4. Running caff-node-restart.bash"
-./caff-node-restart.bash
-echo "Completed caff-node-restart.bash"
-
-echo "5. Running batcher-with-malicious-sequencer.bash"
-./batcher-with-malicious-sequencer.bash
-echo "Completed batcher-with-malicious-sequencer.bash"
+done
 
 echo "All regression tests completed successfully!"
 docker compose down

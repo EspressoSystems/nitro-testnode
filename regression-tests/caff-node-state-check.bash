@@ -3,9 +3,10 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 
-echo "starting nodes"
+source ./common.bash
 
-../test-node.bash --init-force --espresso --validate --latest-espresso-image --caff-node --detach
+echo "starting nodes"
+../test-node.bash --init-force --espresso $(get_espresso_image_flag) --validate --caff-node --detach
 
 echo "starting tx spammer"
 docker compose run --detach scripts send-l2 --ethamount 10 --to user_l2user --times 50 --delay 200 --wait

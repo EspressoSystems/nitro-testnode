@@ -5,8 +5,9 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 echo "starting nodes"
-../test-node.bash --init-force --espresso --latest-espresso-image --validate --detach
+../test-node.bash --init-force --espresso $(get_espresso_image_flag) --validate --detach
 
+source ./common.bash
 # Ignore orphaned container output
 # Orphaned containers will be removed at the end of the test
 export COMPOSE_IGNORE_ORPHANS=1
