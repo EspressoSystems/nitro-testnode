@@ -170,9 +170,6 @@ declare -p INBOX_ADDRESS
 L1_TOKEN_BRIDGE_CREATOR_ADDRESS=$(get-addr /tokenbridge-data/network.json '.l1TokenBridgeCreator')
 declare -p L1_TOKEN_BRIDGE_CREATOR_ADDRESS
 
-export http_proxy=""
-export https_proxy=""
-export all_proxy=""
 CHILD_CHAIN_UPGRADE_EXECUTOR_ADDRESS=$(cast call $L1_TOKEN_BRIDGE_CREATOR_ADDRESS 'inboxToL2Deployment(address)(address,address,address,address,address,address,address,address,address)' $INBOX_ADDRESS | tail -n 2 | head -n 1 | tr -d '\r\n')
 declare -p CHILD_CHAIN_UPGRADE_EXECUTOR_ADDRESS
 
@@ -223,16 +220,8 @@ cd $TESTNODE_DIR
 run docker stop nitro-testnode-sequencer-1
 run docker wait nitro-testnode-sequencer-1
 
-export https_proxy=http://127.0.0.1:7890
-export http_proxy=http://127.0.0.1:7890
-export all_proxy=socks5://127.0.0.1:7890
-
 # Start nitro node in new docker container with espresso image
 run ./espresso-tests/create-espresso-integrated-nitro-node.bash
-
-export http_proxy=""
-export https_proxy=""
-export all_proxy=""
 
 # Use cast to call the upgradeExecutor and execute the L1 upgrade actions.This will point the challenge manager at the new OSP entry, as well as update the wasmModuleRoot for the rollup. ** Essential migration step **
 run cast send $PARENT_CHAIN_UPGRADE_EXECUTOR "execute(address, bytes)" $SEQUENCER_MIGRATION_ACTION "$(cast calldata 'perform()')" --rpc-url $PARENT_CHAIN_RPC_URL --private-key $PRIVATE_KEY
