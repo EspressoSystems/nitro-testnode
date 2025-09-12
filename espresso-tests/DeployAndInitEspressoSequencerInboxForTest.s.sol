@@ -20,7 +20,7 @@ contract DeployAndInitEspressoSequencerInbox is Script {
         uint256 maxDataSize = vm.envUint("MAX_DATA_SIZE");
         // Grab booleans we need from env
         bool isUsingFeeToken = vm.envBool("IS_USING_FEE_TOKEN");
-        // Trick the Vm into seeing that this opcode exsists if this isn't the migration test
+        // Trick the Vm into seeing that this opcode exists if this isn't the migration test
         if (!isMigrationTest){
            bytes memory code = vm.getDeployedCode("ArbSysMock.sol:ArbSysMock"); 
            vm.etch(0x0000000000000000000000000000000000000064, code);

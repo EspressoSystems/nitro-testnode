@@ -1,6 +1,6 @@
 # Espresso Migration
 
-This document contains details surrounding the test migrating an exsisting Arbitrum Orbit chain to use the nitro-espresso-integration, and be compatible with the Espresso network.
+This document contains details surrounding the test migrating an existing Arbitrum Orbit chain to use the nitro-espresso-integration, and be compatible with the Espresso network.
 
 ## Running the test
 
