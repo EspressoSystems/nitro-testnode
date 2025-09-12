@@ -15,7 +15,7 @@ DEFAULT_TOKEN_BRIDGE_VERSION="v1.2.2"
 ESPRESSO_DEFAULT_VERSION=ghcr.io/espressosystems/nitro-espresso-integration/nitro-node:integration
 : ${ESPRESSO_VERSION:=$ESPRESSO_DEFAULT_VERSION}
 
-# Set default versions if not overriden by provided env vars
+# Set default versions if not overridden by provided env vars
 : ${NITRO_CONTRACTS_REPO:=$DEFAULT_NITRO_CONTRACTS_REPO}
 : ${NITRO_CONTRACTS_BRANCH:=$DEFAULT_NITRO_CONTRACTS_VERSION}
 : ${TOKEN_BRIDGE_BRANCH:=$DEFAULT_TOKEN_BRIDGE_VERSION}
