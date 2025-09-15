@@ -112,15 +112,17 @@ cd "$TESTNODE_DIR"
 # can't work out a way to be able to filter the lines (e. g. grep -v WARN) and
 # still have the output show up.
 
+# This commit matches v2.1.0 release of nitro-contracts, with additional support to set arb owner through upgrade executor
+NITRO_CONTRACTS_BRANCH="99c07a7db2fcce75b751c5a2bd4936e898cda065"
 info Deploying a vanilla Nitro stack locally, to be migrated to Espresso later.
-emph ./test-node.bash --simple --init-force --tokenbridge --detach --no-build-utils
+emph ./test-node.bash --simple --init-force --tokenbridge --detach
 if [ "$DEBUG" = "true" ]; then
-  ./test-node.bash --simple --init-force --tokenbridge --detach --no-build-utils
+  ./test-node.bash --simple --init-force --tokenbridge --detach
 else
   info "This command starts up an entire Nitro stack. It takes a long time."
   info "Run \`tail -f $TESTNODE_LOG_FILE\` to see logs, if necessary."
   echo
-  ./test-node.bash --simple --init-force --tokenbridge --detach --no-build-utils > "$TESTNODE_LOG_FILE" 2>&1
+  ./test-node.bash --simple --init-force --tokenbridge --detach > "$TESTNODE_LOG_FILE" 2>&1
 fi
 
 # Start espresso sequencer node for the purposes of the test e.g. not needed for the real migration.
@@ -179,6 +181,9 @@ declare -p PRIVATE_KEY
 
 OWNER_ADDRESS="$(docker compose run scripts print-address --account l2owner 2>/dev/null | trim-last)"
 declare -p OWNER_ADDRESS
+
+info "Disabling validator whitelist"
+run cast send $PARENT_CHAIN_UPGRADE_EXECUTOR "executeCall(address,bytes)" $ROLLUP_ADDRESS "$(cast calldata 'setValidatorWhitelistDisabled(bool)' true)" --rpc-url $PARENT_CHAIN_RPC_URL --private-key $PRIVATE_KEY
 
 cd $ORBIT_ACTIONS_DIR
 info "Deploying mock espresso TEE verifier"
