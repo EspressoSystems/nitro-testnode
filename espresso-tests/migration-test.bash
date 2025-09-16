@@ -166,6 +166,9 @@ declare -p ROLLUP_ADDRESS
 INBOX_ADDRESS=$(get-addr /config/deployed_chain_info.json '.[0].rollup.inbox')
 declare -p INBOX_ADDRESS
 
+PARENT_CHAIN_UPGRADE_EXECUTOR=$(get-addr /config/deployed_chain_info.json '.[0].rollup["upgrade-executor"]')
+declare -p PARENT_CHAIN_UPGRADE_EXECUTOR
+
 L1_TOKEN_BRIDGE_CREATOR_ADDRESS=$(get-addr /tokenbridge-data/network.json '.l1TokenBridgeCreator')
 declare -p L1_TOKEN_BRIDGE_CREATOR_ADDRESS
 
