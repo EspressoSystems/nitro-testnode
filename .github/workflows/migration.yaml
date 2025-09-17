@@ -41,3 +41,9 @@ jobs:
           nix develop --accept-flake-config --option sandbox relaxed \
           -c espresso-tests/migration-test.bash
         timeout-minutes: 45
+
+      - name: Migration Test v3.1.0
+        run: |
+          nix develop --accept-flake-config --option sandbox relaxed \
+          -c VERSION=3 espresso-tests/migration-test.bash
+        timeout-minutes: 45

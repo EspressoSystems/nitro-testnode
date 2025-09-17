@@ -2,11 +2,10 @@
 set -euo pipefail
 # set -x # print each command before executing it, for debugging
 
-ESPRESSO_VERSION=ghcr.io/espressosystems/nitro-espresso-integration/nitro-node:integration
+ESPRESSO_VERSION=ghcr.io/espressosystems/nitro-espresso-integration/nitro-node:jh-reorg-tx-streamer-after-restart
 lightClientAddr=0xb6eb235fa509e3206f959761d11e3777e16d0e98
 espresso=true
 simpleWithValidator=false
-ESPRESSO_NITRO_CONTRACTS_BRANCH=v2.1.3-8e58a9a
 
 # docker pull and tag the espresso integration nitro node.
 docker pull $ESPRESSO_VERSION --platform linux/amd64

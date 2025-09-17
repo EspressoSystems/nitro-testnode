@@ -2,7 +2,10 @@
 set -euo pipefail
 
 echo "Running regression tests..."
+cd "$(dirname "$0")"
+
 cd regression-tests
+scripts=$(find . -maxdepth 1 -name '*.bash' ! -name 'common.bash' | sort)
 
 for script in $(find regression-tests -maxdepth 1 -name '*.bash' ! -name 'common.bash' | sort); do
   echo "Running $(basename "$script")"
@@ -20,5 +23,6 @@ for script in $(find regression-tests -maxdepth 1 -name '*.bash' ! -name 'common
 
 done
 
+cd ..
 echo "All regression tests completed successfully!"
-docker compose down
+docker compose down --remove-orphans
