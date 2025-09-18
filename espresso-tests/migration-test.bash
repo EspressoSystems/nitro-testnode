@@ -127,14 +127,10 @@ info "Ensuring submodules are checked out"
 run git submodule update --init --recursive
 
 info "Ensuring nodejs dependencies are installed"
-# run yarn
+run yarn
+
 info "Ensuring we can compile the migration smart contracts"
-if $v3; then
-    # run yarn espresso-migration-3
-    run forge build --root espresso-migration-3
-else
-    run yarn espresso-migration-2
-fi
+run $forge build
 
 # Change to the top level directory for the purposes of the test.
 cd "$TESTNODE_DIR"
