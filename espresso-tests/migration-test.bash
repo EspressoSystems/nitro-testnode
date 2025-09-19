@@ -79,13 +79,13 @@ function cleanup {
 }
 
 function forge3 {
-  forge $@ --root espresso-migration-3
+  forge $@ --root espresso-migration-3.1.0
 }
 
 
 # Find directory of this script, the project, and the orbit-actions submodule
 TEST_DIR="$(dirname $(readlink -f $0))"
-TEST_SCRIPT_DIR="to-espresso-v2.1.3"
+TEST_SCRIPT_DIR="v2.1.3-migration"
 TESTNODE_LOG_FILE=$(mktemp -t nitro-test-node-logs-XXXXXXXX)
 ESPRESSO_DEVNODE_LOG_FILE=$(mktemp -t espresso-dev-node-logs-XXXXXXXX)
 TESTNODE_DIR="$(dirname "$TEST_DIR")"
@@ -105,10 +105,10 @@ PROXY_ADMIN_ADDRESS="0x2A1f38c9097e7883570e0b02BFBE6869Cc25d8a3"
 if [[ ${VERSION:-2} == "3" ]]; then
     info "Using v3 migration scripts"
     v3=true
-    TEST_SCRIPT_DIR="to-espresso-v3.1.0"
+    TEST_SCRIPT_DIR="v3.1.0-migration"
     ESPRESSO_NITRO_CONTRACTS_BRANCH=develop
-    ORBIT_MIGRATION_ACTION_DIR="espresso-migration-3/"
-    BROADCAST_DIR="espresso-migration-3/broadcast"
+    ORBIT_MIGRATION_ACTION_DIR="espresso-migration-3.1.0/"
+    BROADCAST_DIR="espresso-migration-3.1.0/broadcast"
     NITRO_CONTRACTS_BRANCH="v3.1.0"
     PROXY_ADMIN_ADDRESS="0x275FC51309e5928Cb085b463ADEF5cbD45c76b62"
 
