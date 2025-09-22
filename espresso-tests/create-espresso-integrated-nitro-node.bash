@@ -8,7 +8,7 @@ espresso=true
 simpleWithValidator=false
 
 # docker pull and tag the espresso integration nitro node.
-docker pull $ESPRESSO_VERSION
+docker pull $ESPRESSO_VERSION --platform linux/amd64
 
 docker tag $ESPRESSO_VERSION espresso-integration-testnode
 
