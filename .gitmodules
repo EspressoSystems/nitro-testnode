@@ -4,4 +4,4 @@
 [submodule "orbit-actions"]
 	path = orbit-actions
 	url = https://github.com/EspressoSystems/orbit-actions.git
-	branch = jh/set-is-batcher
+	branch = integration
