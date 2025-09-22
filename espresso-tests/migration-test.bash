@@ -78,15 +78,44 @@ function cleanup {
   fi
 }
 
+function forge3 {
+  forge $@ --root espresso-migration-3.1.0
+}
+
+
 # Find directory of this script, the project, and the orbit-actions submodule
 TEST_DIR="$(dirname $(readlink -f $0))"
+TEST_SCRIPT_DIR="v2.1.3-migration"
 TESTNODE_LOG_FILE=$(mktemp -t nitro-test-node-logs-XXXXXXXX)
 ESPRESSO_DEVNODE_LOG_FILE=$(mktemp -t espresso-dev-node-logs-XXXXXXXX)
 TESTNODE_DIR="$(dirname "$TEST_DIR")"
 ORBIT_ACTIONS_DIR="$TESTNODE_DIR/orbit-actions"
+ORBIT_MIGRATION_ACTION_DIR="contracts/parent-chain/espresso-migration/"
 ENV_FILE="$TEST_DIR/.env"
 # Hide docker compose warnings about orphaned containers.
 export COMPOSE_IGNORE_ORPHANS=true
+
+v3=false
+forge=forge
+ESPRESSO_NITRO_CONTRACTS_BRANCH=v2.1.3-8e58a9a
+# This commit matches v2.1.0 release of nitro-contracts, with additional support to set arb owner through upgrade executor
+NITRO_CONTRACTS_BRANCH="99c07a7db2fcce75b751c5a2bd4936e898cda065"
+BROADCAST_DIR="broadcast"
+PROXY_ADMIN_ADDRESS="0x2A1f38c9097e7883570e0b02BFBE6869Cc25d8a3"
+if [[ ${VERSION:-2} == "3" ]]; then
+    info "Using v3 migration scripts"
+    v3=true
+    TEST_SCRIPT_DIR="v3.1.0-migration"
+    ESPRESSO_NITRO_CONTRACTS_BRANCH=develop
+    ORBIT_MIGRATION_ACTION_DIR="espresso-migration-3.1.0/"
+    BROADCAST_DIR="espresso-migration-3.1.0/broadcast"
+    NITRO_CONTRACTS_BRANCH="v3.1.0"
+    PROXY_ADMIN_ADDRESS="0x275FC51309e5928Cb085b463ADEF5cbD45c76b62"
+
+    forge="forge3"
+else
+    info "Using v2 migration scripts"
+fi
 
 info Ensuring docker compose project is stopped
 run docker compose down -v --remove-orphans
@@ -101,7 +130,7 @@ info "Ensuring nodejs dependencies are installed"
 run yarn
 
 info "Ensuring we can compile the migration smart contracts"
-run forge build
+run $forge build
 
 # Change to the top level directory for the purposes of the test.
 cd "$TESTNODE_DIR"
@@ -113,14 +142,14 @@ cd "$TESTNODE_DIR"
 # still have the output show up.
 
 info Deploying a vanilla Nitro stack locally, to be migrated to Espresso later.
-emph ./test-node.bash --simple --init-force --tokenbridge --detach --no-build-utils
+emph ./test-node.bash --simple --init-force --tokenbridge --detach
 if [ "$DEBUG" = "true" ]; then
-  ./test-node.bash --simple --init-force --tokenbridge --detach --no-build-utils
+  ./test-node.bash --simple --init-force --tokenbridge --detach
 else
   info "This command starts up an entire Nitro stack. It takes a long time."
   info "Run \`tail -f $TESTNODE_LOG_FILE\` to see logs, if necessary."
   echo
-  ./test-node.bash --simple --init-force --tokenbridge --detach --no-build-utils > "$TESTNODE_LOG_FILE" 2>&1
+  ./test-node.bash --simple --init-force --tokenbridge --detach > "$TESTNODE_LOG_FILE" 2>&1
 fi
 
 # Start espresso sequencer node for the purposes of the test e.g. not needed for the real migration.
@@ -133,6 +162,9 @@ else
   echo
   docker compose up espresso-dev-node --detach > "$ESPRESSO_DEVNODE_LOG_FILE" 2>&1
 fi
+
+info "Waiting for espresso dev node to start"
+sleep 200
 
 info "Load environment variables in $ENV_FILE"
 # A similar env file should be supplied for whatever
@@ -164,6 +196,9 @@ declare -p ROLLUP_ADDRESS
 INBOX_ADDRESS=$(get-addr /config/deployed_chain_info.json '.[0].rollup.inbox')
 declare -p INBOX_ADDRESS
 
+PARENT_CHAIN_UPGRADE_EXECUTOR=$(get-addr /config/deployed_chain_info.json '.[0].rollup["upgrade-executor"]')
+declare -p PARENT_CHAIN_UPGRADE_EXECUTOR
+
 L1_TOKEN_BRIDGE_CREATOR_ADDRESS=$(get-addr /tokenbridge-data/network.json '.l1TokenBridgeCreator')
 declare -p L1_TOKEN_BRIDGE_CREATOR_ADDRESS
 
@@ -180,20 +215,23 @@ declare -p PRIVATE_KEY
 OWNER_ADDRESS="$(docker compose run scripts print-address --account l2owner 2>/dev/null | trim-last)"
 declare -p OWNER_ADDRESS
 
+info "Disabling validator whitelist"
+run cast send $PARENT_CHAIN_UPGRADE_EXECUTOR "executeCall(address,bytes)" $ROLLUP_ADDRESS "$(cast calldata 'setValidatorWhitelistDisabled(bool)' true)" --rpc-url $PARENT_CHAIN_RPC_URL --private-key $PRIVATE_KEY
+
 cd $ORBIT_ACTIONS_DIR
 info "Deploying mock espresso TEE verifier"
-run forge script --chain $PARENT_CHAIN_CHAIN_ID ../espresso-tests/DeployMockVerifier.s.sol:DeployMockVerifier --rpc-url $PARENT_CHAIN_RPC_URL --broadcast -vvvv
+run $forge script --chain $PARENT_CHAIN_CHAIN_ID ../espresso-tests/$TEST_SCRIPT_DIR/DeployMockVerifier.s.sol:DeployMockVerifier --rpc-url $PARENT_CHAIN_RPC_URL --broadcast -vvvv
 
-ESPRESSO_TEE_VERIFIER_ADDRESS=$(cat broadcast/DeployMockVerifier.s.sol/1337/run-latest.json | jq -r '.transactions[0].contractAddress' | cast to-checksum)
+ESPRESSO_TEE_VERIFIER_ADDRESS=$(cat $BROADCAST_DIR/DeployMockVerifier.s.sol/1337/run-latest.json | jq -r '.transactions[0].contractAddress' | cast to-checksum)
 declare -p ESPRESSO_TEE_VERIFIER_ADDRESS
 
 # Echo for debug
 info "Deploying and initializing Espresso SequencerInbox"
 # ** Essential migration step ** Forge script to deploy the new SequencerInbox. We do this to later point the rollups challenge manager to the espresso integrated OSP.
-run forge script --chain $PARENT_CHAIN_CHAIN_ID ../espresso-tests/DeployAndInitEspressoSequencerInboxForTest.s.sol:DeployAndInitEspressoSequencerInbox --rpc-url $PARENT_CHAIN_RPC_URL --broadcast -vvvv --skip-simulation
+run $forge script --chain $PARENT_CHAIN_CHAIN_ID ../espresso-tests/$TEST_SCRIPT_DIR/DeployAndInitEspressoSequencerInboxForTest.s.sol:DeployAndInitEspressoSequencerInbox --rpc-url $PARENT_CHAIN_RPC_URL --broadcast -vvvv --skip-simulation --private-key $PRIVATE_KEY
 
 #  * Essential migration sub step * These addresses are likely known addresses to operators in the event of a real migration after they have deployed the new OSP contracts, however, if operators create a script for the migration, this command is useful.
-NEW_SEQUENCER_INBOX_IMPL_ADDRESS=$(cat broadcast/DeployAndInitEspressoSequencerInboxForTest.s.sol/1337/run-latest.json | jq -r '.receipts[0].contractAddress'| cast to-checksum)
+NEW_SEQUENCER_INBOX_IMPL_ADDRESS=$(cat $BROADCAST_DIR/DeployAndInitEspressoSequencerInboxForTest.s.sol/1337/run-latest.json | jq -r '.receipts[0].contractAddress'| cast to-checksum)
 declare -p NEW_SEQUENCER_INBOX_IMPL_ADDRESS
 
 # Echo for debugging.
@@ -203,11 +241,11 @@ info "Deployed new SequencerInbox at $NEW_SEQUENCER_INBOX_IMPL_ADDRESS"
 info "Deploying Espresso SequencerInbox migration action"
 
 # ** Essential migration step ** Forge script to deploy Espresso OSP migration action
-run forge script --chain $PARENT_CHAIN_CHAIN_ID contracts/parent-chain/espresso-migration/DeployEspressoSequencerMigrationAction.s.sol:DeployEspressoSequencerMigrationAction --rpc-url $PARENT_CHAIN_RPC_URL --broadcast -vvvv
+run $forge script --chain $PARENT_CHAIN_CHAIN_ID $ORBIT_MIGRATION_ACTION_DIR/DeployEspressoSequencerMigrationAction.s.sol:DeployEspressoSequencerMigrationAction --rpc-url $PARENT_CHAIN_RPC_URL --broadcast -vvvv
 
 # Capture new OSP address
 # * Essential migration sub step ** Essential migration sub step * operators will be able to manually determine this address while running the upgrade, but this can be useful if they wish to make a script.
-SEQUENCER_MIGRATION_ACTION=$(cat broadcast/DeployEspressoSequencerMigrationAction.s.sol/1337/run-latest.json | jq -r '.transactions[0].contractAddress' | cast to-checksum)
+SEQUENCER_MIGRATION_ACTION=$(cat $BROADCAST_DIR/DeployEspressoSequencerMigrationAction.s.sol/1337/run-latest.json | jq -r '.transactions[0].contractAddress' | cast to-checksum)
 declare -p SEQUENCER_MIGRATION_ACTION
 
 info "Deployed new EspressoSequencerMigrationAction at $SEQUENCER_MIGRATION_ACTION"
@@ -224,8 +262,27 @@ run cast send $PARENT_CHAIN_UPGRADE_EXECUTOR "execute(address, bytes)" $SEQUENCE
 
 info "Executed SequencerMigrationAction via UpgradeExecutor"
 
+function get_latest_confirmed_v2() {
+  result=$(cast call --rpc-url $PARENT_CHAIN_RPC_URL $ROLLUP_ADDRESS 'latestConfirmed()(uint256)')
+  echo $result
+}
+
+function get_latest_confirmed_v3() {
+  result=$(cast call --rpc-url $PARENT_CHAIN_RPC_URL $ROLLUP_ADDRESS 'latestConfirmed()(bytes32)')
+  echo $result
+}
+
+function get_latest_confirmed() {
+  if $v3; then
+    get_latest_confirmed_v3
+  else
+    get_latest_confirmed_v2
+  fi
+}
+
 # Get the number of confirmed nodes before the upgrade to ensure the staker is still working.
-NUM_CONFIRMED_NODES_BEFORE_UPGRADE=$(cast call --rpc-url $PARENT_CHAIN_RPC_URL $ROLLUP_ADDRESS 'latestConfirmed()(uint256)')
+NUM_CONFIRMED_NODES_BEFORE_UPGRADE=$(get_latest_confirmed)
+info "Before upgrade: $NUM_CONFIRMED_NODES_BEFORE_UPGRADE"
 
 
 # Wait for CHILD_CHAIN_RPC_URL to be available
@@ -255,9 +312,9 @@ echo
 
 START=$SECONDS
 echo "Waiting for confirmed nodes."
-while [ "$NUM_CONFIRMED_NODES_BEFORE_UPGRADE" == "$(cast call --rpc-url $PARENT_CHAIN_RPC_URL $ROLLUP_ADDRESS 'latestConfirmed()(uint256)')" ]; do
+while [ "$NUM_CONFIRMED_NODES_BEFORE_UPGRADE" == "$(get_latest_confirmed)" ]; do
   sleep 5
-  echo "Waited $(( SECONDS - START )) seconds for confirmed nodes."
+  echo "Waited $(( SECONDS - START )) seconds for confirmed nodes. $NUM_CONFIRMED_NODES_BEFORE_UPGRADE"
 done
 
 # Echo to confirm that stakers are behaving normally.
