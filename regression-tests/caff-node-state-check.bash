@@ -11,11 +11,8 @@ echo "starting nodes"
 echo "starting tx spammer"
 docker compose run --detach scripts send-l2 --ethamount 10 --to user_l2user --times 50 --delay 200 --wait
 
-for i in {1..20}; do
-    echo "sending delayed tx"
-    docker compose run scripts send-l2-delayed --ethamount 10 --to user_delayed_user --wait
-    sleep 5
-done
+echo "sending delayed tx"
+docker compose run scripts send-l2-delayed --ethamount 10 --to user_delayed_user --times 20 --delay 2000 --wait
 
 echo "waiting for all transactions to be processed by the caff node"
 sleep 60
