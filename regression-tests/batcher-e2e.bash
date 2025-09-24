@@ -20,11 +20,8 @@ echo "starting nodes"
 echo "starting tx spammer"
 docker compose run --detach scripts send-l2 --ethamount 10 --to user_l2user --times 2000 --delay 200 --wait
 
-for i in {1..100}; do
-    echo "sending delayed tx"
-    docker compose run --detach scripts send-l2-delayed --ethamount 10 --to user_delayed_user --from espresso-sequencer --wait
-    sleep 2
-done
+echo "sending delayed tx"
+docker compose run --detach scripts send-l2-delayed --ethamount 10 --to user_delayed_user --from espresso-sequencer --times 100 --delay 2000 --wait
 
 check_validator_root_matches_sequencer() {
     local block=$1

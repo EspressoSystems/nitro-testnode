@@ -7,7 +7,7 @@ cd "$(dirname "$0")"
 cd regression-tests
 scripts=$(find . -maxdepth 1 -name '*.bash' ! -name 'common.bash' | sort)
 
-for script in $(find regression-tests -maxdepth 1 -name '*.bash' ! -name 'common.bash' | sort); do
+for script in $(find . -maxdepth 1 -name '*.bash' ! -name 'common.bash' | sort); do
   echo "Running $(basename "$script")"
   attempt=1
   max_attempts=3

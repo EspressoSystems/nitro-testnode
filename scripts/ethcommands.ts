@@ -143,15 +143,20 @@ async function sendL2DelayedTransaction(argv: any, parentChainUrl: string, chain
   const l1provider = new ethers.providers.WebSocketProvider(parentChainUrl);
   const l1Account = namedAccount("funnel", argv.threadId).connect(l1provider)
   const nonce = await l1Account.getTransactionCount("pending")
-  const response = await l1Account.sendTransaction({
-    to: inboxAddr,
-    value: 0,
-    data: argv.data,
-    nonce: nonce,
-  })
-  if (argv.wait) {
-    const receipt = await response.wait()
-    console.log(receipt)
+  for (let index = 0; index < argv.times; index++) {
+    const response = await l1Account.sendTransaction({
+      to: inboxAddr,
+      value: 0,
+      data: argv.data,
+      nonce: nonce + index,
+    })
+    if (argv.wait) {
+      const receipt = await response.wait()
+      console.log(receipt)
+    }
+    if (argv.delay > 0) {
+      await new Promise(f => setTimeout(f, argv.delay));
+    }
   }
   l1provider.destroy()
 }
