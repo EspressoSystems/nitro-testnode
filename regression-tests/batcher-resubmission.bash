@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 
 set -euo pipefail
-source ./common.bash
 
 cd "$(dirname "$0")"
+
+source ./common.bash
 
 echo "starting nodes"
 ../test-node.bash --init-force --espresso $(get_espresso_image_flag) --validate --detach
@@ -25,7 +26,7 @@ echo "pausing espresso-dev-node"
 docker compose pause espresso-dev-node
 
 # Transactions are sent after the espresso-dev-node is down
-docker compose run scripts send-l2 --ethamount 10 --to user_l2user --times 1500 --delay 200
+docker compose run --detach scripts send-l2 --ethamount 10 --to user_l2user --times 1500 --delay 200
 
 # Stop the espresso dev node for 2 minutes
 sleep 120
