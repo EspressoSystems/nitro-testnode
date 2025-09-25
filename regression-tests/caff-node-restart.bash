@@ -122,7 +122,7 @@ if [[ $next_processing_hotshot_block_num -le $((last_processing_hotshot_block_nu
     # because the caff node stores the earliest hotshot block number of its buffer
     if [[ $next_processing_hotshot_block_num -ge $((last_processing_hotshot_block_num - 10)) ]]; then
         echo "caff node next processing hotshot block check succeeded"
-        docker compose down
+        docker compose down --remove-orphans
         exit 0
     fi
 fi

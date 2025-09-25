@@ -16,6 +16,7 @@ for script in $(find . -maxdepth 1 -name '*.bash' ! -name 'common.bash' | sort);
       echo "Failed $(basename "$script") after $attempt attempts, aborting."
       exit 1
     fi
+    docker compose down --remove-orphans
     attempt=$((attempt+1))
     echo "Retrying $(basename "$script") (attempt $attempt/$max_attempts)..."
   done
