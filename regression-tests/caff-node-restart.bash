@@ -34,6 +34,8 @@ parse_block_number() {
         return
     fi
     echo $(echo "$log" | awk -F'\"block number\"=' '{print $2}' | awk '{print $1}')
+
+    echo $(echo "$log" | awk -F'nextHotshotBlock=' '{print $2}' | awk '{print $1}')
 }
 
 get_log_count() {
@@ -84,6 +86,7 @@ last_processing_hotshot_block_log=$(read_last_log $container_name "processing ho
 last_processing_hotshot_block_num=$(parse_block_number "$last_processing_hotshot_block_log")
 echo "last processing hotshot block number: $last_processing_hotshot_block_num"
 
+restart_ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 docker compose start $container_name
 
 sleep 20
@@ -92,7 +95,11 @@ next_produced_block_log=$(docker compose logs $container_name 2>&1 | tail -n +$c
 echo "next log: $next_produced_block_log"
 next_produced_block_num=$(parse_block_number "$next_produced_block_log")
 
-next_processing_hotshot_block_log=$(docker compose logs $container_name 2>&1 | tail -n +$count | grep "processing hotshot block" | head -1)
+next_processing_hotshot_block_log=$(
+  docker compose logs --since "$restart_ts" "$container_name" 2>&1 \
+    | grep "Starting streamer" \
+    | head -1
+)
 next_processing_hotshot_block_num=$(parse_block_number "$next_processing_hotshot_block_log")
 
 echo "last block number: $last_produced_block_num"
@@ -119,5 +126,5 @@ if [[ $next_processing_hotshot_block_num -le $((last_processing_hotshot_block_nu
         exit 0
     fi
 fi
-
+echo "caff node next processing hotshot block check failed"
 exit 1
