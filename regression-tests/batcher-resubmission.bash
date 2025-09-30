@@ -4,10 +4,11 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 
+source ./common.bash
+
 echo "starting nodes"
 ../test-node.bash --init-force --espresso $(get_espresso_image_flag) --validate --detach
 
-source ./common.bash
 # Ignore orphaned container output
 # Orphaned containers will be removed at the end of the test
 export COMPOSE_IGNORE_ORPHANS=1
@@ -25,7 +26,7 @@ echo "pausing espresso-dev-node"
 docker compose pause espresso-dev-node
 
 # Transactions are sent after the espresso-dev-node is down
-docker compose run scripts send-l2 --ethamount 10 --to user_l2user --times 1500 --delay 200
+docker compose run --detach scripts send-l2 --ethamount 10 --to user_l2user --times 1500 --delay 200
 
 # Stop the espresso dev node for 2 minutes
 sleep 120
