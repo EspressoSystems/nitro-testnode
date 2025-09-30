@@ -1,0 +1,60 @@
+import { parseEther } from 'ethers/lib/utils'
+import { Config } from '../../boldUpgradeCommon'
+import { hoursToBlocks } from './utils'
+
+export const custom: Config = {
+  contracts: {
+    bridge: '0x5eCF728ffC5C5E802091875f96281B5aeECf6C49',
+    inbox: '0x9f8c1c641336A371031499e3c362e40d58d0f254',
+    outbox: '0x50143333b44Ea46255BEb67255C9Afd35551072F',
+    rollup: '0x4d16C7c301d4233414Efa3fc822F329B53F52b68',
+    sequencerInbox: '0x18d19C5d3E685f5be5b9C86E097f0E439285D216',
+    excessStakeReceiver: '0x0000000000000000000000000000000000000001', // receives losers' stake
+    rollupEventInbox: '0x0e73Faf857E1ca53E700856fCf19F31F920a1e3c',
+    upgradeExecutor: '0x513D9F96d4D0563DEbae8a0DC307ea0E46b10ed7',
+  },
+  proxyAdmins: {
+    outbox: '0x2a1f38c9097e7883570e0b02bfbe6869cc25d8a3', // e.g. the address of the proxy admin for the outbox
+    inbox: '0x2a1f38c9097e7883570e0b02bfbe6869cc25d8a3',
+    bridge: '0x2a1f38c9097e7883570e0b02bfbe6869cc25d8a3',
+    rei: '0x2a1f38c9097e7883570e0b02bfbe6869cc25d8a3',
+    seqInbox: '0x2a1f38c9097e7883570e0b02bfbe6869cc25d8a3',
+  },
+  settings: {
+    challengeGracePeriodBlocks: hoursToBlocks(48), // 2 days for the chain owner to intervene in case of challenge
+    confirmPeriodBlocks: 1,
+    challengePeriodBlocks: 50400, // same as confirm period
+    stakeToken: '0x165155D6aBB370Cb10ad1bF835e723F662d51C86', // rollup stake token
+    stakeAmt: parseEther('1'), // assertion stake amount
+    miniStakeAmounts: [parseEther('0'), parseEther('1'), parseEther('1')], // subchallenge stake amounts (0 first level recommended)
+    chainId: 412346, // child chain id
+    minimumAssertionPeriod: 75, // minimum number of blocks between assertions
+    validatorAfkBlocks: 201600, // number of blocks before validator whitelist is dropped due to inactivity
+    disableValidatorWhitelist: false, // keep or disable validator whitelist
+    blockLeafSize: 2 ** 26, // do not change unless you know what you're doing
+    bigStepLeafSize: 2 ** 19, // do not change unless you know what you're doing
+    smallStepLeafSize: 2 ** 23, // do not change unless you know what you're doing
+    numBigStepLevel: 1, // do not change unless you know what you're doing
+    maxDataSize: 117964, // 117964 if you're an L3, this should be set to 104857
+    isDelayBufferable: false, // keep this as false for Espresso Integration
+    bufferConfig: {
+      max: 2 ** 32 - 1, // maximum buffer size, set artificially high to disable
+      threshold: 2 ** 32 - 1, // keep above typical posting frequency. set artificially high to disable
+      replenishRateInBasis: 500, // 5% replenishment rate
+    },
+    espressoTEEVerifier: '0xb562622f2D76F355D673560CB88c1dF6088702f1', // address of the TEE verifier
+  },
+  // validators to be whitelisted on the new rollup
+  validators: [
+    '0x8a5F1455b5E51a59deb763342ECf0D82eAaD4d01',
+    '0xBA97D2B0d0a8E0894eAa9f2c4A879fD68C0DeE4F',
+    '0x139A0b6B1Dd1e7F912361B32A09cAD89e82F29db',
+    '0x02FB3B113D8e8504CD54E3ABd6D74348DE5ac0C9',
+    '0x6B62905346bd8ae209d580edEB6473B8C423d06b',
+    '0xD0555Ec8817D718f22b114D9dbe7803995c24341',
+    '0x47d2c39425AbCD48168C8BcDf261e6CC7B25d028',
+    '0xDC3B771CF8dC2b1278eE0b593DB2E1237B687060',
+    '0x6C76a18821C41E725E83F890eCBa8e5B11787998',
+    '0x96ECE75e306D3717f9F03765A6fA702Da581864c'
+  ],
+}
