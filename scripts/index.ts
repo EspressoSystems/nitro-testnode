@@ -22,6 +22,10 @@ import {
   setValidKeysetCommand,
   waitForSyncCommand,
   transferL3ChainOwnershipCommand,
+  sendL2DelayedCommand,
+  sendL2ToHotShotCommand,
+  updateConfigValueCommand,
+  setIsBatchPosterCommand,
 } from "./ethcommands";
 
 async function main() {
@@ -38,10 +42,12 @@ async function main() {
     .options(stressOptions)
     .options({
       espresso: { boolean: true, decription: 'use Espresso Sequencer for sequencing and DA', default: false },
+      l3Espresso: { boolean: true, decription: 'use Espresso Sequencer for sequencing and DA', default: false },
       espressoUrl: { string: true, description: 'Espresso Sequencer url', default: 'http://espresso-dev-node:41000' },
       lightClientAddress: { string: true, description: 'address of the light client contract', default: ''},
       enableCaffNode: {boolean: true, description: 'enable caff node', default: false},
       simpleWithValidator: {boolean: true, description: 'start a simple node that validates', default: false},
+      mockSequencer: {boolean: true, description: 'start a mock sequencer', default: false},
     })
     .command(bridgeFundsCommand)
     .command(bridgeToL3Command)
@@ -50,10 +56,14 @@ async function main() {
     .command(transferERC20Command)
     .command(sendL1Command)
     .command(sendL2Command)
+    .command(sendL2DelayedCommand)
+    .command(sendL2ToHotShotCommand)
     .command(sendL3Command)
     .command(sendRPCCommand)
     .command(setValidKeysetCommand)
     .command(transferL3ChainOwnershipCommand)
+    .command(updateConfigValueCommand)
+    .command(setIsBatchPosterCommand)
     .command(writeConfigCommand)
     .command(writeGethGenesisCommand)
     .command(writeL2ChainConfigCommand)

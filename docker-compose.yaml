@@ -244,6 +244,19 @@ services:
       retries: 5
       start_period: 40s
 
+  mock-sequencer:
+    pid: host
+    build: mock-sequencer/
+    environment:
+      - REMOTE_WS_URL=ws://sequencer:9642
+      - HTTP_PORT=10000
+    ports:
+      - "127.0.0.1:10000:10000"
+      - "127.0.0.1:9643:9642"
+    depends_on:
+      - sequencer
+      - espresso-dev-node
+
   sequencer-on-espresso:
     pid: host # allow debugging
     image: espresso-integration-testnode
@@ -498,7 +511,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
 
   espresso-dev-node:
-    image: ghcr.io/espressosystems/espresso-sequencer/espresso-dev-node:20250428-dev-node-decaf-pos
+    image: ghcr.io/espressosystems/espresso-sequencer/espresso-dev-node:20250710
     ports:
       - "$ESPRESSO_SEQUENCER_API_PORT:$ESPRESSO_SEQUENCER_API_PORT"
       - "$ESPRESSO_BUILDER_PORT:$ESPRESSO_BUILDER_PORT"

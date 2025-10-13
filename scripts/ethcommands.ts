@@ -6,6 +6,7 @@ import * as L1GatewayRouter from "@arbitrum/token-bridge-contracts/build/contrac
 import * as L1AtomicTokenBridgeCreator from "@arbitrum/token-bridge-contracts/build/contracts/contracts/tokenbridge/ethereum/L1AtomicTokenBridgeCreator.sol/L1AtomicTokenBridgeCreator.json";
 import * as ERC20 from "@openzeppelin/contracts/build/contracts/ERC20.json";
 import * as fs from "fs";
+import * as rlp from "rlp";
 import { ARB_OWNER } from "./consts";
 const path = require("path");
 
@@ -31,6 +32,43 @@ async function sendTransaction(argv: any, threadId: number) {
     }
 }
 
+function updateConfigValue(argv: any) {
+  const filePath = argv.path
+  const propertyPath = argv.property
+  const value = argv.value
+  let v: any
+  if (argv.isArray) {
+    v = value.split(",").map((v: string) => {
+      const s = v.trim()
+      if (argv.isBool) {
+        return s === "true"
+      }
+      if (argv.isNumber) {
+        return Number(s)
+      }
+      return s
+    })
+  } else if (argv.isBool) {
+    v = value === "true"
+  } else if (argv.isNumber) {
+    v = Number(value)
+  } else {
+    v = value
+  }
+  const fileContents = fs.readFileSync(filePath).toString();
+  const config = JSON.parse(fileContents);
+  const property = propertyPath.split(".");
+  let current = config;
+  for (let i = 0; i < property.length - 1; i++) {
+    if (!current[property[i]]) {
+      throw new Error(`Property ${property[i]} not found`);
+    }
+    current = current[property[i]];
+  }
+  current[property[property.length - 1]] = v;
+  fs.writeFileSync(filePath, JSON.stringify(config, null, 2));
+}
+
 async function bridgeFunds(argv: any, parentChainUrl: string, chainUrl: string, inboxAddr: string) {
   argv.provider = new ethers.providers.WebSocketProvider(parentChainUrl);
 
@@ -53,6 +91,186 @@ async function bridgeFunds(argv: any, parentChainUrl: string, chainUrl: string, 
       await sleep(100)
     }
   }
+}
+
+async function setIsBatchPoster(argv: any) {
+  const parentChainUrl = argv.l1url;
+  const seqInboxAddr = argv.seqInboxAddr;
+  const batchPoster = argv.batchPoster;
+  const isBatchPoster = argv.isBatchPoster;
+
+  const provider = new ethers.providers.WebSocketProvider(parentChainUrl);
+  const account = namedAccount("l2owner", argv.threadId).connect(provider)
+  const iface = new ethers.utils.Interface([
+    "function setIsBatchPoster(address, bool)"
+  ]);
+  const data = iface.encodeFunctionData("setIsBatchPoster", [batchPoster, isBatchPoster])
+  const response = await account.sendTransaction({
+    to: seqInboxAddr,
+    value: 0,
+    data: data,
+    nonce: await account.getTransactionCount("pending"),
+  })
+  if (argv.wait) {
+    const receipt = await response.wait()
+    console.log(receipt)
+  }
+  provider.destroy()
+}
+
+async function sendL2DelayedTransaction(argv: any, parentChainUrl: string, chainUrl: string, inboxAddr: string) {
+  const l2provider = new ethers.providers.WebSocketProvider(chainUrl);
+  const account = namedAccount(argv.from, argv.threadId).connect(l2provider)
+  const startNonce = await account.getTransactionCount("pending")
+  argv.data = undefined
+  const tx = await account.populateTransaction({
+    to: namedAddress(argv.to, argv.threadId),
+    value: ethers.utils.parseEther(argv.ethamount),
+    data: argv.data,
+    nonce: startNonce,
+  })
+  const signedTx = await account.signTransaction(tx)
+  // signed transaction type is 4
+  const txBytes = [4, ...ethers.utils.arrayify(signedTx)]
+  const dataStr = ethers.utils.hexlify(txBytes)
+  const iface = new ethers.utils.Interface([
+    "function sendL2Message(bytes messageData)"
+  ]);
+  const data = iface.encodeFunctionData("sendL2Message", [dataStr]);
+
+  argv.provider = new ethers.providers.WebSocketProvider(parentChainUrl);
+  argv.data = data
+  const l1provider = new ethers.providers.WebSocketProvider(parentChainUrl);
+  const l1Account = namedAccount("funnel", argv.threadId).connect(l1provider)
+  const nonce = await l1Account.getTransactionCount("pending")
+  for (let index = 0; index < argv.times; index++) {
+    const response = await l1Account.sendTransaction({
+      to: inboxAddr,
+      value: 0,
+      data: argv.data,
+      nonce: nonce + index,
+    })
+    if (argv.wait) {
+      const receipt = await response.wait()
+      console.log(receipt)
+    }
+    if (argv.delay > 0) {
+      await new Promise(f => setTimeout(f, argv.delay));
+    }
+  }
+  l1provider.destroy()
+}
+
+async function sendL2TransactionToHotShot(argv: any) {
+  const to = namedAddress(argv.to)
+  const provider = new ethers.providers.WebSocketProvider(argv.l2url)
+  const l1provider = new ethers.providers.WebSocketProvider(argv.l1url)
+  const account = namedAccount(argv.signer).connect(provider)
+  const nonce = argv.nonce
+
+  const network = await provider.getNetwork()
+  const chainId = network.chainId
+
+  const tx = await account.populateTransaction({
+    to,
+    value: ethers.utils.parseEther(argv.ethamount),
+    nonce: nonce,
+  })
+  const signedTx = await account.signTransaction(tx)
+  // signed transaction type is 4
+  const uint8ArrayTx = ethers.utils.arrayify("0x04" + signedTx.slice(2))
+  const l1Block = await l1provider.getBlock("latest")
+
+  const header = [
+    3,  // kind
+    ethers.utils.arrayify(namedAddress("sequencer", argv.threadId)),  // poster
+    ethers.utils.arrayify(ethers.utils.hexlify(l1Block.number)),  // blockNumber
+    ethers.utils.arrayify(ethers.utils.hexlify(l1Block.timestamp)),  // timestamp
+    [],  // requestId (nilList)
+    null,  // l1BaseFee (nil)
+  ]
+
+  const message = [
+    header,
+    uint8ArrayTx,  // l2msg
+    null,
+  ]
+
+  const messageWithMeta = [
+    message,
+    argv.delayed,  // delayedMessageRead
+  ]
+
+  const encodedPayload = rlp.encode(messageWithMeta)
+
+  const positionBuf = new Uint8Array(8)
+  const sizeBuf = new Uint8Array(8)
+
+  new DataView(positionBuf.buffer).setBigUint64(0, BigInt(argv.position))
+  new DataView(sizeBuf.buffer).setBigUint64(0, BigInt(encodedPayload.length))
+
+  const payload = new Uint8Array(positionBuf.length + sizeBuf.length + encodedPayload.length)
+  payload.set(positionBuf)
+  payload.set(sizeBuf, positionBuf.length)
+  payload.set(encodedPayload, positionBuf.length + sizeBuf.length)
+
+  const signer = namedAccount(argv.signer)
+  const privateKey = signer.privateKey
+  const payloadHash = ethers.utils.keccak256(payload)
+  const signatureObj = new ethers.utils.SigningKey(privateKey).signDigest(payloadHash)
+  const signature = ethers.utils.joinSignature(signatureObj)
+  const uint8ArraySignature = ethers.utils.arrayify(signature)
+
+
+  // The Go code expects a secp256k1 format signature where v should be 0 or 1
+  // Ethereum signature has v as 27 or 28, we need to convert it to 0 or 1
+  if (uint8ArraySignature[64] === 27 || uint8ArraySignature[64] === 28) {
+    uint8ArraySignature[64] = uint8ArraySignature[64] - 27
+  }
+
+  const signatureLengthBuf = new Uint8Array(8)
+  new DataView(signatureLengthBuf.buffer).setBigUint64(0, BigInt(uint8ArraySignature.length))
+
+  const combined = new Uint8Array(signatureLengthBuf.length + uint8ArraySignature.length + payload.length)
+  combined.set(signatureLengthBuf)
+  combined.set(uint8ArraySignature, signatureLengthBuf.length)
+  combined.set(payload, signatureLengthBuf.length + uint8ArraySignature.length)
+
+  const hotshotTx = {
+    namespace: chainId,
+    payload: arrayBufferToBase64(combined)
+  }
+
+  const url = `${argv.espressoUrl}/submit/submit`
+  const body = JSON.stringify(hotshotTx)
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    },
+    body: body
+  })
+
+  const responseText = await response.text()
+  console.log('Response:', responseText)
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`)
+  }
+
+  return
+}
+
+function arrayBufferToBase64(buffer: ArrayBuffer) {
+  let binary = '';
+  const bytes = new Uint8Array(buffer);
+  const len = bytes.byteLength;
+  for(let i = 0; i < len; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
 }
 
 async function bridgeNativeToken(argv: any, parentChainUrl: string, chainUrl: string, inboxAddr: string, token: string) {
@@ -425,6 +643,76 @@ export const transferERC20Command = {
   },
 };
 
+export const updateConfigValueCommand = {
+  command: "update-config-value",
+  describe: "updates a config value",
+  builder: {
+    path: {
+      string: true,
+      describe: "path to config file",
+      default: "l2_chain_info.json",
+    },
+    property: {
+      string: true,
+      describe: "property to update",
+    },
+    value: {
+      string: true,
+      describe: "value to set",
+    },
+    isBool: {
+      boolean: true,
+      describe: "value is boolean",
+      default: false,
+    },
+    isNumber: {
+      boolean: true,
+      describe: "value is number",
+      default: false,
+    },
+    isArray: {
+      boolean: true,
+      describe: "value is an array, separated by commas",
+      default: false,
+    }
+  },
+  handler: async (argv: any) => {
+    updateConfigValue(argv)
+  },
+}
+
+export const setIsBatchPosterCommand = {
+  command: "set-is-batch-poster",
+  describe: "sets the isBatchPoster flag for a batch poster",
+  builder: {
+    parentChainUrl: {
+      string: true,
+      describe: "parent chain url",
+    },
+    seqInboxAddr: {
+      string: true,
+      describe: "sequencer inbox address",
+    },
+    batchPoster: {
+      string: true,
+      describe: "batch poster address",
+    },
+    isBatchPoster: {
+      boolean: true,
+      describe: "is batch poster",
+      default: false,
+    },
+    wait: {
+      boolean: true,
+      describe: "wait for transaction to complete",
+      default: false,
+    },
+  },
+  handler: async (argv: any) => {
+    await setIsBatchPoster(argv)
+  },
+}
+
 export const sendL1Command = {
   command: "send-l1",
   describe: "sends funds between l1 accounts",
@@ -494,6 +782,84 @@ export const sendL2Command = {
     argv.provider.destroy();
   },
 };
+
+export const sendL2DelayedCommand = {
+  command: "send-l2-delayed",
+  describe: "sends funds between l2 accounts using delayed inbox",
+  builder: {
+    ethamount: {
+      string: true,
+      describe: "amount to transfer (in eth)",
+      default: "10",
+    },
+    from: {
+      string: true,
+      describe: "account (see general help)",
+      default: "funnel",
+    },
+    to: {
+      string: true,
+      describe: "address (see general help)",
+      default: "funnel",
+    },
+    wait: {
+      boolean: true,
+      describe: "wait for transaction to complete",
+      default: false,
+    },
+    data: { string: true, describe: "data" },
+  },
+  handler: async (argv: any) => {
+    const deploydata = JSON.parse(
+      fs
+        .readFileSync(path.join(consts.configpath, "deployment.json"))
+        .toString()
+    );
+    const inboxAddr = ethers.utils.hexlify(deploydata.inbox);
+    await sendL2DelayedTransaction(argv, argv.l1url, argv.l2url, inboxAddr);
+  },
+};
+
+export const sendL2ToHotShotCommand = {
+  command: "send-l2-to-hotshot",
+  describe: "send a transaction to HotShot directly, not through sequencer or batch poster",
+  builder: {
+    ethamount: {
+      string: true,
+      describe: "amount to transfer (in eth)",
+      default: "1",
+    },
+    to: {
+      string: true,
+      describe: "address (see general help)",
+      default: "funnel",
+    },
+    position: {
+      number: true,
+      describe: "position of the message",
+      default: 0,
+    },
+    signer: {
+      string: true,
+      describle: "the private key of the signer",
+      default: "",
+    },
+    delayed: {
+      number: true,
+      describe: "delayed message read",
+      default: 1,
+    },
+    nonce: {
+      number: true,
+      describe: "nonce of the transaction",
+      default: 0,
+    },
+  },
+  handler: async (argv: any) => {
+    await sendL2TransactionToHotShot(argv)
+  },
+
+}
 
 export const sendL3Command = {
   command: "send-l3",

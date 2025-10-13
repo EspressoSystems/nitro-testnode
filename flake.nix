@@ -2,7 +2,7 @@
   description = "A Nix-flake-based Node.js development environment";
 
   inputs.nixpkgs.url = "https://flakehub.com/f/NixOS/nixpkgs/0.1.*.tar.gz";
-  inputs.foundry.url = "github:shazow/foundry.nix/monthly"; # Use monthly branch for permanent releases
+  inputs.foundry.url = "github:shazow/foundry.nix/stable";
 
   inputs.flake-compat.url = "https://flakehub.com/f/edolstra/flake-compat/1.tar.gz"; # for shell.nix compatibility
 

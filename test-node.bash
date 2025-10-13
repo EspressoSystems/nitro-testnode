@@ -11,6 +11,7 @@ DEFAULT_NITRO_CONTRACTS_VERSION="99c07a7db2fcce75b751c5a2bd4936e898cda065"
 DEFAULT_TOKEN_BRIDGE_VERSION="v1.2.2"
 
 ESPRESSO_VERSION=ghcr.io/espressosystems/nitro-espresso-integration/nitro-node-dev:celestia-integration
+: ${ESPRESSO_VERSION:=$ESPRESSO_DEFAULT_VERSION}
 
 # Set default versions if not overriden by provided env vars
 : ${NITRO_CONTRACTS_REPO:=$DEFAULT_NITRO_CONTRACTS_REPO}
@@ -52,7 +53,9 @@ lightClientAddr=0xb7fc0e52ec06f125f3afeba199248c79f71c2e3a
 lightClientAddrForL3=0x5e36aa9caaf5f708fca5c04d2d4c776a62b2b258
 enableCaffNode=false
 espresso=false
+espresso_mock_sequencer=false
 l2_espresso=false
+l3_espresso=false
 latest_espresso_image=false
 l3_custom_fee_token=false
 l3_token_bridge=false
@@ -124,6 +127,10 @@ while [[ $# -gt 0 ]]; do
         --espresso)
             espresso=true
             l2_espresso=true
+            shift
+            ;;
+        --mock-sequencer)
+            espresso_mock_sequencer=true
             shift
             ;;
         --caff-node)
@@ -322,7 +329,9 @@ done
 
 if $espresso; then
     NITRO_CONTRACTS_REPO=https://github.com/EspressoSystems/nitro-contracts.git
-    NITRO_CONTRACTS_BRANCH=v2.1.3-celestia-1b04973
+    DEFAULT_ESPRESSO_NITRO_CONTRACTS_BRANCH=develop
+    : ${ESPRESSO_NITRO_CONTRACTS_BRANCH:=$DEFAULT_ESPRESSO_NITRO_CONTRACTS_BRANCH}
+    NITRO_CONTRACTS_BRANCH=$ESPRESSO_NITRO_CONTRACTS_BRANCH
     export NITRO_CONTRACTS_REPO
     export NITRO_CONTRACTS_BRANCH
     echo "Running espresso mode"
@@ -345,6 +354,9 @@ if [ $redundantsequencers -gt 1 ]; then
 fi
 if [ $redundantsequencers -gt 2 ]; then
     NODES="$NODES sequencer_d"
+fi
+if $espresso_mock_sequencer; then
+    NODES="$NODES mock-sequencer"
 fi
 
 if [ $batchposters -gt 0 ] && ! $simple; then
@@ -383,8 +395,13 @@ if $espresso; then
         # If we run the `l3node` with enabling espresso mode, then the
         # l2 node will run without `espresso` mode.
         l2_espresso=false
+        l3_espresso=true
     fi
     NODES="$NODES espresso-dev-node"
+fi
+
+if $enableCaffNode; then
+  NODES="$NODES caff-node"
 fi
 
 if $dev_nitro && $build_dev_nitro; then
@@ -422,11 +439,13 @@ if $dev_nitro; then
   docker tag nitro-node-dev:latest nitro-node-dev-testnode
 else
   if $latest_espresso_image; then
-    docker pull $ESPRESSO_VERSION 
+    echo "Using Espresso image: $ESPRESSO_VERSION"
+    docker pull $ESPRESSO_VERSION --platform linux/amd64
     docker tag $ESPRESSO_VERSION nitro-node-dev-testnode
-  else 
-     docker pull $NITRO_NODE_VERSION
-     docker tag $NITRO_NODE_VERSION nitro-node-dev-testnode
+  else
+    echo "Using Nitro image: $NITRO_NODE_VERSION"
+    docker pull $NITRO_NODE_VERSION
+    docker tag $NITRO_NODE_VERSION nitro-node-dev-testnode
   fi
 fi
 
@@ -525,10 +544,11 @@ if $force_init; then
 
     if $l2anytrust; then
         echo "== Writing l2 chain config (anytrust enabled)"
-        docker compose run scripts --l2owner $l2ownerAddress  write-l2-chain-config --anytrust --espresso $l2_espresso
+        docker compose run scripts --l2owner $l2ownerAddress  write-l2-chain-config --anytrust --espresso $l2_espresso --mockSequencer $espresso_mock_sequencer
     else
         echo == Writing l2 chain config
-        docker compose run scripts --l2owner $l2ownerAddress  write-l2-chain-config --espresso $l2_espresso
+        echo "espresso: $l2_espresso, mockSequencer: $espresso_mock_sequencer"
+        docker compose run scripts --l2owner $l2ownerAddress  write-l2-chain-config --espresso $l2_espresso --mockSequencer $espresso_mock_sequencer
     fi
 
     sequenceraddress=`docker compose run scripts print-address --account sequencer | tail -n 1 | tr -d '\r\n'`
@@ -579,10 +599,10 @@ if $force_init; then
 
     else
         echo == Writing configs
-        docker compose run scripts write-config  $anytrustNodeConfigLine --espresso $l2_espresso --lightClientAddress $lightClientAddr
+        docker compose run scripts write-config  $anytrustNodeConfigLine --espresso $l2_espresso --l3Espresso $l3_espresso --lightClientAddress $lightClientAddr --mockSequencer $espresso_mock_sequencer
         if $enableCaffNode; then
             echo == Writing configs for finality node
-            docker compose run scripts write-config  $anytrustNodeConfigLine  --espresso $l2_espresso  --enableCaffNode --lightClientAddress $lightClientAddr
+            docker compose run scripts write-config  $anytrustNodeConfigLine  --espresso $l2_espresso  --l3Espresso $l3_espresso --enableCaffNode --validate $validate --lightClientAddress $lightClientAddr --mockSequencer $espresso_mock_sequencer
         fi
         echo == Initializing redis
         docker compose up --wait redis
@@ -632,7 +652,7 @@ if $force_init; then
         echo == Writing l3 chain config
         l3owneraddress=`docker compose run scripts print-address --account l3owner | tail -n 1 | tr -d '\r\n'`
         echo l3owneraddress $l3owneraddress
-        docker compose run scripts --l2owner $l3owneraddress  write-l3-chain-config --espresso $espresso
+        docker compose run scripts --l2owner $l3owneraddress  write-l3-chain-config --espresso $l3_espresso
 
         EXTRA_L3_DEPLOY_FLAG=""
         if $l3_custom_fee_token; then

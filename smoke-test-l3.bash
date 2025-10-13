@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-./test-node.bash --init-force --espresso --latest-espresso-image --l3node --l3-token-bridge --l3-fee-token --detach
+source ./regression-tests/common.bash
+
+./test-node.bash --init-force --espresso $(get_espresso_image_flag) --l3node --l3-token-bridge --l3-fee-token --detach
 
 echo "Sending L3 transaction"
 user=user_l3

@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-./test-node.bash --espresso --latest-espresso-image --validate --tokenbridge --init-force --detach
+source ./regression-tests/common.bash
+
+./test-node.bash --espresso $(get_espresso_image_flag) --validate --tokenbridge --init-force --detach
 
 # Sending L2 transaction
 ./test-node.bash script send-l2 --ethamount 100 --to user_l2user --wait

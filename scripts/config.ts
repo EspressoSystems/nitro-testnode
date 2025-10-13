@@ -183,6 +183,7 @@ function getChainInfo(): ChainInfo {
     return chainInfo;
 }
 
+
 function writeConfigs(argv: any) {
   const valJwtSecret = path.join(consts.configpath, "val_jwt.hex");
   const chainInfoFile = path.join(consts.configpath, "l2_chain_info.json");
@@ -298,12 +299,14 @@ function writeConfigs(argv: any) {
       vhosts: "*",
       corsdomain: "*",
     },
+    "log-level": "DEBUG"
   };
 
   if (argv.espresso) {
     let config = baseConfig as any;
     config.node["batch-poster"]["hotshot-url"] = "";
     config.node["batch-poster"]["light-client-address"] = "";
+    config.node["batch-poster"]["max-empty-batch-delay"] = "1h";
   }
 
   baseConfig.node["data-availability"]["sequencer-inbox-address"] =
@@ -314,7 +317,7 @@ function writeConfigs(argv: any) {
   if (argv.simple) {
     let simpleConfig = JSON.parse(baseConfJSON);
     simpleConfig.node.staker.enable = true;
-    simpleConfig.node.staker["use-smart-contract-wallet"] = true;
+    simpleConfig.node.staker["use-smart-contract-wallet"] = false;
     simpleConfig.node.staker.dangerous["without-block-validator"] = true;
     simpleConfig.node.sequencer = true;
     simpleConfig.node.dangerous["no-sequencer-coordinator"] = true;
@@ -328,7 +331,7 @@ function writeConfigs(argv: any) {
     }
     if (argv.espresso) {
       simpleConfig.node.feed.output.enable = true;
-      simpleConfig.node["batch-poster"]["hotshot-url"] = argv.espressoUrl;
+      simpleConfig.node["batch-poster"]["hotshot-urls"] = [argv.espressoUrl, argv.espressoUrl];
       simpleConfig.node["batch-poster"]["light-client-address"] =
         argv.lightClientAddress;
       simpleConfig.node["block-validator"]["dangerous"][
@@ -409,21 +412,49 @@ function writeConfigs(argv: any) {
       sequencerConfig.node["seq-coordinator"].enable = true;
     }
 
-    if (argv.espresso && argv.enableCaffNode) {
+    if (argv.enableCaffNode) {
       sequencerConfig.node.sequencer = false;
+      sequencerConfig.node["seq-coordinator"].enable = false;
       sequencerConfig.execution["sequencer"].enable = false;
       sequencerConfig.node["delayed-sequencer"].enable = false;
-      sequencerConfig.node["parent-chain-reader"].enable = false;
+      sequencerConfig.node["parent-chain-reader"].enable = true;
       sequencerConfig.node["espresso-caff-node"] = {
-        enable: true,
-        "hotshot-urls": [argv.espressoUrl],
-        "fallback-urls": [argv.espressoUrl],
+        "enable": true,
+        "hotshot-urls": [argv.espressoUrl, argv.espressoUrl],
         "next-hotshot-block": 1,
         namespace: 412346,
         "hotshot-polling-interval": "250ms",
         "retry-time": "2s",
-        "espresso-tee-verifier-addr": "0xb562622f2D76F355D673560CB88c1dF6088702f1",
+        "espresso-sgx-verifier-addr":
+          "0xb562622f2D76F355D673560CB88c1dF6088702f1",
+        "batch-poster-addr": "0xe2148eE53c0755215Df69b2616E552154EdC584f",
+        "wait-for-finalization": true,
+        "from-block": 1,
+        "wait-for-confirmations": false,
+        "blocks-to-read": 1,
+        "force-inclusion-checker": {
+          "block-threshold-tolerance": 100000,
+          "second-threshold-tolerance": 100000,
+          "polling-interval": "1h",
+        },
+        "state-checker": {
+          "trusted-node-url": "http://bad-url:8550",
+          "error-tolerance-duration": "1h"
+        }
       };
+      if (argv.l3Espresso) {
+        sequencerConfig.node["espresso-caff-node"]["namespace"] = 333333;
+        sequencerConfig.chain.id = 333333;
+        sequencerConfig["parent-chain"].connection.url = argv.l2url;
+        const l3ChainInfoFile = path.join(consts.configpath, "l3_chain_info.json");
+        sequencerConfig.chain["info-files"] = [l3ChainInfoFile];
+        sequencerConfig.node["espresso-caff-node"]["batch-poster-addr"] = "0x3E6134aAD4C4d422FF2A4391Dc315c4DDf98D1a5";
+      } else if (argv.validate) {
+        sequencerConfig.node["espresso-caff-node"]["state-checker"] = {
+          "trusted-node-url": "http://validator:8547",
+          "error-tolerance-duration": "1m",
+        }
+      }
 
       sequencerConfig.execution["forwarding-target"] = "ws://sequencer:8548";
       fs.writeFileSync(
@@ -439,10 +470,16 @@ function writeConfigs(argv: any) {
 
     let posterConfig = JSON.parse(baseConfJSON);
     if (argv.espresso) {
-      posterConfig.node.feed.input.url.push("ws://sequencer:9642");
-      posterConfig.node["batch-poster"]["hotshot-url"] = argv.espressoUrl;
+      if (argv.mockSequencer) {
+        posterConfig.node.feed.input.url.push("ws://mock-sequencer:9642");
+        posterConfig.node["batch-poster"]["max-empty-batch-delay"] = "30s"
+      } else {
+        posterConfig.node.feed.input.url.push("ws://sequencer:9642");
+      }
+      posterConfig.node["batch-poster"]["hotshot-urls"] = [argv.espressoUrl, argv.espressoUrl];
       posterConfig.node["batch-poster"]["light-client-address"] =
         argv.lightClientAddress;
+      posterConfig.node["batch-poster"]["espresso-tee-type"] = "SGX";
     } else {
       posterConfig.node["seq-coordinator"].enable = true;
     }
@@ -474,13 +511,14 @@ function writeConfigs(argv: any) {
   l3Config.node["delayed-sequencer"]["use-merge-finality"] = false;
   l3Config.node["batch-poster"].enable = true;
   l3Config.node["batch-poster"]["redis-url"] = "";
-  if (argv.espresso) {
+  if (argv.l3Espresso) {
     l3Config.node.feed.output.enable = true;
     l3Config.node.dangerous["no-sequencer-coordinator"] = true;
-    l3Config.node.feed.input.url.push("ws://sequencer:9642");
-    l3Config.node["batch-poster"]["hotshot-url"] = argv.espressoUrl;
+    l3Config.node.feed.input.url.push("ws://l3node:3348");
+    l3Config.node["batch-poster"]["hotshot-urls"] = [argv.espressoUrl, argv.espressoUrl];
     l3Config.node["batch-poster"]["light-client-address"] =
       argv.lightClientAddress;
+    l3Config.node["batch-poster"]["espresso-tee-type"] = "SGX";
   }
   fs.writeFileSync(
     path.join(consts.configpath, "l3node_config.json"),
@@ -725,6 +763,11 @@ export const writeConfigCommand = {
       describe: "DAS committee member B BLS pub key",
       default: "",
     },
+    validate: {
+      boolean: true,
+      describe: "enable the caff node to use the validator as the trusted node for its state checker",
+      default: false,
+    }
   },
   handler: (argv: any) => {
     writeConfigs(argv);
