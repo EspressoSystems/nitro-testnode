@@ -2,6 +2,8 @@
 
 Nitro-testnode brings up a full environment for local nitro testing (with Stylus support) including a dev-mode geth L1, and multiple instances with different roles.
 
+> Note: This repository is an Espresso Systems–maintained fork, intended for testing the Espresso fork version of the Nitro testnode.
+
 ### Requirements
 
 * bash shell
@@ -16,14 +18,14 @@ Check out the release branch of the repository.
 > Notice: release branch may be force-pushed at any time.
 
 ```bash
-git clone -b release --recurse-submodules https://github.com/OffchainLabs/nitro-testnode.git
+git clone -b release --recurse-submodules https://github.com/EspressoSystems/nitro-testnode.git
 cd nitro-testnode
 ```
 
 Initialize the node
 
 ```bash
-./test-node.bash --init
+./test-node.bash --init --latest-espresso-image --espresso
 ```
 To see more options, use `--help`.
 
@@ -34,13 +36,13 @@ Check out the nitro repository. Use the test-node submodule of nitro repository.
 > Notice: testnode may not always be up-to-date with config options of current nitro node, and is not considered stable when operated in that way.
 
 ```bash
-git clone --recurse-submodules https://github.com/OffchainLabs/nitro.git
+git clone --recurse-submodules https://github.com/EspressoSystems/nitro-espresso-integration.git
 cd nitro/nitro-testnode
 ```
 
 Initialize the node in dev-mode (this will build the docker images from source)
 ```bash
-./test-node.bash --init --dev
+./test-node.bash --init --dev --espresso
 ```
 To see more options, use `--help`.
 
@@ -104,11 +106,3 @@ user_fee_token_deployer:    0x2AC5278D230f88B481bBE4A94751d7188ef48Ca2
 ```
 
 While not a named account, 0x3f1eae7d46d88f08fc2f8ed27fcb2ab183eb2d0e is funded on all test chains.
-
-## Contact
-
-Discord - [Arbitrum](https://discord.com/invite/5KE54JwyTs)
-
-Twitter: [Arbitrum](https://twitter.com/arbitrum)
-
-
