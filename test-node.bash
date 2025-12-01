@@ -12,7 +12,7 @@ BLOCKSCOUT_VERSION=offchainlabs/blockscout:v1.1.0-0e716c8
 DEFAULT_NITRO_CONTRACTS_VERSION="v3.1.0"
 DEFAULT_TOKEN_BRIDGE_VERSION="v1.2.2"
 
-ESPRESSO_DEFAULT_VERSION=ghcr.io/espressosystems/nitro-espresso-integration/nitro-node:integration
+ESPRESSO_DEFAULT_VERSION=ghcr.io/espressosystems/nitro-espresso-integration/nitro-node:v3.8.0-b759090
 : ${ESPRESSO_VERSION:=$ESPRESSO_DEFAULT_VERSION}
 
 # Set default versions if not overriden by provided env vars

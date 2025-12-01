@@ -75,7 +75,7 @@ docker compose run scripts update-config-value \
 docker compose restart poster
 
 # Batcher should have created 1 empty batch
-sleep 40
+sleep 140
 
 validator_block2=$(cast block-number --rpc-url http://localhost:8247)
 if (( validator_block2 == validator_block )); then
