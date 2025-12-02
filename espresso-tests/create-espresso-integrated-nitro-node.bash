@@ -2,7 +2,7 @@
 set -euo pipefail
 # set -x # print each command before executing it, for debugging
 
-ESPRESSO_VERSION=ghcr.io/espressosystems/nitro-espresso-integration/nitro-node:integration
+ESPRESSO_VERSION=ghcr.io/espressosystems/nitro-espresso-integration/nitro-node:v3.8.0-2495bf4
 lightClientAddr=0xb6eb235fa509e3206f959761d11e3777e16d0e98
 espresso=true
 simpleWithValidator=false
