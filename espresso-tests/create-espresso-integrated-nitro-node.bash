@@ -4,7 +4,6 @@ set -euo pipefail
 
 ESPRESSO_VERSION=ghcr.io/espressosystems/nitro-espresso-integration/nitro-node:v3.8.0-2495bf4
 lightClientAddr=0xb6eb235fa509e3206f959761d11e3777e16d0e98
-espresso=true
 simpleWithValidator=false
 
 # docker pull and tag the espresso integration nitro node.
@@ -14,7 +13,7 @@ docker tag $ESPRESSO_VERSION espresso-integration-testnode
 
 # write the espresso configs to the config volume
 echo == Writing configs
-docker compose run scripts-espresso write-config --simple --simpleWithValidator $simpleWithValidator --espresso $espresso --lightClientAddress $lightClientAddr
+docker compose run --rm --build scripts-espresso write-config --simple --simpleWithValidator $simpleWithValidator --espresso true --lightClientAddress $lightClientAddr
 
 # do whatever other espresso setup is needed.
 
