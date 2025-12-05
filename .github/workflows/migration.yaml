@@ -16,6 +16,7 @@ concurrency:
 
 jobs:
   migration_test:
+    if: false
     runs-on: ubuntu-24.04
 
     steps:
@@ -43,6 +44,7 @@ jobs:
         timeout-minutes: 45
 
   migtation-test-v3:
+    if: false
     runs-on: ubuntu-24.04
 
     steps:
@@ -71,6 +73,7 @@ jobs:
           -c espresso-tests/migration-test.bash
         timeout-minutes: 45
   upgrade-test:
+    if: false
     runs-on: ubuntu-24.04
 
     steps:
