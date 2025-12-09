@@ -3,7 +3,7 @@
 set -eu
 
 DEFAULT_NITRO_CONTRACTS_REPO="https://github.com/OffchainLabs/nitro-contracts.git"
-NITRO_NODE_VERSION=offchainlabs/nitro-node:v3.6.7-a7c9f1e
+NITRO_NODE_VERSION=offchainlabs/nitro-node:v3.8.0-62c0aa7
 BLOCKSCOUT_VERSION=offchainlabs/blockscout:v1.1.0-0e716c8
 
 # nitro-contract workaround for testnode
@@ -12,7 +12,7 @@ BLOCKSCOUT_VERSION=offchainlabs/blockscout:v1.1.0-0e716c8
 DEFAULT_NITRO_CONTRACTS_VERSION="v3.1.0"
 DEFAULT_TOKEN_BRIDGE_VERSION="v1.2.2"
 
-ESPRESSO_DEFAULT_VERSION=ghcr.io/espressosystems/nitro-espresso-integration/nitro-node:integration
+ESPRESSO_DEFAULT_VERSION=ghcr.io/espressosystems/nitro-espresso-integration/nitro-node:v3.8.0-2495bf4
 : ${ESPRESSO_VERSION:=$ESPRESSO_DEFAULT_VERSION}
 
 # Set default versions if not overriden by provided env vars
