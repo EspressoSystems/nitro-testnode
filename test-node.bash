@@ -3,7 +3,7 @@
 set -eu
 
 DEFAULT_NITRO_CONTRACTS_REPO="https://github.com/OffchainLabs/nitro-contracts.git"
-NITRO_NODE_VERSION=offchainlabs/nitro-node:v3.9.2-602a41e
+NITRO_NODE_VERSION=offchainlabs/nitro-node:v3.9.2-52e8959
 BLOCKSCOUT_VERSION=offchainlabs/blockscout:v1.1.0-0e716c8
 
 # nitro-contract workaround for testnode
