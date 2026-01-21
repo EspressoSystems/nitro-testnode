@@ -309,7 +309,7 @@ function writeConfigs(argv: any) {
 
   if (argv.espresso) {
     let config = baseConfig as any;
-    config.node.espresso["batch-poster"]["hotshot-url"] = "";
+    config.node.espresso['batch-poster'] = { 'hotshot-url': '' };
     config.node["batch-poster"]["max-empty-batch-delay"] = "1h";
   }
 
@@ -335,7 +335,7 @@ function writeConfigs(argv: any) {
     }
     if (argv.espresso) {
       simpleConfig.node.feed.output.enable = true;
-      simpleConfig.node.espreso["batch-poster"]["hotshot-url"] = argv.espressoUrl;
+      simpleConfig.node.espresso['batch-poster'] = { 'hotshot-url': argv.espressoUrl };
       simpleConfig.node["block-validator"]["dangerous"][
         "reset-block-validation"
       ] = true;
@@ -420,9 +420,11 @@ function writeConfigs(argv: any) {
       sequencerConfig.execution["sequencer"].enable = false;
       sequencerConfig.node["delayed-sequencer"].enable = false;
       sequencerConfig.node["parent-chain-reader"].enable = true;
-      sequencerConfig.node.espreso["streamer"]["hotshot-block"]=1;
-      sequencerConfig.node.espreso["streamer"]["txns-polling-interval"]="2s";
-      sequencerConfig.node.espreso["streamer"]["address-monitor-start-l1"]=1;
+      sequencerConfig.node.espresso.streamer = {
+        "hotshot-block": 1,
+        "txns-polling-interval": "2s",
+        "address-monitor-start-l1": 1
+      };
       sequencerConfig.node.espresso["caff-node"] = {
         "enable": true,
         "hotshot-url": argv.espressoUrl,
@@ -478,8 +480,11 @@ function writeConfigs(argv: any) {
       } else {
         posterConfig.node.feed.input.url.push("ws://sequencer:9642");
       }
-      posterConfig.node.espresso["batch-poster"]["hotshot-url"] = argv.espressoUrl;
-      posterConfig.node.espresso["batch-poster"]["tee-type"] = "SGX";
+        posterConfig.node.espresso['batch-poster'] = {
+        'hotshot-url': argv.espressoUrl,
+        'tee-type': 'SGX'
+      };
+
     } else {
       posterConfig.node["seq-coordinator"].enable = true;
     }
@@ -516,8 +521,10 @@ function writeConfigs(argv: any) {
     l3Config.node.feed.output.enable = true;
     l3Config.node.dangerous["no-sequencer-coordinator"] = true;
     l3Config.node.feed.input.url.push("ws://l3node:3348");
-    l3Config.node.espresso["batch-poster"]["hotshot-url"] = argv.espressoUrl;
-    l3Config.node.espresso["batch-poster"]["tee-type"] = "SGX";
+    l3Config.node.espresso['batch-poster'] = {
+      'hotshot-url': argv.espressoUrl,
+      'tee-type': 'SGX'
+    };
   }
   fs.writeFileSync(
     path.join(consts.configpath, "l3node_config.json"),
