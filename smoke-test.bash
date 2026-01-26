@@ -15,6 +15,7 @@ echo "latest confirmed hash: $previousConfirmed"
 while true; do
   confirmed=$(cast call --rpc-url http://localhost:8545 $rollupAddress 'latestConfirmed()(bytes32)')
   if [ -n "$confirmed" ] && [ "$confirmed" != "$previousConfirmed" ]; then
+    echo "✅ Confirmation observed ...$confirmed"
     break
   else
     echo "Waiting for more confirmed nodes ...$confirmed"
