@@ -43,7 +43,7 @@ if [ "$trustedState" != "$caffState" ]; then
 fi
 
 echo "use the geth node as the trusted node"
-docker compose run scripts update-config-value --path /config/caff_sequencer_config.json --property node.espresso-caff-node.state-checker.trusted-node-url --value http://geth:8545
+docker compose run scripts update-config-value --path /config/caff_sequencer_config.json --property node.espresso.caff-node.state-checker.trusted-node-url --value http://geth:8545
 
 echo "restart caff node"
 docker compose restart caff-node

@@ -434,7 +434,7 @@ function writeConfigs(argv: any) {
         "hotshot-url": argv.espressoUrl,
         namespace: 412346,
         "hotshot-polling-interval": "250ms",
-        "espresso-sgx-verifier-addr":
+        "sgx-verifier-addr":
           "0xb562622f2D76F355D673560CB88c1dF6088702f1",
         "batch-poster-addr": "0xe2148eE53c0755215Df69b2616E552154EdC584f",
         "wait-for-finalization": true,
