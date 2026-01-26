@@ -284,7 +284,6 @@ function writeConfigs(argv: any) {
         "parent-chain-node-url": argv.l1url,
         "sequencer-inbox-address": "not_set",
       },
-      espresso:{}
     },
     execution: {
       sequencer: {
@@ -309,7 +308,12 @@ function writeConfigs(argv: any) {
 
   if (argv.espresso) {
     let config = baseConfig as any;
-    config.node.espresso['batch-poster'] = { 'hotshot-url': '' };
+    config.node.espresso = {
+      'batch-poster': { 
+        'hotshot-url': argv.hotshotUrl || ""
+      }
+    };
+    
     config.node["batch-poster"]["max-empty-batch-delay"] = "1h";
   }
 
