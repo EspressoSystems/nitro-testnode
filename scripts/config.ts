@@ -736,6 +736,9 @@ function dasBackendsJsonConfig(argv: any) {
         pubkey: argv.dasBlsB,
       },
     ],
+    "das-rpc-client":{
+      "enable-chunked-store":false
+    }
   };
   return backends;
 }
