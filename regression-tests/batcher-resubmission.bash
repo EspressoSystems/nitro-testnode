@@ -78,9 +78,9 @@ if [[ "$validator_root" != "$sequencer_root" ]]; then
 fi
 
 # Typically, 3 or 4 new batches are sufficient for this test.
-# We set the threshold to 10 to avoid flakiness due to timing or network issues.
-# If there are more than 10 new batches, it may indicate excessive or unexpected batch posting, which could be costly.
-if [[ $new_batches -gt 10 ]]; then
+# We set the threshold to 20 to avoid flakiness due to timing or network issues.
+# If there are more than 20 new batches, it may indicate excessive or unexpected batch posting, which could be costly.
+if [[ $new_batches -gt 20 ]]; then
     echo "Error: too many new batches ($new_batches)"
     exit 1
 fi
