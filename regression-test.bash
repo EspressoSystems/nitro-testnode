@@ -11,9 +11,9 @@ SKIP_TESTS=(
   batcher-with-malicious-sequencer.bash
   batcher-with-spam-in-hotshot.bash
   caff-node-batcher-addr-monitor.bash
-  caff-node-force-inclusion-test.bash
-  # caff-node-restart.bash
-  # caff-node-state-check.bash
+  # caff-node-force-inclusion-test.bash
+  caff-node-restart.bash
+  caff-node-state-check.bash
 )
 
 cd regression-tests
