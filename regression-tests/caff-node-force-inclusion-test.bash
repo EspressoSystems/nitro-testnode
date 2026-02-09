@@ -1,60 +1,20 @@
 #!/usr/bin/env bash
 # This is a utility function for creating assertions at the end of thie test.
 
-fail() {
-    echo "$*" 1>&2; exit 1;
-}
-
 set -euo pipefail
-set -a # automatically export all variables
-set -x # print each command before executing it, for debugging
 
 # CI is "true" in the CI
 CI="${CI:-false}"
 
-# Output debug information on CI
+# Output debug information on CI or when DEBUG is set
 DEBUG="${DEBUG:-false}"
 if [ "$CI" = "true" ]; then
-  set -x
   DEBUG=true
 fi
 
-# Show the command we are running, then run it. Due to piping this spawns a
-# subshell so does not work for command like `cd` or `source`.
-function run {
-  echo -e "\033[34m>>> $*\033[0m"
-  "$@" 2>&1 | fmt
-}
+# Simple helpers
+info() { echo "# $*"; }
 
-function cd {
-  emph "cd $*"
-  builtin cd "$@"
-}
-
-function emph {
-  echo -e "\033[34m>>> $*\033[0m\n"
-}
-
-# Display only the last line of piped input, continuously updating
-function fmt {
-  # Leave output unchanged in DEBUG mode
-  if [ "$DEBUG" = "true" ]; then
-    cat
-    return
-  fi
-  # rewrite the last line to avoid noisy output
-  while read -r line; do
-    tput cr
-    tput el
-    echo "$line" | cut -c -"$(tput cols)" | tr -d '\r\n'
-  done
-  echo
-}
-
-# Show something with a comment in front, to distinguish it from console output.
-function info {
-  echo "# $@"
-}
 
 # Remove log files on exit
 trap "exit" INT TERM
@@ -79,8 +39,7 @@ function cleanup {
   fi
 }
 
-# Find directory of this script, the project, and the orbit-actions submodule
-TEST_DIR="$(dirname $(readlink -f $0))"
+TEST_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 TESTNODE_LOG_FILE=$(mktemp -t nitro-test-node-logs-XXXXXXXX)
 ESPRESSO_DEVNODE_LOG_FILE=$(mktemp -t espresso-dev-node-logs-XXXXXXXX)
 TESTNODE_DIR="$(dirname "$TEST_DIR")"
@@ -88,24 +47,25 @@ ENV_FILE="$TEST_DIR/.env"
 # Hide docker compose warnings about orphaned containers.
 export COMPOSE_IGNORE_ORPHANS=true
 
-info Ensuring docker compose project is stopped
-run docker compose down -v --remove-orphans
+info "Ensuring docker compose project is stopped"
+docker compose down -v --remove-orphans
+
+# source "$TESTNODE_DI R/common.bash"
+cd "$(dirname "$0")"
 
 source ./common.bash
-info Deploying a Espresso Nitro stack with caff node also enabled
-emph ./test-node.bash --espresso $(get_espresso_image_flag) --caff-node  --validate --tokenbridge --init-force --detach
+info "Deploying an Espresso Nitro stack with caff node enabled"
 if [ "$DEBUG" = "true" ]; then
-  ../test-node.bash --espresso $(get_espresso_image_flag) --caff-node  --tokenbridge --init-force --detach
+  "$TESTNODE_DIR/test-node.bash" --espresso $(get_espresso_image_flag) --caff-node --tokenbridge --init-force --detach
 else
   info "This command starts up an entire Nitro stack. It takes a long time."
   info "Run \`tail -f $TESTNODE_LOG_FILE\` to see logs, if necessary."
   echo
- ../test-node.bash --espresso $(get_espresso_image_flag) --validate --tokenbridge --caff-node --init-force --detach   > "$TESTNODE_LOG_FILE" 2>&1
+  "$TESTNODE_DIR/test-node.bash" --espresso $(get_espresso_image_flag) --validate --tokenbridge --caff-node --init-force --detach > "$TESTNODE_LOG_FILE" 2>&1
 fi
 
 # Start espresso sequencer node for the purposes of the test e.g. not needed for the real migration.
 info "Starting a local Espresso confirmation layer development node"
-emph docker compose up espresso-dev-node --detach
 if [ "$DEBUG" = "true" ]; then
   docker compose up espresso-dev-node --detach
 else
@@ -117,18 +77,15 @@ fi
 
 info "Load environment variables in $ENV_FILE"
 # A similar env file should be supplied for whatever
-emph . "$TEST_DIR/.env"
-. "$TEST_DIR/.env"
+info "Sourcing $ENV_FILE"
+. "$ENV_FILE"
 echo
 info "Loaded env vars:"
 echo
 cat "$TEST_DIR/.env" | sed 's/^/    /'
 echo
 
-function trim-last {
-  tail -n 1 | tr -d '\r\n'
-
-}
+trim-last() { tail -n 1 | tr -d '\r\n'; }
 function get-addr {
   local file="$1"
   local path="$2"
@@ -186,7 +143,7 @@ echo "DELAY_SECONDS: $DELAY_SECONDS"
 echo "FUTURE_SECONDS: $FUTURE_SECONDS"
 
 # Now we stop the sequencer
-run docker stop nitro-testnode-sequencer-1
+docker stop nitro-testnode-sequencer-1 || true
 
 USER_L1_PRIVATE_KEY="$(docker compose run scripts print-private-key --account funnel 2>/dev/null | trim-last)"
 # This is a private key used for testing, save to print
@@ -222,18 +179,27 @@ fi
 sleep 120
 
 
-has_force_inclusion_log() {
-    local container_name="caff-node-1"
-    local search_string="force inclusion is going to happen"
-    if docker logs "$container_name" 2>&1 | grep -q "$search_string"; then
-        return 1
-    else
-        return 0
-    fi
-}
+# has_force_inclusion_log() {
+#     local container_name="caff-node-1"
+#     local search_string="force inclusion is going to happen"
+#     if docker logs "$container_name" 2>&1 | grep -q "$search_string"; then
+#         return 1
+#     else
+#         return 0
+#     fi
+# }
 
 
-if has_force_inclusion_log "caff-node-1" "force inclusion is going to happen"; then
+# if has_force_inclusion_log "caff-node-1" "force inclusion is going to happen"; then
+#   echo "It printed force inclusion is going to happen log"
+#   docker compose down --remove-orphans
+#   exit 0
+# else
+#   echo "Caff node did not print force inclusion log"
+#   exit 1
+# fi
+
+if docker logs "caff-node-1" 2>&1 | grep -q "force inclusion is going to happen"; then
   echo "It printed force inclusion is going to happen log"
   docker compose down --remove-orphans
   exit 0
