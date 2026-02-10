@@ -5,15 +5,7 @@ echo "Running regression tests..."
 cd "$(dirname "$0")"
 
 SKIP_TESTS=(
-  batcher-e2e.bash
-  batcher-resubmission.bash
-  batcher-shutdown.bash
-  batcher-with-malicious-sequencer.bash
-  batcher-with-spam-in-hotshot.bash
   caff-node-batcher-addr-monitor.bash
-  # caff-node-force-inclusion-test.bash
-  caff-node-restart.bash
-  caff-node-state-check.bash
 )
 
 cd regression-tests
