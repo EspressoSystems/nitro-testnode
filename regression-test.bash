@@ -13,13 +13,6 @@ scripts=$(find . -maxdepth 1 -name '*.bash' \
 for script in $scripts; do
   name=$(basename "$script")
 
-  for skip in "${SKIP_TESTS[@]}"; do
-    if [[ "$name" == "$skip" ]]; then
-      echo "⚠️  Skipping $name"
-      continue 2
-    fi
-  done
-
   echo "Running $(basename "$script")"
   attempt=1
   max_attempts=3
