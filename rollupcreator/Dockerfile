@@ -7,7 +7,7 @@ RUN apt-get install -y docker.io
 RUN apt-get install -y python3
 RUN apt-get install -y build-essential
 RUN apt-get install -y curl jq
-WORKDIR /workspace
+WORKDIR /workspace  
 RUN git clone --no-checkout ${NITRO_CONTRACTS_REPO} ./
 RUN git checkout ${NITRO_CONTRACTS_BRANCH}
 RUN git submodule update --init --recursive
@@ -16,7 +16,6 @@ RUN curl -L https://foundry.paradigm.xyz | bash
 ENV PATH="${PATH}:/root/.foundry/bin"
 RUN foundryup --install 1.0.0
 RUN touch scripts/config.ts
-ENV NODE_OPTIONS="--max-old-space-size=8192"
 RUN yarn install
 RUN yarn build:all
 ENTRYPOINT ["yarn"]
