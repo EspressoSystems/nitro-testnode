@@ -7,7 +7,6 @@ cd "$(dirname "$0")"
 cd regression-tests
 scripts=$(find . -maxdepth 1 -name '*.bash' \
   ! -name 'common.bash' \
-  ! -name 'caff-node-batcher-addr-monitor.bash' \
   | sort)
 
 for script in $scripts; do
