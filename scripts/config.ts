@@ -438,8 +438,6 @@ function writeConfigs(argv: any) {
           "0xb562622f2D76F355D673560CB88c1dF6088702f1",
         "batch-poster-addr": "0xe2148eE53c0755215Df69b2616E552154EdC584f",
         "wait-for-finalization": true,
-        "wait-for-confirmations": false,
-        "blocks-to-read": 1,
         "force-inclusion-checker": {
           "block-threshold-tolerance": 100000,
           "second-threshold-tolerance": 100000,
@@ -486,7 +484,7 @@ function writeConfigs(argv: any) {
       }
         posterConfig.node.espresso['batch-poster'] = {
         'hotshot-url': argv.espressoUrl,
-        'tee-type': 'SGX'
+        'tee-type': 'TESTS'
       };
 
     } else {
@@ -527,7 +525,7 @@ function writeConfigs(argv: any) {
     l3Config.node.feed.input.url.push("ws://l3node:3348");
     l3Config.node.espresso['batch-poster'] = {
       'hotshot-url': argv.espressoUrl,
-      'tee-type': 'SGX'
+      'tee-type': 'TESTS'
     };
   }
   fs.writeFileSync(
