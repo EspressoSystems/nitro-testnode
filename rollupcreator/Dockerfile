@@ -1,4 +1,4 @@
-FROM node:20-bookworm-slim
+FROM --platform=linux/amd64 node:20-bookworm-slim
 ARG NITRO_CONTRACTS_BRANCH=main
 ARG NITRO_CONTRACTS_REPO=https://github.com/OffchainLabs/nitro-contracts.git
 RUN apt-get update
