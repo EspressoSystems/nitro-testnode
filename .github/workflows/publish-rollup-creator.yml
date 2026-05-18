@@ -5,7 +5,7 @@ on:
   pull_request:
   push:
     branches:
-      - integration
+      - integrate-cas
   workflow_dispatch:
     inputs:
       nitro_contracts_branch:
