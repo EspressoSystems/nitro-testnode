@@ -11,12 +11,12 @@ on:
       nitro_contracts_branch:
         description: "Nitro contracts branch to build from"
         required: false
-        default: "fix-nitro-mock"
+        default: "fix-start-block"
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository_owner }}/rollup-creator
-  NITRO_CONTRACTS_BRANCH: ${{ inputs.nitro_contracts_branch || 'fix-nitro-mock' }}
+  NITRO_CONTRACTS_BRANCH: ${{ inputs.nitro_contracts_branch || 'fix-start-block' }}
 
 jobs:
   build-and-publish:
