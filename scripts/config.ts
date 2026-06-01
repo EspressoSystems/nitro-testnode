@@ -306,7 +306,7 @@ function writeConfigs(argv: any) {
     "log-level": "DEBUG"
   };
 
-  if (argv.espresso) {
+  if (argv.espresso && !argv.cas) {
     let config = baseConfig as any;
     config.node.espresso = {
       'batch-poster': { 
@@ -411,7 +411,12 @@ function writeConfigs(argv: any) {
     sequencerConfig.execution["sequencer"].enable = true;
     sequencerConfig.node["delayed-sequencer"].enable = true;
 
-    if (argv.espresso) {
+    if (argv.cas) {
+      sequencerConfig.node.feed.output.enable = true;
+      sequencerConfig.node.feed.output.signed = true;
+      sequencerConfig.node.dangerous["no-sequencer-coordinator"] = true;
+      sequencerConfig["log-level"] = "INFO";
+    } else if (argv.espresso) {
       sequencerConfig.node.feed.output.enable = true;
       sequencerConfig.node.dangerous["no-sequencer-coordinator"] = true;
     } else {
@@ -477,7 +482,19 @@ function writeConfigs(argv: any) {
     }
 
     let posterConfig = JSON.parse(baseConfJSON);
-    if (argv.espresso) {
+    if (argv.cas) {
+      const posterChainInfoFile = path.join(consts.configpath, "deployed_chain_info_poster.json");
+      posterConfig.chain["info-files"] = [posterChainInfoFile];
+      posterConfig.node.feed.input.url.push("ws://cas:9643");
+      delete posterConfig.node["data-availability"];
+      posterConfig.node["da-provider"] = {
+        enable: true,
+        "with-writer": true,
+        rpc: { url: "http://cas:8000/cas/arb/calldata" }
+      };
+      posterConfig.node.dangerous["no-sequencer-coordinator"] = true;
+      posterConfig["log-level"] = "INFO";
+    } else if (argv.espresso) {
       if (argv.mockSequencer) {
         posterConfig.node.feed.input.url.push("ws://mock-sequencer:9642");
         posterConfig.node["batch-poster"]["max-empty-batch-delay"] = "30s"
@@ -493,7 +510,7 @@ function writeConfigs(argv: any) {
       posterConfig.node["seq-coordinator"].enable = true;
     }
     posterConfig.node["batch-poster"].enable = true;
-    if (argv.anytrust) {
+    if (argv.anytrust && !argv.cas) {
       posterConfig.node["data-availability"]["rpc-aggregator"].enable = true;
     }
     fs.writeFileSync(
@@ -559,6 +576,81 @@ function writeConfigs(argv: any) {
   fs.writeFileSync(
     path.join(consts.configpath, "validation_node_config.json"),
     JSON.stringify(validationNodeConfig)
+  );
+}
+
+function writeCasConfig(argv: any) {
+  const chainInfo = getChainInfo();
+  const sequencerInboxAddress = ethers.utils.hexlify(
+    chainInfo[0]["rollup"]["sequencer-inbox"]
+  );
+
+  let teeVerifierAddress = "0x0000000000000000000000000000000000000000";
+  try {
+    const raw = fs.readFileSync(
+      path.join(consts.configpath, "tee_verifier_address.txt"),
+      "utf8"
+    );
+    const trimmed = raw.trim();
+    if (trimmed.length > 0) {
+      teeVerifierAddress = trimmed;
+    }
+  } catch (e) {}
+
+  const casConfig = {
+    espresso_client: {
+      base_url: argv.espressoUrl,
+    },
+    streamer: {
+      starting_hotshot_height: 0,
+    },
+    rollup: {
+      type: "nitro",
+      namespace_id: 412346,
+      stack: {
+        chain_id: 412346,
+        feed: {
+          web_socket_url: "ws://sequencer:9642",
+          current_message_count: 0,
+          client: {
+            trusted_sequencer_addresses: [namedAddress("sequencer")],
+          },
+          server: {
+            ws_server: {
+              port: 9643,
+              enable_compression: true,
+            },
+          },
+        },
+        l1_http_url: "http://geth:8545",
+        l1_ws_url: "ws://geth:8546",
+        sequencer_inbox_address: sequencerInboxAddress,
+      },
+    },
+    da_server: {
+      listen_addr: "0.0.0.0:8000",
+      da_providers: [
+        {
+          name: "anytrust",
+          endpoint_url: "http://daprovider-anytrust:9881",
+          is_anytrust: true,
+        },
+      ],
+    },
+    submitter: {
+      max_in_flight: 1000,
+    },
+    key_manager: {
+      tee_verifier_address: teeVerifierAddress,
+      attestation_verifier_url: "http://localhost:9000",
+      tee_type: "test",
+    },
+    is_fresh_deployment: true,
+  };
+
+  fs.writeFileSync(
+    path.join(consts.configpath, "cas_config.json"),
+    JSON.stringify(casConfig, null, 2)
   );
 }
 
@@ -766,6 +858,11 @@ export const writeConfigCommand = {
       describe: "run nodes in anytrust mode",
       default: false,
     },
+    cas: {
+      boolean: true,
+      describe: "CAS mode: vanilla nitro-node with Chain Agnostic Service",
+      default: false,
+    },
     dasBlsA: {
       string: true,
       describe: "DAS committee member A BLS pub key",
@@ -784,6 +881,14 @@ export const writeConfigCommand = {
   },
   handler: (argv: any) => {
     writeConfigs(argv);
+  },
+};
+
+export const writeCasConfigCommand = {
+  command: "write-cas-config",
+  describe: "writes CAS (Chain Agnostic Service) config file",
+  handler: (argv: any) => {
+    writeCasConfig(argv);
   },
 };
 

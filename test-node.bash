@@ -6,6 +6,10 @@ DEFAULT_NITRO_CONTRACTS_REPO="https://github.com/OffchainLabs/nitro-contracts.gi
 NITRO_NODE_VERSION=offchainlabs/nitro-node:v3.8.0-62c0aa7
 BLOCKSCOUT_VERSION=offchainlabs/blockscout:v1.1.0-0e716c8
 
+# CAS (Chain Agnostic Service) mode
+CAS_NITRO_NODE_VERSION=offchainlabs/nitro-node:v3.9.9-6b0af88
+CAS_IMAGE=ghcr.io/espressosystems/chain-adjacent-service:integrate-v3.9.9
+
 # nitro-contract workaround for testnode
 # 1. authorizing validator signer key since validator wallet is buggy
 #    - gas estimation sent from 0x0000 lead to balance and permission error
@@ -54,6 +58,7 @@ redundantsequencers=0
 lightClientAddr=0xb7fc0e52ec06f125f3afeba199248c79f71c2e3a
 lightClientAddrForL3=0x5e36aa9caaf5f708fca5c04d2d4c776a62b2b258
 enableCaffNode=false
+cas=false
 espresso=false
 espresso_mock_sequencer=false
 l2_espresso=false
@@ -128,6 +133,10 @@ while [[ $# -gt 0 ]]; do
         --espresso)
             espresso=true
             l2_espresso=true
+            shift
+            ;;
+        --cas)
+            cas=true
             shift
             ;;
         --mock-sequencer)
@@ -310,6 +319,7 @@ while [[ $# -gt 0 ]]; do
             echo --no-tokenbridge  don\'t build or launch tokenbridge
             echo --no-run          does not launch nodes \(useful with build or init\)
             echo --no-simple       run a full configuration with separate sequencer/batch-poster/validator/relayer
+            echo --cas             run CAS mode: vanilla nitro-node with Chain Agnostic Service middleware
             echo --enable-caff-node enable espresso caff node
             echo --build-dev-nitro     rebuild dev nitro docker image
             echo --no-build-dev-nitro  don\'t rebuild dev nitro docker image
@@ -324,7 +334,16 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-if $espresso; then
+if $cas; then
+    NITRO_CONTRACTS_REPO=https://github.com/EspressoSystems/nitro-contracts.git
+    NITRO_CONTRACTS_BRANCH=2.1.3-legacy
+    export NITRO_CONTRACTS_REPO
+    export NITRO_CONTRACTS_BRANCH
+    l2anytrust=true
+    echo "Running CAS mode"
+    echo "Using NITRO_CONTRACTS_REPO: $NITRO_CONTRACTS_REPO"
+    echo "Using NITRO_CONTRACTS_BRANCH: $NITRO_CONTRACTS_BRANCH"
+elif $espresso; then
     NITRO_CONTRACTS_REPO=https://github.com/EspressoSystems/nitro-contracts.git
     DEFAULT_ESPRESSO_NITRO_CONTRACTS_BRANCH=v3.1.1
     : ${ESPRESSO_NITRO_CONTRACTS_BRANCH:=$DEFAULT_ESPRESSO_NITRO_CONTRACTS_BRANCH}
@@ -387,10 +406,10 @@ if $blockscout; then
     NODES="$NODES blockscout"
 fi
 
-if $espresso; then
+if $cas; then
+    NODES="$NODES espresso-dev-node poster cas daprovider-anytrust"
+elif $espresso; then
     if $l3node; then
-        # If we run the `l3node` with enabling espresso mode, then the
-        # l2 node will run without `espresso` mode.
         l2_espresso=false
         l3_espresso=true
     fi
@@ -432,7 +451,13 @@ if $build_utils; then
   docker compose build --no-rm $UTILS_NOCACHE $LOCAL_BUILD_NODES
 fi
 
-if $dev_nitro; then
+if $cas; then
+  echo "Using Nitro image (CAS): $CAS_NITRO_NODE_VERSION"
+  docker pull $CAS_NITRO_NODE_VERSION
+  docker tag $CAS_NITRO_NODE_VERSION nitro-node-dev-testnode
+  echo "Using CAS image: $CAS_IMAGE"
+  docker pull $CAS_IMAGE --platform linux/amd64
+elif $dev_nitro; then
   docker tag nitro-node-dev:latest nitro-node-dev-testnode
 else
   if $latest_espresso_image; then
@@ -517,7 +542,10 @@ if $force_init; then
     l2ownerAddress=`docker compose run scripts print-address --account l2owner | tail -n 1 | tr -d '\r\n'`
     echo $l2ownerAddress
 
-    if $l2anytrust; then
+    if $cas; then
+        echo "== Writing l2 chain config (CAS mode, anytrust enabled)"
+        docker compose run scripts --l2owner $l2ownerAddress  write-l2-chain-config --anytrust --espresso true
+    elif $l2anytrust; then
         echo "== Writing l2 chain config (anytrust enabled)"
         docker compose run scripts --l2owner $l2ownerAddress  write-l2-chain-config --anytrust --espresso $l2_espresso --mockSequencer $espresso_mock_sequencer
     else
@@ -531,14 +559,37 @@ if $force_init; then
     wasmroot=`docker compose run --entrypoint sh sequencer -c "cat /home/user/target/machines/latest/module-root.txt"`
 
     echo == Deploying L2 chain
-    docker compose run -e PARENT_CHAIN_RPC="http://geth:8545" -e DEPLOYER_PRIVKEY=$l2ownerKey -e PARENT_CHAIN_ID=$l1chainid -e CHILD_CHAIN_NAME="arb-dev-test" -e MAX_DATA_SIZE=117964 -e OWNER_ADDRESS=$l2ownerAddress -e WASM_MODULE_ROOT=$wasmroot -e SEQUENCER_ADDRESS=$sequenceraddress -e AUTHORIZE_VALIDATORS=10 -e CHILD_CHAIN_CONFIG_PATH="/config/l2_chain_config.json" -e CHAIN_DEPLOYMENT_INFO="/config/deployment.json" -e CHILD_CHAIN_INFO="/config/deployed_chain_info.json" -e LIGHT_CLIENT_ADDR=$lightClientAddr  rollupcreator create-rollup-testnode
+    CAS_DEPLOY_FLAGS=""
+    if $cas; then
+        CAS_DEPLOY_FLAGS="-e ENABLE_ESPRESSO_CAS=1 -e TEE_VERIFIER_INFO=/config/tee_verifier_address.txt"
+    fi
+    docker compose run -e PARENT_CHAIN_RPC="http://geth:8545" -e DEPLOYER_PRIVKEY=$l2ownerKey -e PARENT_CHAIN_ID=$l1chainid -e CHILD_CHAIN_NAME="arb-dev-test" -e MAX_DATA_SIZE=117964 -e OWNER_ADDRESS=$l2ownerAddress -e WASM_MODULE_ROOT=$wasmroot -e SEQUENCER_ADDRESS=$sequenceraddress -e AUTHORIZE_VALIDATORS=10 -e CHILD_CHAIN_CONFIG_PATH="/config/l2_chain_config.json" -e CHAIN_DEPLOYMENT_INFO="/config/deployment.json" -e CHILD_CHAIN_INFO="/config/deployed_chain_info.json" -e LIGHT_CLIENT_ADDR=$lightClientAddr $CAS_DEPLOY_FLAGS rollupcreator create-rollup-testnode
     docker compose run --entrypoint sh rollupcreator -c "jq [.[]] /config/deployed_chain_info.json > /config/l2_chain_info.json"
     docker compose run --entrypoint sh rollupcreator -c "jq [.[]] /config/deployed_chain_info.json > /espresso-config/l2_chain_info.json"
     docker compose run --entrypoint sh rollupcreator -c "cat /config/l2_chain_info.json"
 
+    if $cas; then
+        echo == Extracting sequencer inbox address for CAS
+        SEQUENCER_INBOX_ADDRESS=`docker compose run --entrypoint sh rollupcreator -c "jq -r '.[0].rollup[\"sequencer-inbox\"]' /config/deployed_chain_info.json" | tail -n 1 | tr -d '\r\n'`
+        export SEQUENCER_INBOX_ADDRESS
+        echo "SEQUENCER_INBOX_ADDRESS=$SEQUENCER_INBOX_ADDRESS"
+
+        echo == Generating poster chain info with DataAvailabilityCommittee=false
+        docker compose run --entrypoint sh rollupcreator -c "jq '[.[] | .\"chain-config\".arbitrum.DataAvailabilityCommittee = false]' /config/deployed_chain_info.json > /config/deployed_chain_info_poster.json"
+    fi
+
 fi # $force_init
 
 anytrustNodeConfigLine=""
+
+if $cas; then
+    if [ -z "${SEQUENCER_INBOX_ADDRESS:-}" ]; then
+        if docker compose run --entrypoint sh rollupcreator -c "[ -f /config/deployed_chain_info.json ]" >/dev/null 2>&1; then
+            SEQUENCER_INBOX_ADDRESS=`docker compose run --entrypoint sh rollupcreator -c "jq -r '.[0].rollup[\"sequencer-inbox\"]' /config/deployed_chain_info.json" | tail -n 1 | tr -d '\r\n'`
+            export SEQUENCER_INBOX_ADDRESS
+        fi
+    fi
+fi
 
 # Remaining init may require AnyTrust committee/mirrors to have been started
 if $l2anytrust; then
@@ -564,11 +615,21 @@ if $l2anytrust; then
     if $run; then
         echo == Starting AnyTrust committee and mirror
         docker compose up --wait das-committee-a das-committee-b das-mirror
+        if $cas; then
+            echo == Starting daprovider-anytrust
+            docker compose up --wait daprovider-anytrust
+        fi
     fi
 fi
 
 if $force_init; then
-    if $simple; then
+    if $cas; then
+        echo == Writing CAS config
+        docker compose run scripts write-cas-config
+
+        echo == Writing configs for CAS mode
+        docker compose run scripts write-config --cas $anytrustNodeConfigLine --lightClientAddress $lightClientAddr
+    elif $simple; then
         echo == Writing configs for simple
         docker compose run scripts write-config --simple $anytrustNodeConfigLine --simpleWithValidator $simple_with_validator --espresso $l2_espresso --lightClientAddress $lightClientAddr
 
@@ -692,6 +753,11 @@ if $run; then
     UP_FLAG=""
     if $detach; then
         UP_FLAG="--wait"
+    fi
+
+    if $cas; then
+        echo == Starting CAS and waiting for it to be ready
+        docker compose up --wait cas
     fi
 
     echo == Launching Sequencer
