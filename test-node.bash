@@ -579,6 +579,15 @@ if $force_init; then
     docker compose run --entrypoint sh rollupcreator -c "jq [.[]] /config/deployed_chain_info.json > /espresso-config/l2_chain_info.json"
     docker compose run --entrypoint sh rollupcreator -c "cat /config/l2_chain_info.json"
 
+    if $validate; then
+        echo == Authorizing validator signer
+        ROLLUP_ADDRESS=`docker compose run --entrypoint sh rollupcreator -c "jq -r '.[0].rollup.rollup' /config/deployed_chain_info.json" | tail -n 1 | tr -d '\r\n'`
+        UPGRADE_EXECUTOR=`docker compose run --entrypoint sh rollupcreator -c "jq -r '.[0].rollup[\"upgrade-executor\"]' /config/deployed_chain_info.json" | tail -n 1 | tr -d '\r\n'`
+        SET_VALIDATOR_CALLDATA=`docker compose run --entrypoint sh rollupcreator -c "cast calldata 'setValidator(address[],bool[])' '[0x6A568afe0f82d34759347bb36F14A6bB171d2CBe]' '[true]'" | tail -n 1 | tr -d '\r\n'`
+        docker compose run --entrypoint sh rollupcreator -c "cast send --private-key $l2ownerKey --rpc-url http://geth:8545 $UPGRADE_EXECUTOR 'executeCall(address,bytes)' $ROLLUP_ADDRESS $SET_VALIDATOR_CALLDATA"
+        echo "Validator 0x6A568afe0f82d34759347bb36F14A6bB171d2CBe authorized on rollup $ROLLUP_ADDRESS"
+    fi
+
     if $cas; then
         echo == Extracting sequencer inbox address for CAS
         SEQUENCER_INBOX_ADDRESS=`docker compose run --entrypoint sh rollupcreator -c "jq -r '.[0].rollup[\"sequencer-inbox\"]' /config/deployed_chain_info.json" | tail -n 1 | tr -d '\r\n'`
@@ -587,13 +596,6 @@ if $force_init; then
 
         echo == Generating poster chain info with DataAvailabilityCommittee=false
         docker compose run --entrypoint sh rollupcreator -c "jq '[.[] | .\"chain-config\".arbitrum.DataAvailabilityCommittee = false]' /config/deployed_chain_info.json > /config/deployed_chain_info_poster.json"
-
-        echo == Authorizing validator signer for CAS mode
-        ROLLUP_ADDRESS=`docker compose run --entrypoint sh rollupcreator -c "jq -r '.[0].rollup.rollup' /config/deployed_chain_info.json" | tail -n 1 | tr -d '\r\n'`
-        UPGRADE_EXECUTOR=`docker compose run --entrypoint sh rollupcreator -c "jq -r '.[0].rollup[\"upgrade-executor\"]' /config/deployed_chain_info.json" | tail -n 1 | tr -d '\r\n'`
-        SET_VALIDATOR_CALLDATA=`docker compose run --entrypoint sh rollupcreator -c "cast calldata 'setValidator(address[],bool[])' '[0x6A568afe0f82d34759347bb36F14A6bB171d2CBe]' '[true]'" | tail -n 1 | tr -d '\r\n'`
-        docker compose run --entrypoint sh rollupcreator -c "cast send --private-key $l2ownerKey --rpc-url http://geth:8545 $UPGRADE_EXECUTOR 'executeCall(address,bytes)' $ROLLUP_ADDRESS $SET_VALIDATOR_CALLDATA"
-        echo "Validator 0x6A568afe0f82d34759347bb36F14A6bB171d2CBe authorized on rollup $ROLLUP_ADDRESS"
     fi
 
 fi # $force_init
