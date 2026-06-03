@@ -39,7 +39,7 @@ jobs:
       - name: Migration Test CAS
         run: |
           nix develop --accept-flake-config --option sandbox relaxed \
-          -c espresso-tests/migration-test-cas.bash
+          -c espresso-tests/cas-migration-test.bash
         timeout-minutes: 45
 
   migration_test:
