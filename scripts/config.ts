@@ -483,16 +483,14 @@ function writeConfigs(argv: any) {
 
     let posterConfig = JSON.parse(baseConfJSON);
     if (argv.cas) {
-      const posterChainInfoFile = path.join(consts.configpath, "deployed_chain_info_poster.json");
-      posterConfig.chain["info-files"] = [posterChainInfoFile];
       posterConfig.node.feed.input.url.push("ws://cas:9643");
-      delete posterConfig.node["data-availability"];
       posterConfig.node["da-provider"] = {
         enable: true,
         "with-writer": true,
         rpc: { url: "http://cas:8000/cas/arb/calldata" }
       };
       posterConfig.node.dangerous["no-sequencer-coordinator"] = true;
+      posterConfig.node["batch-poster"]["redis-url"] = "";
       posterConfig["log-level"] = "INFO";
     } else if (argv.espresso) {
       if (argv.mockSequencer) {
@@ -503,7 +501,7 @@ function writeConfigs(argv: any) {
       }
         posterConfig.node.espresso['batch-poster'] = {
         'hotshot-url': argv.espressoUrl,
-        'tee-type': 'SGX'
+        'tee-type': 'TESTS'
       };
 
     } else {
@@ -585,7 +583,7 @@ function writeCasConfig(argv: any) {
     chainInfo[0]["rollup"]["sequencer-inbox"]
   );
 
-  let teeVerifierAddress = "0x0000000000000000000000000000000000000000";
+  let teeVerifierAddress = process.env.TEE_VERIFIER_ADDRESS || "0x0000000000000000000000000000000000000000";
   try {
     const raw = fs.readFileSync(
       path.join(consts.configpath, "tee_verifier_address.txt"),
@@ -608,6 +606,7 @@ function writeCasConfig(argv: any) {
       type: "nitro",
       namespace_id: 412346,
       stack: {
+        legacy_signer_addresses: [namedAddress("sequencer")],
         chain_id: 412346,
         feed: {
           web_socket_url: "ws://sequencer:9642",
