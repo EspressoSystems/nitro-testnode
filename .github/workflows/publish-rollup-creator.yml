@@ -5,13 +5,13 @@ on:
   pull_request:
   push:
     branches:
-      - integrate-cas
+      - integration
   workflow_dispatch:
     inputs:
       nitro_contracts_branch:
         description: "Nitro contracts branch to build from"
         required: false
-        default: "fix-start-block"
+        default: "2.1.3-legacy"
 
 env:
   REGISTRY: ghcr.io
