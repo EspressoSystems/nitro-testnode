@@ -564,6 +564,14 @@ if $force_init; then
         CAS_DEPLOY_FLAGS="-e ENABLE_ESPRESSO_CAS=1 -e TEE_VERIFIER_INFO=/config/tee_verifier_address.txt"
     fi
     docker compose run -e PARENT_CHAIN_RPC="http://geth:8545" -e DEPLOYER_PRIVKEY=$l2ownerKey -e PARENT_CHAIN_ID=$l1chainid -e CHILD_CHAIN_NAME="arb-dev-test" -e MAX_DATA_SIZE=117964 -e OWNER_ADDRESS=$l2ownerAddress -e WASM_MODULE_ROOT=$wasmroot -e SEQUENCER_ADDRESS=$sequenceraddress -e AUTHORIZE_VALIDATORS=10 -e CHILD_CHAIN_CONFIG_PATH="/config/l2_chain_config.json" -e CHAIN_DEPLOYMENT_INFO="/config/deployment.json" -e CHILD_CHAIN_INFO="/config/deployed_chain_info.json" -e LIGHT_CLIENT_ADDR=$lightClientAddr $CAS_DEPLOY_FLAGS rollupcreator create-rollup-testnode
+
+    if $espresso; then
+        DEPLOYED_SEQ_INBOX=`docker compose run --entrypoint sh rollupcreator -c "jq -r '.[0].rollup[\"sequencer-inbox\"]' /config/deployed_chain_info.json" | tail -n 1 | tr -d '\r\n'`
+        ACTUAL_TEE_VERIFIER=`docker compose run --entrypoint sh rollupcreator -c "cast call $DEPLOYED_SEQ_INBOX 'espressoTEEVerifier()(address)' --rpc-url http://geth:8545" | tail -n 1 | tr -d '\r\n'`
+        echo "EspressoTEEVerifier on SequencerInbox: $ACTUAL_TEE_VERIFIER"
+        docker compose run --entrypoint sh rollupcreator -c "jq '.[0][\"chain-config\"].arbitrum.EspressoTEEVerifierAddress = \"$ACTUAL_TEE_VERIFIER\"' /config/deployed_chain_info.json > /tmp/patched.json && mv /tmp/patched.json /config/deployed_chain_info.json"
+    fi
+
     docker compose run --entrypoint sh rollupcreator -c "jq [.[]] /config/deployed_chain_info.json > /config/l2_chain_info.json"
     docker compose run --entrypoint sh rollupcreator -c "jq [.[]] /config/deployed_chain_info.json > /espresso-config/l2_chain_info.json"
     docker compose run --entrypoint sh rollupcreator -c "cat /config/l2_chain_info.json"
