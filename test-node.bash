@@ -9,6 +9,7 @@ BLOCKSCOUT_VERSION=offchainlabs/blockscout:v1.1.0-0e716c8
 # CAS (Chain Agnostic Service) mode
 CAS_NITRO_NODE_VERSION=offchainlabs/nitro-node:v3.9.9-6b0af88
 CAS_IMAGE=ghcr.io/espressosystems/chain-adjacent-service:integrate-v3.9.9
+CAS_POSTER_VERSION=ghcr.io/espressosystems/nitro-espresso-integration/nitro-node:pr-1052
 
 # nitro-contract workaround for testnode
 # 1. authorizing validator signer key since validator wallet is buggy
@@ -457,6 +458,8 @@ if $cas; then
   docker tag $CAS_NITRO_NODE_VERSION nitro-node-dev-testnode
   echo "Using CAS image: $CAS_IMAGE"
   docker pull $CAS_IMAGE --platform linux/amd64
+  echo "Using CAS Poster image: $CAS_POSTER_VERSION"
+  docker pull $CAS_POSTER_VERSION --platform linux/amd64
 elif $dev_nitro; then
   docker tag nitro-node-dev:latest nitro-node-dev-testnode
 else
@@ -584,6 +587,13 @@ if $force_init; then
 
         echo == Generating poster chain info with DataAvailabilityCommittee=false
         docker compose run --entrypoint sh rollupcreator -c "jq '[.[] | .\"chain-config\".arbitrum.DataAvailabilityCommittee = false]' /config/deployed_chain_info.json > /config/deployed_chain_info_poster.json"
+
+        echo == Authorizing validator signer for CAS mode
+        ROLLUP_ADDRESS=`docker compose run --entrypoint sh rollupcreator -c "jq -r '.[0].rollup.rollup' /config/deployed_chain_info.json" | tail -n 1 | tr -d '\r\n'`
+        UPGRADE_EXECUTOR=`docker compose run --entrypoint sh rollupcreator -c "jq -r '.[0].rollup[\"upgrade-executor\"]' /config/deployed_chain_info.json" | tail -n 1 | tr -d '\r\n'`
+        SET_VALIDATOR_CALLDATA=`docker compose run --entrypoint sh rollupcreator -c "cast calldata 'setValidator(address[],bool[])' '[0x6A568afe0f82d34759347bb36F14A6bB171d2CBe]' '[true]'" | tail -n 1 | tr -d '\r\n'`
+        docker compose run --entrypoint sh rollupcreator -c "cast send --private-key $l2ownerKey --rpc-url http://geth:8545 $UPGRADE_EXECUTOR 'executeCall(address,bytes)' $ROLLUP_ADDRESS $SET_VALIDATOR_CALLDATA"
+        echo "Validator 0x6A568afe0f82d34759347bb36F14A6bB171d2CBe authorized on rollup $ROLLUP_ADDRESS"
     fi
 
 fi # $force_init
@@ -766,11 +776,27 @@ if $run; then
     if $cas; then
         echo == Starting CAS and waiting for it to be ready
         docker compose up --wait cas
+
+        CAS_NODES_NO_POSTER=""
+        for node in $NODES; do
+            [ "$node" != "poster" ] && CAS_NODES_NO_POSTER="$CAS_NODES_NO_POSTER $node"
+        done
+
+        echo == Launching Sequencer
+        echo if things go wrong - use --init to create a new chain
+        echo $CAS_NODES_NO_POSTER
+        docker compose up $UP_FLAG $CAS_NODES_NO_POSTER
+
+        echo == Re-tagging poster image to CAS-compatible build
+        docker tag $CAS_POSTER_VERSION nitro-node-dev-testnode
+
+        echo == Starting poster with CAS-compatible nitro
+        docker compose up $UP_FLAG poster
+    else
+        echo == Launching Sequencer
+        echo if things go wrong - use --init to create a new chain
+        echo $NODES
+
+        docker compose up $UP_FLAG $NODES
     fi
-
-    echo == Launching Sequencer
-    echo if things go wrong - use --init to create a new chain
-    echo $NODES
-
-    docker compose up $UP_FLAG $NODES
 fi
