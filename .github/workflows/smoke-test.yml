@@ -18,7 +18,7 @@ jobs:
   smoke_test:
     strategy:
       matrix:
-        test-script: [./smoke-test.bash, ./smoke-test-l3.bash, ./smoke-test-cas.bash]
+        test-script: [./smoke-test.bash, ./smoke-test-cas.bash]
 
     runs-on: ubuntu-24.04
 

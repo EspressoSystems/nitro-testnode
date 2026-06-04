@@ -594,8 +594,6 @@ if $force_init; then
         export SEQUENCER_INBOX_ADDRESS
         echo "SEQUENCER_INBOX_ADDRESS=$SEQUENCER_INBOX_ADDRESS"
 
-        echo == Generating poster chain info with DataAvailabilityCommittee=false
-        docker compose run --entrypoint sh rollupcreator -c "jq '[.[] | .\"chain-config\".arbitrum.DataAvailabilityCommittee = false]' /config/deployed_chain_info.json > /config/deployed_chain_info_poster.json"
     fi
 
 fi # $force_init
