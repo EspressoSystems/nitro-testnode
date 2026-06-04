@@ -468,7 +468,86 @@ services:
       retries: 5
       start_period: 40s
 
-  # Reads from sequencer feed, forwards transactions to sequencer
+  cas:
+    image: ghcr.io/espressosystems/chain-adjacent-service:integrate-v3.9.9
+    platform: linux/amd64
+    ports:
+      - "127.0.0.1:8000:8000"
+      - "127.0.0.1:9643:9643"
+    volumes:
+      - "config:/config"
+    command: ["--config", "/config/cas_config.json"]
+    environment:
+      - RUST_LOG=info
+      - OPERATOR_PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+    depends_on:
+      sequencer:
+        condition: service_healthy
+      espresso-dev-node:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/8000' || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+
+  daprovider-anytrust:
+    image: nitro-node-dev-testnode
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        BLS_A=$$(cat /das-committee-a/keys/das_bls.pub | tr -d '\n')
+        BLS_B=$$(cat /das-committee-b/keys/das_bls.pub | tr -d '\n')
+        cat > /tmp/daprovider.json << DEOF
+        {
+          "mode": "anytrust",
+          "provider-server": {
+            "addr": "0.0.0.0",
+            "port": 9881,
+            "enable-da-writer": true
+          },
+          "anytrust": {
+            "enable": true,
+            "parent-chain-node-url": "ws://geth:8546",
+            "sequencer-inbox-address": "${SEQUENCER_INBOX_ADDRESS}",
+            "request-timeout": "30s",
+            "rpc-aggregator": {
+              "enable": true,
+              "assumed-honest": 1,
+              "backends": [
+                {"url": "http://das-committee-a:9876", "pubkey": "$$BLS_A"},
+                {"url": "http://das-committee-b:9876", "pubkey": "$$BLS_B"}
+              ]
+            },
+            "rest-aggregator": {
+              "enable": true,
+              "urls": ["http://das-mirror:9877"]
+            }
+          },
+          "with-data-signer": true,
+          "data-signer-wallet": {
+            "private-key": "b6b15c8cb491557369f3c7d2c287b053eb229daa9c22138887752191c9520659"
+          },
+          "log-level": "DEBUG"
+        }
+        DEOF
+        exec /usr/local/bin/daprovider --conf.file=/tmp/daprovider.json \
+          --anytrust.parent-chain-node-url=ws://geth:8546 \
+          --anytrust.sequencer-inbox-address=${SEQUENCER_INBOX_ADDRESS}
+    ports:
+      - "127.0.0.1:9881:9881"
+    volumes:
+      - "das-committee-a-data:/das-committee-a:ro"
+      - "das-committee-b-data:/das-committee-b:ro"
+      - "config:/config"
+    depends_on:
+      - das-committee-a
+      - das-committee-b
+      - das-mirror
+      - geth
+
   full-node:
     pid: host # allow debugging
     image: nitro-node-dev-testnode

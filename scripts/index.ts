@@ -2,7 +2,7 @@ import { hideBin } from "yargs/helpers";
 import Yargs from "yargs/yargs";
 import { stressOptions } from "./stress";
 import { redisReadCommand, redisInitCommand } from "./redis";
-import { writeConfigCommand, writeGethGenesisCommand, writePrysmCommand, writeL2ChainConfigCommand, writeL3ChainConfigCommand, writeL2DASCommitteeConfigCommand, writeL2DASMirrorConfigCommand, writeL2DASKeysetConfigCommand } from "./config";
+import { writeConfigCommand, writeCasConfigCommand, writeGethGenesisCommand, writePrysmCommand, writeL2ChainConfigCommand, writeL3ChainConfigCommand, writeL2DASCommitteeConfigCommand, writeL2DASMirrorConfigCommand, writeL2DASKeysetConfigCommand } from "./config";
 import {
   printAddressCommand,
   namedAccountHelpString,
@@ -65,6 +65,7 @@ async function main() {
     .command(updateConfigValueCommand)
     .command(setIsBatchPosterCommand)
     .command(writeConfigCommand)
+    .command(writeCasConfigCommand)
     .command(writeGethGenesisCommand)
     .command(writeL2ChainConfigCommand)
     .command(writeL3ChainConfigCommand)
