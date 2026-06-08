@@ -152,6 +152,9 @@ declare -p PRIVATE_KEY
 OWNER_ADDRESS="$(docker compose run scripts print-address --account l2owner 2>/dev/null | trim-last)"
 declare -p OWNER_ADDRESS
 
+VALIDATOR_ADDRESS="$(docker compose run scripts print-address --account validator 2>/dev/null | trim-last)"
+declare -p VALIDATOR_ADDRESS
+
 info "Disabling validator whitelist"
 run cast send $PARENT_CHAIN_UPGRADE_EXECUTOR "executeCall(address,bytes)" $ROLLUP_ADDRESS "$(cast calldata 'setValidatorWhitelistDisabled(bool)' true)" --rpc-url $PARENT_CHAIN_RPC_URL --private-key $PRIVATE_KEY
 
@@ -344,11 +347,280 @@ while true; do
   echo "Waited $(( SECONDS - START ))s for confirmed nodes..."
 done
 
-# ── Phase 6: Cleanup ──
+BATCH_COUNT_AFTER_CAS=$BATCH_COUNT_NOW
+NUM_CONFIRMED_AFTER_CAS=$NUM_CONFIRMED_NOW
+info "CAS migration verified. Batch count: $BATCH_COUNT_AFTER_CAS, Confirmed: $NUM_CONFIRMED_AFTER_CAS"
+
+# ── Phase 6: Deploy v3.2.0 templates + stake token ──
+
+info "Phase 6: Deploying espresso-v3.2.0 contract templates and stake token"
+
+BOLD_NITRO_CONTRACTS_BRANCH=espresso-v3.2.0
+BOLD_NITRO_CONTRACTS_REPO=https://github.com/EspressoSystems/nitro-contracts.git
+
+info "Extracting additional contract addresses needed for BoLD config"
+BRIDGE_ADDRESS=$(get-addr /config/deployed_chain_info.json '.[0].rollup.bridge')
+declare -p BRIDGE_ADDRESS
+
+INBOX_ADDRESS=$(get-addr /config/deployed_chain_info.json '.[0].rollup.inbox')
+declare -p INBOX_ADDRESS
+
+# Outbox and RollupEventInbox are not in deployed_chain_info.json; query from bridge
+OUTBOX_ADDRESS=$(cast call --rpc-url $PARENT_CHAIN_RPC_URL $BRIDGE_ADDRESS 'allowedOutboxList(uint256)(address)' 0 | trim-last)
+declare -p OUTBOX_ADDRESS
+
+REI_ADDRESS=$(cast call --rpc-url $PARENT_CHAIN_RPC_URL $BRIDGE_ADDRESS 'allowedDelayedInboxList(uint256)(address)' 1 | trim-last)
+declare -p REI_ADDRESS
+
+info "Bootstrapping v3.2.0 contract templates via isolated rollupcreator deployment"
+run env \
+  NITRO_CONTRACTS_BRANCH=$BOLD_NITRO_CONTRACTS_BRANCH \
+  NITRO_CONTRACTS_REPO=$BOLD_NITRO_CONTRACTS_REPO \
+  docker compose run --build \
+  -e MAX_DATA_SIZE=117964 \
+  -e PARENT_CHAIN_RPC="http://geth:8545" \
+  -e DEPLOYER_PRIVKEY=$PRIVATE_KEY \
+  -e PARENT_CHAIN_ID=$PARENT_CHAIN_CHAIN_ID \
+  -e CHILD_CHAIN_NAME="arb-dev-bold-bootstrap" \
+  -e OWNER_ADDRESS=$OWNER_ADDRESS \
+  -e WASM_MODULE_ROOT=0xdb698a2576298f25448bc092e52cf13b1e24141c997135d70f217d674bbeb69a \
+  -e SEQUENCER_ADDRESS=0xe2148eE53c0755215Df69b2616E552154EdC584f \
+  -e AUTHORIZE_VALIDATORS=10 \
+  -e CHILD_CHAIN_CONFIG_PATH="/config/l2_chain_config.json" \
+  -e CHAIN_DEPLOYMENT_INFO="/config/bold-template-deployment.json" \
+  -e CHILD_CHAIN_INFO="/config/bold-template-chain-info.json" \
+  -e ENABLE_ESPRESSO_CAS=1 \
+  -e TEE_VERIFIER_INFO="/config/bold-template-tee-verifier.txt" \
+  -e LIGHT_CLIENT_ADDR=0xb7fc0e52ec06f125f3afeba199248c79f71c2e3a \
+  rollupcreator create-rollup-testnode
+
+info "Deploying standalone stake token for BoLD"
+STAKE_TOKEN_DEPLOY_LOG=$(mktemp -t bold-stake-token-XXXXXXXX)
+cd "$ORBIT_ACTIONS_DIR"
+if [ "$DEBUG" = "true" ]; then
+  forge create --rpc-url $PARENT_CHAIN_RPC_URL --private-key $PRIVATE_KEY --broadcast \
+    lib/nitro-contracts-v3/src/mocks/TestWETH9.sol:TestWETH9 \
+    --constructor-args "Wrapped Ether" "WETH" 2>&1 | tee "$STAKE_TOKEN_DEPLOY_LOG"
+else
+  forge create --rpc-url $PARENT_CHAIN_RPC_URL --private-key $PRIVATE_KEY --broadcast \
+    lib/nitro-contracts-v3/src/mocks/TestWETH9.sol:TestWETH9 \
+    --constructor-args "Wrapped Ether" "WETH" 2>&1 | tee "$STAKE_TOKEN_DEPLOY_LOG" | fmt
+fi
+cd "$TESTNODE_DIR"
+STAKE_TOKEN=$(grep 'Deployed to:' "$STAKE_TOKEN_DEPLOY_LOG" | tail -n 1 | awk '{print $3}' | trim-last)
+if [ -z "$STAKE_TOKEN" ] || [ "$STAKE_TOKEN" = "null" ]; then
+  fail "Could not deploy or extract BoLD stake token address"
+fi
+declare -p STAKE_TOKEN
+
+# ── Phase 7: BoLD upgrade ──
+
+info "Phase 7: Executing BoLD upgrade to espresso-v3.2.0"
+
+BOLD_CONFIG_DIR=$(mktemp -d -t bold-config-XXXXXXXX)
+BOLD_UPGRADE_LOG_FILE=$(mktemp -t bold-upgrade-XXXXXXXX)
+
+info "Generating custom.ts config for BoLD upgrade"
+cat > "$BOLD_CONFIG_DIR/custom.ts" << CUSTOM_TS_EOF
+import { parseEther } from 'ethers/lib/utils'
+import { Config } from '../../boldUpgradeCommon'
+
+export const custom: Config = {
+  contracts: {
+    bridge: '$BRIDGE_ADDRESS',
+    inbox: '$INBOX_ADDRESS',
+    outbox: '$OUTBOX_ADDRESS',
+    rollup: '$ROLLUP_ADDRESS',
+    sequencerInbox: '$SEQUENCER_INBOX_ADDRESS',
+    excessStakeReceiver: '0x0000000000000000000000000000000000000001',
+    rollupEventInbox: '$REI_ADDRESS',
+    upgradeExecutor: '$PARENT_CHAIN_UPGRADE_EXECUTOR',
+  },
+  proxyAdmins: {
+    outbox: '$PROXY_ADMIN_ADDRESS',
+    inbox: '$PROXY_ADMIN_ADDRESS',
+    bridge: '$PROXY_ADMIN_ADDRESS',
+    rei: '$PROXY_ADMIN_ADDRESS',
+    seqInbox: '$PROXY_ADMIN_ADDRESS',
+  },
+  settings: {
+    challengeGracePeriodBlocks: 10,
+    confirmPeriodBlocks: 1,
+    challengePeriodBlocks: 110,
+    stakeToken: '$STAKE_TOKEN',
+    stakeAmt: parseEther('1'),
+    miniStakeAmounts: [parseEther('0'), parseEther('1'), parseEther('1')],
+    chainId: 412346,
+    minimumAssertionPeriod: 15,
+    validatorAfkBlocks: 201600,
+    disableValidatorWhitelist: true,
+    blockLeafSize: 2 ** 26,
+    bigStepLeafSize: 2 ** 19,
+    smallStepLeafSize: 2 ** 23,
+    numBigStepLevel: 1,
+    maxDataSize: 117964,
+    isDelayBufferable: false,
+    bufferConfig: {
+      max: 2 ** 32 - 1,
+      threshold: 2 ** 32 - 1,
+      replenishRateInBasis: 500,
+    },
+  },
+  validators: [],
+}
+CUSTOM_TS_EOF
+
+info "Running BoLD upgrade scripts (prepare, populate-lookup, execute)"
+if [ "$DEBUG" = "true" ]; then
+  NITRO_CONTRACTS_BRANCH=$BOLD_NITRO_CONTRACTS_BRANCH \
+  NITRO_CONTRACTS_REPO=$BOLD_NITRO_CONTRACTS_REPO \
+  docker compose run --build \
+  -v "$BOLD_CONFIG_DIR/custom.ts:/workspace/scripts/files/configs/custom.ts:ro" \
+  -v "$TEST_DIR/cas-boldTemplatesV3.1.ts:/workspace/scripts/files/templatesV3.1.ts:ro" \
+  -e CONFIG_NETWORK_NAME=custom \
+  -e DEPLOYED_CONTRACTS_DIR=./scripts/files/ \
+  -e DISABLE_VERIFICATION=true \
+  -e CUSTOM_RPC_URL="http://geth:8545" \
+  -e CUSTOM_CHAINID=$PARENT_CHAIN_CHAIN_ID \
+  -e CUSTOM_PRIVKEY=$PRIVATE_KEY \
+  -e L1_PRIV_KEY=$PRIVATE_KEY \
+  --entrypoint sh \
+  rollupcreator -lc '
+  export PATH="/root/.foundry/bin:$PATH"
+  forge --version &&
+  yarn script:bold-prepare --network custom &&
+  yarn script:bold-populate-lookup --network custom &&
+  yarn script:bold-local-execute --network custom' 2>&1 | tee "$BOLD_UPGRADE_LOG_FILE"
+else
+  NITRO_CONTRACTS_BRANCH=$BOLD_NITRO_CONTRACTS_BRANCH \
+  NITRO_CONTRACTS_REPO=$BOLD_NITRO_CONTRACTS_REPO \
+  docker compose run --build \
+  -v "$BOLD_CONFIG_DIR/custom.ts:/workspace/scripts/files/configs/custom.ts:ro" \
+  -v "$TEST_DIR/cas-boldTemplatesV3.1.ts:/workspace/scripts/files/templatesV3.1.ts:ro" \
+  -e CONFIG_NETWORK_NAME=custom \
+  -e DEPLOYED_CONTRACTS_DIR=./scripts/files/ \
+  -e DISABLE_VERIFICATION=true \
+  -e CUSTOM_RPC_URL="http://geth:8545" \
+  -e CUSTOM_CHAINID=$PARENT_CHAIN_CHAIN_ID \
+  -e CUSTOM_PRIVKEY=$PRIVATE_KEY \
+  -e L1_PRIV_KEY=$PRIVATE_KEY \
+  --entrypoint sh \
+  rollupcreator -lc '
+  export PATH="/root/.foundry/bin:$PATH"
+  forge --version &&
+  yarn script:bold-prepare --network custom &&
+  yarn script:bold-populate-lookup --network custom &&
+  yarn script:bold-local-execute --network custom' 2>&1 | tee "$BOLD_UPGRADE_LOG_FILE" | fmt
+fi
+
+info "BoLD upgrade executed"
+
+NEW_ROLLUP_ADDRESS=$(grep 'BOLD Rollup:' "$BOLD_UPGRADE_LOG_FILE" | tail -n 1 | awk '{print $3}' | trim-last)
+if [ -z "$NEW_ROLLUP_ADDRESS" ] || [ "$NEW_ROLLUP_ADDRESS" = "null" ]; then
+  fail "Could not extract new BoLD rollup address from upgrade output"
+fi
+declare -p NEW_ROLLUP_ADDRESS
+
+info "Re-setting EspressoTEEVerifier on upgraded SequencerInbox"
+declare -p ESPRESSO_TEE_VERIFIER_ADDRESS
+run cast send $PARENT_CHAIN_UPGRADE_EXECUTOR "executeCall(address,bytes)" \
+  $SEQUENCER_INBOX_ADDRESS \
+  "$(cast calldata 'setEspressoTEEVerifier(address)' $ESPRESSO_TEE_VERIFIER_ADDRESS)" \
+  --rpc-url $PARENT_CHAIN_RPC_URL --private-key $PRIVATE_KEY
+
+# ── Phase 8: Reconfigure nodes for BoLD ──
+
+info "Phase 8: Reconfiguring nodes for BoLD"
+
+info "Stopping all nodes"
+run docker compose stop sequencer poster validator staker-unsafe 2>/dev/null || true
+
+info "Updating deployed chain info with BoLD rollup and stake token"
+docker compose run --entrypoint sh rollupcreator -c "jq '.[0].rollup.rollup = \"$NEW_ROLLUP_ADDRESS\" | .[0].rollup[\"stake-token\"] = \"$STAKE_TOKEN\" | .[0][\"chain-config\"].arbitrum.EspressoTEEVerifierAddress = \"$ESPRESSO_TEE_VERIFIER_ADDRESS\"' /config/deployed_chain_info.json > /tmp/patched.json && mv /tmp/patched.json /config/deployed_chain_info.json"
+
+info "Regenerating l2 chain info files"
+docker compose run --entrypoint sh rollupcreator -c "jq [.[]] /config/deployed_chain_info.json > /config/l2_chain_info.json"
+docker compose run --entrypoint sh rollupcreator -c "jq [.[]] /config/deployed_chain_info.json > /espresso-config/l2_chain_info.json"
+
+ROLLUP_ADDRESS=$NEW_ROLLUP_ADDRESS
+
+info "Regenerating CAS and node configs for BoLD"
+run docker compose run -e TEE_VERIFIER_ADDRESS=$ESPRESSO_TEE_VERIFIER_ADDRESS scripts write-cas-config
+run docker compose run scripts write-config --cas --anytrust --dasBlsA $das_bls_a --dasBlsB $das_bls_b --lightClientAddress 0xb7fc0e52ec06f125f3afeba199248c79f71c2e3a
+
+info "Enabling staker with MakeNodes strategy for BoLD"
+docker compose run --entrypoint sh rollupcreator -c "
+  jq '.node.staker.enable = true | .node.staker.strategy = \"MakeNodes\"' /config/validator_config.json > /tmp/v.json && mv /tmp/v.json /config/validator_config.json &&
+  jq '.node.staker.enable = true | .node.staker.strategy = \"MakeNodes\"' /config/unsafe_staker_config.json > /tmp/s.json && mv /tmp/s.json /config/unsafe_staker_config.json
+"
+
+info "Restarting nodes with BoLD config"
+run docker compose up -d sequencer validator validation_node poster
+
+info "Waiting for sequencer to be healthy after BoLD upgrade"
+START=$SECONDS
+while ! curl -sf http://localhost:8547 > /dev/null 2>&1; do
+  if [ $(( SECONDS - START )) -ge $MAX_WAIT_SECONDS ]; then
+    fail "Sequencer did not become healthy after BoLD upgrade within ${MAX_WAIT_SECONDS}s"
+  fi
+  sleep 5
+  echo "Waited $(( SECONDS - START ))s for sequencer after BoLD..."
+done
+info "Sequencer is healthy after BoLD upgrade"
+
+# ── Phase 9: Verify post-BoLD upgrade ──
+
+info "Phase 9: Verifying post-BoLD upgrade"
+
+info "Testing chain is functional post-BoLD upgrade"
+BALANCE_BEFORE_BOLD=$(cast balance $RECIPIENT_ADDRESS -e --rpc-url $CHILD_CHAIN_RPC_URL)
+run cast send $RECIPIENT_ADDRESS --value 1ether --rpc-url $CHILD_CHAIN_RPC_URL --private-key $PRIVATE_KEY
+BALANCE_AFTER_BOLD=$(cast balance $RECIPIENT_ADDRESS -e --rpc-url $CHILD_CHAIN_RPC_URL)
+if [ "$BALANCE_AFTER_BOLD" == "$BALANCE_BEFORE_BOLD" ]; then
+  fail "Post-BoLD: balance of $RECIPIENT_ADDRESS should have changed but remained: $BALANCE_BEFORE_BOLD"
+fi
+info "Post-BoLD chain is functional"
+
+info "Waiting for batch count to increase after BoLD (max ${MAX_WAIT_SECONDS}s)"
+BATCH_COUNT_BOLD_START=$(cast call --rpc-url $PARENT_CHAIN_RPC_URL $SEQUENCER_INBOX_ADDRESS 'batchCount()(uint256)')
+START=$SECONDS
+while true; do
+  BATCH_COUNT_NOW=$(cast call --rpc-url $PARENT_CHAIN_RPC_URL $SEQUENCER_INBOX_ADDRESS 'batchCount()(uint256)')
+  if [ "$BATCH_COUNT_NOW" != "$BATCH_COUNT_BOLD_START" ]; then
+    info "Post-BoLD batch count progressed: $BATCH_COUNT_BOLD_START -> $BATCH_COUNT_NOW"
+    break
+  fi
+  if [ $(( SECONDS - START )) -ge $MAX_WAIT_SECONDS ]; then
+    fail "Post-BoLD batch count did not increase within ${MAX_WAIT_SECONDS}s (stuck at $BATCH_COUNT_BOLD_START)"
+  fi
+  cast send $RECIPIENT_ADDRESS --value 0.001ether --rpc-url $CHILD_CHAIN_RPC_URL --private-key $PRIVATE_KEY > /dev/null 2>&1 || true
+  sleep 5
+  echo "Waited $(( SECONDS - START ))s for post-BoLD batch posting..."
+done
+
+info "Waiting for validator to stake on a BoLD assertion (max ${MAX_WAIT_SECONDS}s)"
+ZERO_HASH=0x0000000000000000000000000000000000000000000000000000000000000000
+LATEST_STAKED_START=$(cast call --rpc-url $PARENT_CHAIN_RPC_URL $ROLLUP_ADDRESS 'latestStakedAssertion(address)(bytes32)' $VALIDATOR_ADDRESS)
+START=$SECONDS
+while true; do
+  LATEST_STAKED_NOW=$(cast call --rpc-url $PARENT_CHAIN_RPC_URL $ROLLUP_ADDRESS 'latestStakedAssertion(address)(bytes32)' $VALIDATOR_ADDRESS)
+  if [ "$LATEST_STAKED_NOW" != "$ZERO_HASH" ] && [ "$LATEST_STAKED_NOW" != "$LATEST_STAKED_START" ]; then
+    info "Validator staked on BoLD assertion: $LATEST_STAKED_START -> $LATEST_STAKED_NOW"
+    break
+  fi
+  if [ $(( SECONDS - START )) -ge $MAX_WAIT_SECONDS ]; then
+    fail "Validator did not stake on a new BoLD assertion within ${MAX_WAIT_SECONDS}s"
+  fi
+  cast send $RECIPIENT_ADDRESS --value 0.001ether --rpc-url $CHILD_CHAIN_RPC_URL --private-key $PRIVATE_KEY > /dev/null 2>&1 || true
+  sleep 5
+  echo "Waited $(( SECONDS - START ))s for BoLD assertion staking..."
+done
+
+# ── Phase 10: Cleanup ──
 
 echo
 echo "========================================="
-echo "  CAS Migration Test PASSED"
+echo "  CAS Migration + BoLD Upgrade Test PASSED"
 echo "========================================="
 echo
 
