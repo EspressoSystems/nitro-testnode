@@ -65,11 +65,14 @@ export async function verifyCreatorTemplates(
   }
 
   for (const [key, value] of Object.entries(templates)) {
+    if (value == null) {
+      throw new Error(`Template property ${key} is null or undefined`)
+    }
     if (typeof value === 'string') {
       await checkAddress(key, value)
     } else {
       for (const [subkey, subvalue] of Object.entries(value)) {
-        await checkAddress(`${key}.${subkey}`, subvalue)
+        await checkAddress(`${key}.${subkey}`, subvalue as string)
       }
     }
   }

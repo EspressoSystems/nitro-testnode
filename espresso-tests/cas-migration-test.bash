@@ -357,6 +357,10 @@ info "Phase 6: Deploying espresso-v3.2.0 contract templates and stake token"
 
 BOLD_NITRO_CONTRACTS_BRANCH=espresso-v3.2.0
 BOLD_NITRO_CONTRACTS_REPO=https://github.com/EspressoSystems/nitro-contracts.git
+LIGHT_CLIENT_ADDRESS=0xb7fc0e52ec06f125f3afeba199248c79f71c2e3a
+
+SEQUENCER_ADDRESS="$(docker compose run scripts print-address --account sequencer 2>/dev/null | trim-last)"
+declare -p SEQUENCER_ADDRESS
 
 info "Extracting additional contract addresses needed for BoLD config"
 BRIDGE_ADDRESS=$(get-addr /config/deployed_chain_info.json '.[0].rollup.bridge')
@@ -384,30 +388,25 @@ run env \
   -e CHILD_CHAIN_NAME="arb-dev-bold-bootstrap" \
   -e OWNER_ADDRESS=$OWNER_ADDRESS \
   -e WASM_MODULE_ROOT=0xdb698a2576298f25448bc092e52cf13b1e24141c997135d70f217d674bbeb69a \
-  -e SEQUENCER_ADDRESS=0xe2148eE53c0755215Df69b2616E552154EdC584f \
+  -e SEQUENCER_ADDRESS=$SEQUENCER_ADDRESS \
   -e AUTHORIZE_VALIDATORS=10 \
   -e CHILD_CHAIN_CONFIG_PATH="/config/l2_chain_config.json" \
   -e CHAIN_DEPLOYMENT_INFO="/config/bold-template-deployment.json" \
   -e CHILD_CHAIN_INFO="/config/bold-template-chain-info.json" \
   -e ENABLE_ESPRESSO_CAS=1 \
   -e TEE_VERIFIER_INFO="/config/bold-template-tee-verifier.txt" \
-  -e LIGHT_CLIENT_ADDR=0xb7fc0e52ec06f125f3afeba199248c79f71c2e3a \
+  -e LIGHT_CLIENT_ADDR=$LIGHT_CLIENT_ADDRESS \
   rollupcreator create-rollup-testnode
 
 info "Deploying standalone stake token for BoLD"
 STAKE_TOKEN_DEPLOY_LOG=$(mktemp -t bold-stake-token-XXXXXXXX)
 cd "$ORBIT_ACTIONS_DIR"
-if [ "$DEBUG" = "true" ]; then
-  forge create --rpc-url $PARENT_CHAIN_RPC_URL --private-key $PRIVATE_KEY --broadcast \
-    lib/nitro-contracts-v3/src/mocks/TestWETH9.sol:TestWETH9 \
-    --constructor-args "Wrapped Ether" "WETH" 2>&1 | tee "$STAKE_TOKEN_DEPLOY_LOG"
-else
-  forge create --rpc-url $PARENT_CHAIN_RPC_URL --private-key $PRIVATE_KEY --broadcast \
-    lib/nitro-contracts-v3/src/mocks/TestWETH9.sol:TestWETH9 \
-    --constructor-args "Wrapped Ether" "WETH" 2>&1 | tee "$STAKE_TOKEN_DEPLOY_LOG" | fmt
-fi
+forge create --rpc-url $PARENT_CHAIN_RPC_URL --private-key $PRIVATE_KEY --broadcast \
+  lib/nitro-contracts-v3/src/mocks/TestWETH9.sol:TestWETH9 \
+  --constructor-args "Wrapped Ether" "WETH" 2>&1 | tee "$STAKE_TOKEN_DEPLOY_LOG" | fmt
 cd "$TESTNODE_DIR"
 STAKE_TOKEN=$(grep 'Deployed to:' "$STAKE_TOKEN_DEPLOY_LOG" | tail -n 1 | awk '{print $3}' | trim-last)
+rm -f "$STAKE_TOKEN_DEPLOY_LOG"
 if [ -z "$STAKE_TOKEN" ] || [ "$STAKE_TOKEN" = "null" ]; then
   fail "Could not deploy or extract BoLD stake token address"
 fi
@@ -471,29 +470,8 @@ export const custom: Config = {
 CUSTOM_TS_EOF
 
 info "Running BoLD upgrade scripts (prepare, populate-lookup, execute)"
-if [ "$DEBUG" = "true" ]; then
-  NITRO_CONTRACTS_BRANCH=$BOLD_NITRO_CONTRACTS_BRANCH \
-  NITRO_CONTRACTS_REPO=$BOLD_NITRO_CONTRACTS_REPO \
-  docker compose run --build \
-  -v "$BOLD_CONFIG_DIR/custom.ts:/workspace/scripts/files/configs/custom.ts:ro" \
-  -v "$TEST_DIR/cas-boldTemplatesV3.1.ts:/workspace/scripts/files/templatesV3.1.ts:ro" \
-  -e CONFIG_NETWORK_NAME=custom \
-  -e DEPLOYED_CONTRACTS_DIR=./scripts/files/ \
-  -e DISABLE_VERIFICATION=true \
-  -e CUSTOM_RPC_URL="http://geth:8545" \
-  -e CUSTOM_CHAINID=$PARENT_CHAIN_CHAIN_ID \
-  -e CUSTOM_PRIVKEY=$PRIVATE_KEY \
-  -e L1_PRIV_KEY=$PRIVATE_KEY \
-  --entrypoint sh \
-  rollupcreator -lc '
-  export PATH="/root/.foundry/bin:$PATH"
-  forge --version &&
-  yarn script:bold-prepare --network custom &&
-  yarn script:bold-populate-lookup --network custom &&
-  yarn script:bold-local-execute --network custom' 2>&1 | tee "$BOLD_UPGRADE_LOG_FILE"
-else
-  NITRO_CONTRACTS_BRANCH=$BOLD_NITRO_CONTRACTS_BRANCH \
-  NITRO_CONTRACTS_REPO=$BOLD_NITRO_CONTRACTS_REPO \
+NITRO_CONTRACTS_BRANCH=$BOLD_NITRO_CONTRACTS_BRANCH \
+NITRO_CONTRACTS_REPO=$BOLD_NITRO_CONTRACTS_REPO \
   docker compose run --build \
   -v "$BOLD_CONFIG_DIR/custom.ts:/workspace/scripts/files/configs/custom.ts:ro" \
   -v "$TEST_DIR/cas-boldTemplatesV3.1.ts:/workspace/scripts/files/templatesV3.1.ts:ro" \
@@ -511,11 +489,11 @@ else
   yarn script:bold-prepare --network custom &&
   yarn script:bold-populate-lookup --network custom &&
   yarn script:bold-local-execute --network custom' 2>&1 | tee "$BOLD_UPGRADE_LOG_FILE" | fmt
-fi
 
 info "BoLD upgrade executed"
 
 NEW_ROLLUP_ADDRESS=$(grep 'BOLD Rollup:' "$BOLD_UPGRADE_LOG_FILE" | tail -n 1 | awk '{print $3}' | trim-last)
+rm -rf "$BOLD_CONFIG_DIR" "$BOLD_UPGRADE_LOG_FILE"
 if [ -z "$NEW_ROLLUP_ADDRESS" ] || [ "$NEW_ROLLUP_ADDRESS" = "null" ]; then
   fail "Could not extract new BoLD rollup address from upgrade output"
 fi
@@ -546,7 +524,7 @@ ROLLUP_ADDRESS=$NEW_ROLLUP_ADDRESS
 
 info "Regenerating CAS and node configs for BoLD"
 run docker compose run -e TEE_VERIFIER_ADDRESS=$ESPRESSO_TEE_VERIFIER_ADDRESS scripts write-cas-config
-run docker compose run scripts write-config --cas --anytrust --dasBlsA $das_bls_a --dasBlsB $das_bls_b --lightClientAddress 0xb7fc0e52ec06f125f3afeba199248c79f71c2e3a
+run docker compose run scripts write-config --cas --anytrust --dasBlsA $das_bls_a --dasBlsB $das_bls_b --lightClientAddress $LIGHT_CLIENT_ADDRESS
 
 info "Enabling staker with MakeNodes strategy for BoLD"
 docker compose run --entrypoint sh rollupcreator -c "
